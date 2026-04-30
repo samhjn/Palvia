@@ -169,7 +169,7 @@ struct SkillDetailView: View {
     /// produce a zip representation of `dir`. The coordinated URL is
     /// auto-cleaned when the closure returns, so we copy it to a stable
     /// temp file before letting the closure exit.
-    static func prepareShareableArchive(of dir: URL) -> URL? {
+    nonisolated static func prepareShareableArchive(of dir: URL) -> URL? {
         let stem = "\(dir.lastPathComponent)-\(UUID().uuidString.prefix(8).lowercased()).zip"
         let stable = FileManager.default.temporaryDirectory.appendingPathComponent(stem)
 

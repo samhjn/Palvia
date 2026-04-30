@@ -12,6 +12,21 @@ struct BrowserTools {
             }
             return "[Error] Missing required parameter: url or action"
         }
+
+        if let (agentId, filename) = AgentFileManager.parseFileReference(url) {
+            let ext = (filename as NSString).pathExtension.lowercased()
+            guard ["html", "htm"].contains(ext) else {
+                return "[Error] Only HTML files can be opened in the browser. Got: \(filename)"
+            }
+            let fileURL = AgentFileManager.shared.fileURL(agentId: agentId, name: filename)
+            guard FileManager.default.fileExists(atPath: fileURL.path) else {
+                return "[Error] File not found: \(filename)"
+            }
+            let result = await BrowserService.shared.loadAgentFile(fileURL: fileURL, agentId: agentId)
+            await refreshLock()
+            return formatResult(result)
+        }
+
         let result = await BrowserService.shared.navigate(to: url)
         await refreshLock()
         return formatResult(result)

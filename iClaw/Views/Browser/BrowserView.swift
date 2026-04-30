@@ -96,6 +96,21 @@ struct BrowserView: View {
 
     // MARK: - Address Bar
 
+    private var isLocalFile: Bool { browser.currentAgentScope != nil }
+
+    /// For local Agent files, show a short friendly path instead of the raw
+    /// `file://` URL (e.g. "index.html" or "pages/about.html").
+    private func displayURL(for url: URL) -> String {
+        if let scope = browser.currentAgentScope, url.isFileURL {
+            let scopePath = scope.path.hasSuffix("/") ? scope.path : scope.path + "/"
+            let full = url.standardizedFileURL.path
+            if full.hasPrefix(scopePath) {
+                return String(full.dropFirst(scopePath.count))
+            }
+        }
+        return url.absoluteString
+    }
+
     @ViewBuilder
     private var addressBar: some View {
         HStack(spacing: 8) {
@@ -105,9 +120,9 @@ struct BrowserView: View {
                         .scaleEffect(0.7)
                         .frame(width: 16, height: 16)
                 } else {
-                    Image(systemName: "globe")
+                    Image(systemName: isLocalFile ? "doc" : "globe")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(isLocalFile ? .orange : .secondary)
                 }
 
                 TextField(L10n.Browser.urlPlaceholder, text: $urlText, onEditingChanged: { editing in
@@ -145,7 +160,7 @@ struct BrowserView: View {
         .padding(.vertical, 6)
         .onChange(of: browser.currentURL) { _, newURL in
             if !isEditing, let url = newURL {
-                urlText = url.absoluteString
+                urlText = displayURL(for: url)
             }
         }
     }

@@ -45,5 +45,8 @@ struct ContentView: View {
         }
         .imagePreviewOverlay()
         .textFilePreviewOverlay()
+        .onReceive(NotificationCenter.default.publisher(for: BrowserService.switchToBrowserTabNotification)) { _ in
+            selectedTab = .browser
+        }
     }
 }

@@ -267,6 +267,8 @@ struct iClawApp: App {
         }
     }
 
+    private static let htmlExtensions: Set<String> = ["html", "htm"]
+
     private func handleAgentFileLink(_ url: URL) {
         let ref = url.absoluteString
         guard let (agentId, filename) = AgentFileManager.parseFileReference(ref) else { return }
@@ -277,6 +279,12 @@ struct iClawApp: App {
             if let data = AgentFileManager.shared.loadImageData(from: ref),
                let image = UIImage(data: data) {
                 ImagePreviewCoordinator.shared.show(image)
+            }
+        } else if Self.htmlExtensions.contains(ext) {
+            let fileURL = AgentFileManager.shared.fileURL(agentId: agentId, name: filename)
+            guard FileManager.default.fileExists(atPath: fileURL.path) else { return }
+            Task { @MainActor in
+                await BrowserService.shared.loadAgentFile(fileURL: fileURL, agentId: agentId)
             }
         } else if TextFilePreviewCoordinator.textExtensions.contains(ext) {
             if let data = try? AgentFileManager.shared.readFile(agentId: agentId, name: filename),

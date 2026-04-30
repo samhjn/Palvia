@@ -15,6 +15,14 @@ final class BrowserService: NSObject {
     private(set) var canGoForward: Bool = false
     private(set) var estimatedProgress: Double = 0
 
+    /// When non-nil the browser is showing a local Agent HTML file and only
+    /// `file://` URLs under this directory are allowed by the navigation policy.
+    private(set) var currentAgentScope: URL?
+
+    /// Notification posted when a local Agent file is loaded and the UI should
+    /// switch to the Browser tab.
+    static let switchToBrowserTabNotification = Notification.Name("BrowserService.switchToBrowserTab")
+
     // MARK: - Mutex Lock
 
     private(set) var lockedBySessionId: UUID?
@@ -113,6 +121,7 @@ final class BrowserService: NSObject {
         webView.load(URLRequest(url: URL(string: "about:blank")!))
         currentURL = nil
         pageTitle = nil
+        currentAgentScope = nil
     }
 
     // MARK: - Navigation
@@ -122,11 +131,31 @@ final class BrowserService: NSObject {
         guard let url = URL(string: urlString) ?? URL(string: "https://\(urlString)") else {
             return .failure(.invalidURL(urlString))
         }
+        currentAgentScope = nil
         let request = URLRequest(url: url)
         webView.load(request)
         let success = await waitForNavigation(timeout: 30)
         if success {
             return .success("Navigated to \(webView.url?.absoluteString ?? urlString) — \(webView.title ?? "")")
+        } else {
+            return .failure(.navigationTimeout)
+        }
+    }
+
+    // MARK: - Local Agent File
+
+    /// Load an HTML file from the Agent's file directory in the browser.
+    /// The entire Agent root directory is set as the readable scope so that
+    /// relative references to JS, CSS, images, etc. within the Agent work.
+    @discardableResult
+    func loadAgentFile(fileURL: URL, agentId: UUID) async -> Result<String, BrowserError> {
+        let agentDir = AgentFileManager.shared.agentDirectory(for: agentId)
+        currentAgentScope = agentDir.standardizedFileURL
+        webView.loadFileURL(fileURL, allowingReadAccessTo: agentDir)
+        let success = await waitForNavigation(timeout: 15)
+        if success {
+            NotificationCenter.default.post(name: Self.switchToBrowserTabNotification, object: nil)
+            return .success("Loaded \(fileURL.lastPathComponent)")
         } else {
             return .failure(.navigationTimeout)
         }
@@ -592,6 +621,39 @@ final class BrowserService: NSObject {
 // MARK: - WKNavigationDelegate
 
 extension BrowserService: WKNavigationDelegate {
+    nonisolated func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        // WebKit always calls delegate methods on the main thread.
+        MainActor.assumeIsolated {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.allow)
+                return
+            }
+
+            guard url.isFileURL else {
+                decisionHandler(.allow)
+                return
+            }
+
+            // Allow file:// navigation only when an Agent scope is active and
+            // the target stays within that scope directory.
+            if let scope = self.currentAgentScope {
+                let scopePath = scope.path.hasSuffix("/") ? scope.path : scope.path + "/"
+                let targetPath = url.standardizedFileURL.path
+                if targetPath.hasPrefix(scopePath) || targetPath == scope.path {
+                    decisionHandler(.allow)
+                } else {
+                    decisionHandler(.cancel)
+                }
+            } else {
+                decisionHandler(.cancel)
+            }
+        }
+    }
+
     nonisolated func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         Task { @MainActor in completeNavigation(success: true) }
     }

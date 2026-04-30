@@ -549,6 +549,13 @@ struct FileInfo: Identifiable {
 
     var id: String { name }
 
+    private static let htmlExtensions: Set<String> = ["html", "htm"]
+
+    var isHTML: Bool {
+        let ext = (name as NSString).pathExtension.lowercased()
+        return Self.htmlExtensions.contains(ext)
+    }
+
     var isTextPreviewable: Bool {
         let ext = (name as NSString).pathExtension.lowercased()
         return TextFilePreviewCoordinator.textExtensions.contains(ext)

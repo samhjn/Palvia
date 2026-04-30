@@ -260,6 +260,10 @@ private struct FileRowView: View {
                 ImagePreviewCoordinator.shared.show(img)
             } else if file.isVideo {
                 showVideoPlayer = true
+            } else if file.isHTML {
+                Task {
+                    await BrowserService.shared.loadAgentFile(fileURL: fileURL, agentId: agentId)
+                }
             } else if file.isTextPreviewable, let data = try? AgentFileManager.shared.readFile(agentId: agentId, name: relativePath),
                       let text = String(data: data, encoding: .utf8) {
                 TextFilePreviewCoordinator.shared.show(content: text, filename: file.name)
