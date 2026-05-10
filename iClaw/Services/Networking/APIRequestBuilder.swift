@@ -44,7 +44,7 @@ enum APIRequestBuilder {
         case .anthropic:
             request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
             request.addValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        case .openAI, .googleVeo, .dashScope, .kling, .seedance:
+        case .openAI, .openAIResponses, .googleVeo, .dashScope, .kling, .seedance:
             // All non-Anthropic protocols use Bearer token auth
             request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }

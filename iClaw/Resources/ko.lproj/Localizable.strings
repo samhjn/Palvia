@@ -413,13 +413,14 @@
 "provider.providerType.video" = "동영상 생성 (실험적)";
 "provider.providerTypeFooter" = "LLM 제공자는 채팅 완성을 처리합니다. 동영상 제공자는 Kling, Veo, DashScope 등 동영상 생성 API 전용입니다.";
 "provider.apiStyle" = "API 프로토콜";
+"provider.apiStyle.openAIResponses" = "OpenAI Responses API";
 "provider.apiStyle.openAI" = "OpenAI 호환";
 "provider.apiStyle.anthropic" = "Anthropic";
 "provider.apiStyle.googleVeo" = "Google Veo";
 "provider.apiStyle.dashScope" = "DashScope (통의완상)";
 "provider.apiStyle.kling" = "Kling";
 "provider.apiStyle.seedance" = "Seedance (ByteDance)";
-"provider.apiStyleFooter" = "요청에 사용할 API 프로토콜을 지정합니다. OpenAI 호환은 대부분의 제공업체(OpenAI, DeepSeek, OpenRouter, Ollama 등)에서 사용됩니다. Anthropic은 Anthropic 네이티브 Messages API입니다.";
+"provider.apiStyleFooter" = "요청에 사용할 API 프로토콜을 지정합니다. OpenAI 호환은 /chat/completions를 사용하며 대부분의 타사 호환 제공업체(DeepSeek, OpenRouter, Ollama 등)에 적합합니다. OpenAI Responses는 /responses를 사용하며 OpenAI 또는 명시적으로 지원하는 제공업체에서만 선택하세요. Anthropic은 Anthropic 네이티브 Messages API입니다.";
 "provider.modelCapabilities" = "모델 기능";
 "provider.presets" = "프리셋";
 

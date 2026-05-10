@@ -725,7 +725,7 @@ struct LLMProviderEditView: View {
             name = name.isEmpty ? "OpenAI" : name
             endpoint = "https://api.openai.com/v1"
             modelName = "gpt-5.4"
-            apiStyle = .openAI
+            apiStyle = .openAIResponses
             enableModel("gpt-5.4")
         }
         presetChip("Anthropic") {

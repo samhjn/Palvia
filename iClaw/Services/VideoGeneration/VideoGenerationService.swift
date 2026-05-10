@@ -99,7 +99,7 @@ struct VideoGenProvider: @unchecked Sendable {
             return klingProvider()
         case .seedance:
             return seedanceProvider()
-        case .openAI, .anthropic:
+        case .openAI, .openAIResponses, .anthropic:
             // OpenAI-compatible REST polling (Sora, Runway, Luma, etc.)
             return restPollingProvider()
         }

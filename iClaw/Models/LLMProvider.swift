@@ -9,8 +9,11 @@ import SwiftData
 enum APIStyle: String, Codable, CaseIterable {
     // LLM / Image protocols
     /// OpenAI-compatible: `/chat/completions`, `/images/generations`, `/videos/generations`.
-    /// Bearer token auth. Used by most providers.
+    /// Bearer token auth. Used by most third-party providers.
     case openAI = "openai"
+    /// OpenAI Responses API: `/responses`. Opt-in because most third-party
+    /// OpenAI-compatible providers still only implement Chat Completions.
+    case openAIResponses = "openai_responses"
     /// Anthropic: `/messages` endpoint, `x-api-key` header, extended thinking.
     case anthropic = "anthropic"
 
@@ -27,6 +30,7 @@ enum APIStyle: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .openAI: return L10n.Provider.apiStyleOpenAI
+        case .openAIResponses: return L10n.Provider.apiStyleOpenAIResponses
         case .anthropic: return L10n.Provider.apiStyleAnthropic
         case .googleVeo: return L10n.Provider.apiStyleGoogleVeo
         case .dashScope: return L10n.Provider.apiStyleDashScope
@@ -36,14 +40,14 @@ enum APIStyle: String, Codable, CaseIterable {
     }
 
     /// Cases relevant for LLM providers.
-    static let llmCases: [APIStyle] = [.openAI, .anthropic]
+    static let llmCases: [APIStyle] = [.openAI, .openAIResponses, .anthropic]
     /// Cases relevant for image-only providers.
     static let imageCases: [APIStyle] = [.openAI, .dashScope]
     /// Cases relevant for video-only providers.
     static let videoCases: [APIStyle] = [.openAI, .googleVeo, .dashScope, .kling, .seedance]
 
-    /// Whether this style supports the LLM adapter (chat completions).
-    var isLLMCapable: Bool { self == .openAI || self == .anthropic }
+    /// Whether this style supports an LLM adapter.
+    var isLLMCapable: Bool { self == .openAI || self == .openAIResponses || self == .anthropic }
 }
 
 /// Thinking / reasoning intensity level.

@@ -80,8 +80,10 @@ final class LLMProviderTests: XCTestCase {
     func testAPIStyleDisplayNames() {
         // Display names come from L10n; just verify they're non-empty and distinct
         XCTAssertFalse(APIStyle.openAI.displayName.isEmpty)
+        XCTAssertFalse(APIStyle.openAIResponses.displayName.isEmpty)
         XCTAssertFalse(APIStyle.anthropic.displayName.isEmpty)
         XCTAssertNotEqual(APIStyle.openAI.displayName, APIStyle.anthropic.displayName)
+        XCTAssertNotEqual(APIStyle.openAI.displayName, APIStyle.openAIResponses.displayName)
     }
 
     @MainActor
@@ -571,7 +573,7 @@ final class LLMProviderTests: XCTestCase {
     }
 
     func testAPIStyleCaseSubsets() {
-        XCTAssertEqual(APIStyle.llmCases, [.openAI, .anthropic])
+        XCTAssertEqual(APIStyle.llmCases, [.openAI, .openAIResponses, .anthropic])
         XCTAssertEqual(APIStyle.imageCases, [.openAI, .dashScope])
         XCTAssertTrue(APIStyle.videoCases.contains(.openAI))
         XCTAssertTrue(APIStyle.videoCases.contains(.googleVeo))
