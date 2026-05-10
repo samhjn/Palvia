@@ -90,7 +90,7 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
     }
 
     func testParseResponsesResponseToChatResponse() throws {
-        let json = """
+        let json = #"""
         {
           "id": "resp_123",
           "output": [
@@ -110,7 +110,7 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
           ],
           "usage": { "input_tokens": 10, "output_tokens": 5, "total_tokens": 15 }
         }
-        """.data(using: .utf8)!
+        """#.data(using: .utf8)!
 
         let response = try makeAdapter().parseChatResponse(data: json)
         XCTAssertEqual(response.id, "resp_123")
