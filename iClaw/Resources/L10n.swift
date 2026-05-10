@@ -528,6 +528,7 @@ enum L10n {
         static var apiStyle: String { tr("provider.apiStyle") }
         static var apiStyleFooter: String { tr("provider.apiStyleFooter") }
         static var apiStyleOpenAI: String { tr("provider.apiStyle.openAI") }
+        static var apiStyleOpenAIResponses: String { tr("provider.apiStyle.openAIResponses") }
         static var apiStyleAnthropic: String { tr("provider.apiStyle.anthropic") }
         static var apiStyleGoogleVeo: String { tr("provider.apiStyle.googleVeo") }
         static var apiStyleDashScope: String { tr("provider.apiStyle.dashScope") }

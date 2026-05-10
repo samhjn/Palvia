@@ -414,13 +414,14 @@
 "provider.providerType.video" = "视频生成 (实验性)";
 "provider.providerTypeFooter" = "LLM 提供商处理对话补全。视频提供商专用于 Kling、Veo、DashScope 等视频生成 API。";
 "provider.apiStyle" = "API 协议";
+"provider.apiStyle.openAIResponses" = "OpenAI Responses API";
 "provider.apiStyle.openAI" = "OpenAI 兼容";
 "provider.apiStyle.anthropic" = "Anthropic";
 "provider.apiStyle.googleVeo" = "Google Veo";
 "provider.apiStyle.dashScope" = "DashScope (通义万相)";
 "provider.apiStyle.kling" = "可灵";
 "provider.apiStyle.seedance" = "即梦 (字节跳动)";
-"provider.apiStyleFooter" = "指定请求使用的 API 协议。OpenAI 兼容适用于大多数提供商（OpenAI、DeepSeek、OpenRouter、Ollama 等）。Anthropic 用于 Anthropic 原生 Messages API。";
+"provider.apiStyleFooter" = "指定请求使用的 API 协议。OpenAI 兼容使用 /chat/completions，适用于大多数三方兼容提供商（DeepSeek、OpenRouter、Ollama 等）。OpenAI Responses 使用 /responses，仅应在 OpenAI 或明确支持该协议的提供商上选择。Anthropic 用于 Anthropic 原生 Messages API。";
 "provider.modelCapabilities" = "模型能力";
 "provider.presets" = "预设";
 

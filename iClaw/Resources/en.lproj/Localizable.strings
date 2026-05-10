@@ -416,13 +416,14 @@
 "provider.providerType.video" = "Video Generation (Experimental)";
 "provider.providerTypeFooter" = "LLM providers handle chat completions. Video providers are dedicated to video generation APIs like Kling, Veo, or DashScope.";
 "provider.apiStyle" = "API Protocol";
+"provider.apiStyle.openAIResponses" = "OpenAI Responses";
 "provider.apiStyle.openAI" = "OpenAI Compatible";
 "provider.apiStyle.anthropic" = "Anthropic";
 "provider.apiStyle.googleVeo" = "Google Veo";
 "provider.apiStyle.dashScope" = "DashScope (Tongyi Wan)";
 "provider.apiStyle.kling" = "Kling";
 "provider.apiStyle.seedance" = "Seedance (ByteDance)";
-"provider.apiStyleFooter" = "Specifies the API protocol for requests. OpenAI Compatible is used by most providers (OpenAI, DeepSeek, OpenRouter, Ollama, etc.). Anthropic is for Anthropic's native Messages API.";
+"provider.apiStyleFooter" = "Specifies the API protocol for requests. OpenAI Compatible uses /chat/completions for most third-party providers (OpenAI-compatible gateways, DeepSeek, OpenRouter, Ollama, etc.). OpenAI Responses uses /responses and should be selected only for OpenAI or providers that explicitly support it. Anthropic is for Anthropic's native Messages API.";
 "provider.modelCapabilities" = "Model Capabilities";
 "provider.presets" = "Presets";
 

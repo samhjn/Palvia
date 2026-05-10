@@ -74,6 +74,8 @@ final class LLMService: @unchecked Sendable {
         switch apiStyle {
         case .anthropic:
             return AnthropicAdapter(context: ctx)
+        case .openAIResponses:
+            return OpenAIResponsesAdapter(context: ctx)
         case .openAI, .googleVeo, .dashScope, .kling, .seedance:
             // Video-specific protocols use OpenAI-compatible chat for any LLM operations
             return OpenAIAdapter(context: ctx)
@@ -93,6 +95,7 @@ final class LLMService: @unchecked Sendable {
         let adapter: LLMAPIAdapter
         switch apiStyle {
         case .anthropic: adapter = AnthropicAdapter(context: ctx)
+        case .openAIResponses: adapter = OpenAIResponsesAdapter(context: ctx)
         case .openAI, .googleVeo, .dashScope, .kling, .seedance:
             adapter = OpenAIAdapter(context: ctx)
         }

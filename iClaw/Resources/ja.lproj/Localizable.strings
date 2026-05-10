@@ -413,13 +413,14 @@
 "provider.providerType.video" = "動画生成 (実験的)";
 "provider.providerTypeFooter" = "LLMプロバイダーはチャット補完を処理します。動画プロバイダーはKling、Veo、DashScopeなどの動画生成APIに特化しています。";
 "provider.apiStyle" = "APIプロトコル";
+"provider.apiStyle.openAIResponses" = "OpenAI Responses API";
 "provider.apiStyle.openAI" = "OpenAI互換";
 "provider.apiStyle.anthropic" = "Anthropic";
 "provider.apiStyle.googleVeo" = "Google Veo";
 "provider.apiStyle.dashScope" = "DashScope (通義万相)";
 "provider.apiStyle.kling" = "Kling";
 "provider.apiStyle.seedance" = "Seedance (ByteDance)";
-"provider.apiStyleFooter" = "リクエストに使用するAPIプロトコルを指定します。OpenAI互換は多くのプロバイダー（OpenAI、DeepSeek、OpenRouter、Ollamaなど）で使用されます。AnthropicはAnthropic独自のMessages APIです。";
+"provider.apiStyleFooter" = "リクエストに使用するAPIプロトコルを指定します。OpenAI互換は /chat/completions を使用し、多くのサードパーティ互換プロバイダー（DeepSeek、OpenRouter、Ollamaなど）向けです。OpenAI Responses は /responses を使用し、OpenAIまたは明示的に対応するプロバイダーでのみ選択してください。AnthropicはAnthropic独自のMessages APIです。";
 "provider.modelCapabilities" = "モデル機能";
 "provider.presets" = "プリセット";
 
