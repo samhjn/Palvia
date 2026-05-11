@@ -197,7 +197,7 @@ final class CronScheduler {
         try? context.save()
     }
 
-    nonisolated static func fetchDueJobs(context: ModelContext, now: Date) -> [CronJob] {
+    static func fetchDueJobs(context: ModelContext, now: Date) -> [CronJob] {
         let descriptor = FetchDescriptor<CronJob>(
             predicate: #Predicate { $0.isEnabled == true }
         )

@@ -32,6 +32,7 @@ struct SessionRowData {
 }
 
 @Observable
+@MainActor
 final class SessionListViewModel {
     var sessions: [Session] = []
     var rowDataCache: [UUID: SessionRowData] = [:]

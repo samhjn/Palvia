@@ -5,6 +5,7 @@ import UIKit
 import AVFoundation
 
 @Observable
+@MainActor
 final class ChatViewModel {
     var messages: [Message] = []
     var inputText: String = "" {
@@ -345,7 +346,7 @@ final class ChatViewModel {
         }
         guard !loadMessagesScheduled else { return }
         loadMessagesScheduled = true
-        DispatchQueue.main.async { [weak self] in
+        Task { [weak self] in
             guard let self else { return }
             self.loadMessagesScheduled = false
             self.messages = self.session.sortedMessages
@@ -1799,7 +1800,7 @@ final class ChatViewModel {
     /// lacks vision or video support. Also strips `agentfile://` image refs from text content
     /// (replacing with `[Image: description]`). Returns counts of stripped media by type.
     @discardableResult
-    static func stripUnsupportedModalities(
+    nonisolated static func stripUnsupportedModalities(
         from messages: inout [LLMChatMessage],
         capabilities: ModelCapabilities
     ) -> StrippedModalities {

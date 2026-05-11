@@ -13,6 +13,7 @@ struct AgentRowData {
 }
 
 @Observable
+@MainActor
 final class AgentViewModel {
     var agents: [Agent] = []
     var rowDataCache: [UUID: AgentRowData] = [:]
