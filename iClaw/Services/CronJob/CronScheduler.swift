@@ -189,6 +189,7 @@ final class CronScheduler {
 
         let now = Date()
         for job in jobs {
+            guard !runningJobIds.contains(job.id) else { continue }
             if let next = try? CronParser.nextFireDate(after: now, for: job.cronExpression) {
                 job.nextRunAt = next
             }

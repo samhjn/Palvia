@@ -204,7 +204,10 @@ final class SkillToolsValidateInstallTests: XCTestCase {
         _ = tools.installSkill(arguments: ["slug": scratchSlug!])
 
         let result = tools.listSkills(arguments: ["scope": "all"])
-        XCTAssertFalse(result.contains("Authored but not installed"),
-                       "After install, the package should appear in the installed list only, got: \(result)")
+        let canonicalName = humanName(forSlug: scratchSlug)
+        XCTAssertTrue(result.contains(canonicalName),
+                      "Installed package should appear somewhere in the list, got: \(result)")
+        XCTAssertFalse(result.contains("slug: `\(scratchSlug!)`)"),
+                       "After install, the package should not appear in the authored-but-uninstalled section, got: \(result)")
     }
 }

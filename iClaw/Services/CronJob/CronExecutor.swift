@@ -18,20 +18,24 @@ final class CronExecutor {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
 
-        // Persist the session→agent association in its own transaction *before*
-        // any other mutations. Bundling insert+agent+isActive+messages into a
-        // single later save (via `claimNextRun`) was racy: if anything in that
-        // larger transaction failed, the session could land in the store
-        // without its agent reference, and downstream UI/RAG code would treat
-        // it as orphaned ("cron-created session has no agent"). Mirrors the
-        // pattern used in `SessionService.createSession` and
-        // `SubAgentManager.createSubAgent`.
+        // Build the session, associate the agent, insert the trigger message,
+        // and advance `nextRunAt` — all in a **single** `context.save()`.
+        //
+        // Previously these were split across two saves (session+agent first,
+        // then claimNextRun second). The first save would dirty Core Data's
+        // relationship graph (inverse update on Agent), and the second save
+        // could then encounter stale/deallocated row-cache entries when
+        // preparing the SQL UPDATE for CronJob, leading to an
+        // `objc_msgSend`-to-freed-object crash inside
+        // `NSSQLBindVariable initWithValue:`.
+        //
+        // A single atomic save eliminates the intermediate state entirely.
+        // If the save fails, nothing is persisted and the job can re-trigger
+        // next cycle — strictly better than persisting a partial state.
         let sessionTitle = "⏰ \(job.name) — \(formatter.string(from: Date()))"
         let session = Session(title: sessionTitle)
         context.insert(session)
         session.agent = agent
-        try? context.save()
-
         session.isActive = true
 
         let triggerMessage = buildTriggerMessage(job: job)
@@ -39,8 +43,10 @@ final class CronExecutor {
         context.insert(userMsg)
         session.messages.append(userMsg)
 
-        // Claim this run before any agent work happens — see `claimNextRun`.
-        claimNextRun(for: job, context: context)
+        if let next = try? CronParser.nextFireDate(after: Date(), for: job.cronExpression) {
+            job.nextRunAt = next
+        }
+        try? context.save()
 
         keepAliveManager?.onSessionStarted(sessionId: session.id, sessionName: sessionTitle)
 
@@ -184,6 +190,7 @@ final class CronExecutor {
     /// network. Standard cron semantics: a failed run is not auto-retried;
     /// the next scheduled fire takes over.
     func claimNextRun(for job: CronJob, context: ModelContext) {
+        guard !job.isDeleted else { return }
         if let next = try? CronParser.nextFireDate(after: Date(), for: job.cronExpression) {
             job.nextRunAt = next
         }
@@ -191,20 +198,20 @@ final class CronExecutor {
     }
 
     private func finalizeJob(_ job: CronJob, session: Session, context: ModelContext) {
+        guard !job.isDeleted else { return }
+
         job.lastRunAt = Date()
         job.runCount += 1
         job.lastSessionId = session.id
         job.updatedAt = Date()
 
-        // Re-advance based on completion time. `executeJob` already advanced
-        // nextRunAt at the start to prevent concurrent re-trigger; this second
-        // pass is the authoritative schedule for the next fire and is always
-        // >= the start-time claim, so it never moves nextRunAt backwards.
         if let next = try? CronParser.nextFireDate(after: Date(), for: job.cronExpression) {
             job.nextRunAt = next
         }
 
-        session.updatedAt = Date()
+        if !session.isDeleted {
+            session.updatedAt = Date()
+        }
         try? context.save()
     }
 
