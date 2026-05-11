@@ -130,15 +130,17 @@ struct SyntaxHighlighter {
                         let delim: [Character] = tripleDouble ? ["\"","\"","\""] : ["'","'","'"]
                         let begin = i
                         i += 3
+                        var foundTerminator = false
                         while i + 2 < chars.count {
                             if chars[i] == delim[0] && chars[i+1] == delim[1] && chars[i+2] == delim[2] {
                                 i += 3
+                                foundTerminator = true
                                 break
                             }
                             if chars[i] == "\\" { i += 1 }
                             i += 1
                         }
-                        if i > chars.count { i = chars.count }
+                        if !foundTerminator { i = chars.count }
                         tokens.append((String(chars[begin..<i]), .string))
                         continue
                     }
@@ -151,7 +153,10 @@ struct SyntaxHighlighter {
                 let begin = i
                 i += 1
                 while i < chars.count && chars[i] != delim {
-                    if chars[i] == "\\" { i += 1 }
+                    if chars[i] == "\\" {
+                        i += 1
+                        if i >= chars.count { break }
+                    }
                     if chars[i] == "\n" && delim != "`" { break }
                     i += 1
                 }
