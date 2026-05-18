@@ -238,6 +238,55 @@ final class ChatViewModel {
     /// Maps active generation session IDs to their display names.
     private static var activeSessionNames: [UUID: String] = [:]
 
+    // MARK: - Streaming Relay
+
+    /// Bridges real-time streaming content from the generating VM to any
+    /// monitoring (replacement) VM for the same session, avoiding the 1-second
+    /// polling degradation when the original ViewModel is destroyed mid-generation.
+    @MainActor
+    final class StreamingRelay {
+        private(set) var content: String = ""
+        private(set) var thinking: String = ""
+        var messagesDidChange: Bool = false
+        private var continuation: AsyncStream<Void>.Continuation?
+        private var finished = false
+
+        func send(content: String, thinking: String) {
+            self.content = content
+            self.thinking = thinking
+            continuation?.yield()
+        }
+
+        func notifyMessagesChanged() {
+            messagesDidChange = true
+            continuation?.yield()
+        }
+
+        func finish() {
+            finished = true
+            continuation?.finish()
+            continuation = nil
+        }
+
+        /// Returns a stream that yields whenever new content or messages are
+        /// available.  Only one subscriber at a time; a new call replaces the
+        /// previous one (the old continuation is finished first).
+        func makeSubscription() -> AsyncStream<Void> {
+            continuation?.finish()
+            continuation = nil
+            guard !finished else {
+                return AsyncStream { $0.finish() }
+            }
+            let (stream, cont) = AsyncStream<Void>.makeStream()
+            self.continuation = cont
+            return stream
+        }
+    }
+
+    /// Per-session relays — survives ViewModel recreation so a new monitoring
+    /// VM can subscribe to real-time streaming from the orphaned generation.
+    private static var streamingRelays: [UUID: StreamingRelay] = [:]
+
     /// Cancel and clear any active generation for the given session.
     /// Called before session/agent deletion to prevent writes to deleted objects.
     static func cancelAndClearGeneration(for sessionId: UUID) {
@@ -246,6 +295,8 @@ final class ChatViewModel {
         let wasActive = activeGenerations[sessionId] != nil
         activeGenerations[sessionId]?.cancel()
         activeGenerations.removeValue(forKey: sessionId)
+        streamingRelays[sessionId]?.finish()
+        streamingRelays.removeValue(forKey: sessionId)
         dismissedSessions.remove(sessionId)
         if wasActive {
             let name = activeSessionNames.removeValue(forKey: sessionId) ?? ""
@@ -269,6 +320,25 @@ final class ChatViewModel {
     /// Inject a placeholder active generation entry. Test-only.
     static func _simulateActiveGeneration(for sessionId: UUID) {
         activeGenerations[sessionId] = Task {}
+    }
+
+    /// Whether a streaming relay exists for the session. Test-only.
+    static func _hasStreamingRelay(for sessionId: UUID) -> Bool {
+        streamingRelays[sessionId] != nil
+    }
+
+    /// Inject a streaming relay and return it so the test can drive it. Test-only.
+    @discardableResult
+    static func _simulateStreamingRelay(for sessionId: UUID) -> StreamingRelay {
+        let relay = StreamingRelay()
+        streamingRelays[sessionId] = relay
+        return relay
+    }
+
+    /// Finish and remove the streaming relay for the session. Test-only.
+    static func _clearStreamingRelay(for sessionId: UUID) {
+        streamingRelays[sessionId]?.finish()
+        streamingRelays.removeValue(forKey: sessionId)
     }
     #endif
 
@@ -342,6 +412,9 @@ final class ChatViewModel {
             messages = session.sortedMessages
             migrateInlineImages()
             refreshCompressionStats()
+            if generationTask != nil {
+                Self.streamingRelays[session.id]?.notifyMessagesChanged()
+            }
             return
         }
         guard !loadMessagesScheduled else { return }
@@ -352,6 +425,9 @@ final class ChatViewModel {
             self.messages = self.session.sortedMessages
             self.migrateInlineImages()
             self.refreshCompressionStats()
+            if self.generationTask != nil {
+                Self.streamingRelays[self.session.id]?.notifyMessagesChanged()
+            }
         }
     }
 
@@ -466,6 +542,8 @@ final class ChatViewModel {
         generationTask?.cancel()
         let wasActive = Self.activeGenerations[session.id] != nil
         Self.activeGenerations[session.id]?.cancel()
+        Self.streamingRelays[session.id]?.finish()
+        Self.streamingRelays.removeValue(forKey: session.id)
         generationTask = nil
         Self.activeGenerations.removeValue(forKey: session.id)
         isLoading = false
@@ -526,6 +604,7 @@ final class ChatViewModel {
         removeTrailingAbortedMessages()
 
         session.isActive = true
+        Self.streamingRelays[session.id] = StreamingRelay()
         let task = Task { await generateResponse() }
         generationTask = task
         Self.activeGenerations[session.id] = task
@@ -736,6 +815,7 @@ final class ChatViewModel {
 
         cancelled = false
         session.isActive = true
+        Self.streamingRelays[session.id] = StreamingRelay()
         let task = Task { await generateResponse() }
         generationTask = task
         Self.activeGenerations[session.id] = task
@@ -778,6 +858,8 @@ final class ChatViewModel {
                 cancelWatchdog?.cancel()
                 cancelWatchdog = nil
                 streamCancelAction = nil
+                Self.streamingRelays[session.id]?.finish()
+                Self.streamingRelays.removeValue(forKey: session.id)
                 Self.activeGenerations.removeValue(forKey: session.id)
                 Self.activeStreamCancels.removeValue(forKey: session.id)
                 Self.silentStatuses.removeValue(forKey: session.id)
@@ -911,11 +993,13 @@ final class ChatViewModel {
                 case .thinking(let text):
                     fullThinking += text
                     streamingThinking = fullThinking
+                    Self.streamingRelays[session.id]?.send(content: streamingContent, thinking: fullThinking)
                 case .thinkingSignature(let sig):
                     thinkingSignature = sig
                 case .content(let text):
                     fullContent += text
                     streamingContent = fullContent
+                    Self.streamingRelays[session.id]?.send(content: fullContent, thinking: streamingThinking)
                     let now = Date()
                     let isFirstChunk = lastPersistTime == Date.distantPast
                     if isFirstChunk || now.timeIntervalSince(lastPersistTime) >= 1.0 {
@@ -969,6 +1053,7 @@ final class ChatViewModel {
             if !pendingToolCalls.isEmpty {
                 streamingContent = ""
                 streamingThinking = ""
+                Self.streamingRelays[session.id]?.send(content: "", thinking: "")
 
                 let assistantMsg = Message(
                     role: .assistant,
@@ -1480,6 +1565,7 @@ final class ChatViewModel {
             defer {
                 self?.isLoading = false
                 self?.streamingContent = ""
+                self?.streamingThinking = ""
                 self?.canRetry = false
                 if let self, !self.session.isCompressingContext {
                     self.isCompressing = false
@@ -1490,6 +1576,29 @@ final class ChatViewModel {
                 self?.monitoringTask = nil
             }
 
+            // ── Fast path: relay subscription (token-level updates) ──
+            if let self,
+               let relay = Self.streamingRelays[self.session.id] {
+                self.streamingContent = relay.content.isEmpty
+                    ? (self.session.pendingStreamingContent ?? "")
+                    : relay.content
+                self.streamingThinking = relay.thinking
+
+                let subscription = relay.makeSubscription()
+                for await _ in subscription {
+                    guard !Task.isCancelled else { return }
+                    self.streamingContent = relay.content
+                    self.streamingThinking = relay.thinking
+                    if relay.messagesDidChange {
+                        relay.messagesDidChange = false
+                        self.loadMessages()
+                    }
+                }
+                return
+            }
+
+            // ── Slow path: poll pendingStreamingContent (generation was
+            //    started by a previous app launch with no in-process relay) ──
             var tickCount = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -1504,10 +1613,11 @@ final class ChatViewModel {
 
                 tickCount += 1
 
-                guard self.session.isActive else { return }
+                // Check activeGenerations as well to avoid the race where
+                // the old VM's defer block clears isActive before the
+                // generation has fully wound down.
+                guard self.session.isActive || Self.activeGenerations[self.session.id] != nil else { return }
 
-                // Don't apply the safety timeout while a real generation task
-                // is still running (e.g. started by a previous ViewModel).
                 let hasLiveGeneration = Self.activeGenerations[self.session.id] != nil
                 if tickCount > 300 && !hasLiveGeneration {
                     self.session.isActive = false
