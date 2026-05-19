@@ -232,6 +232,7 @@ struct MessageBubbleView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if isVerbose, let thinking = thinkingText, !thinking.isEmpty {
                     ThinkingBubbleView(content: thinking, isStreaming: isStreamingThinking)
+                        .accessibilityIdentifier(AccessibilityID.Chat.thinkingBubble)
                 }
 
                 if !content.isEmpty {
@@ -267,6 +268,7 @@ struct MessageBubbleView: View {
         VStack(alignment: .leading, spacing: 8) {
             if isVerbose, let thinking = thinkingText, !thinking.isEmpty {
                 ThinkingBubbleView(content: thinking, isStreaming: false)
+                    .accessibilityIdentifier(AccessibilityID.Chat.thinkingBubble)
             }
 
             if !content.isEmpty {
@@ -291,6 +293,7 @@ struct MessageBubbleView: View {
 
             if isVerbose {
                 ToolCallCardView(toolCalls: calls)
+                    .accessibilityIdentifier(AccessibilityID.Chat.toolCallCard)
             }
         }
     }

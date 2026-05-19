@@ -124,6 +124,7 @@ private struct ChatDisplayModeMenu: View {
                         }
                     }
                 }
+                .accessibilityIdentifier(AccessibilityID.Chat.verboseOption)
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         vm.isVerbose = false
@@ -137,6 +138,7 @@ private struct ChatDisplayModeMenu: View {
                         }
                     }
                 }
+                .accessibilityIdentifier(AccessibilityID.Chat.silentOption)
             } header: {
                 if let agentName {
                     Text(L10n.Chat.displayModeScope(agentName))
@@ -157,12 +159,16 @@ private struct ChatDisplayModeMenu: View {
             )
             .foregroundStyle(vm.isVerbose ? Color.accentColor : .secondary)
         }
+        .accessibilityIdentifier(AccessibilityID.Chat.displayModeCapsule)
     }
 }
 
 @Observable
 final class ChatScrollState {
     var isNearBottom = true
+    /// Set only by user gesture (drag/track), not by content growth.
+    /// Prevents auto-scroll from stopping due to rendering-induced position shifts.
+    var userDidScrollAway = false
     weak var scrollView: UIScrollView?
 }
 
@@ -221,6 +227,7 @@ private struct ChatContentView: View {
                                 isVerbose: vm.isVerbose
                             )
                             .id("streaming")
+                            .accessibilityIdentifier(AccessibilityID.Chat.streamingBubble)
                         }
 
                         if vm.isLoading && vm.streamingContent.isEmpty && (vm.isVerbose ? vm.streamingThinking.isEmpty : true) && !vm.isCompressing {
@@ -243,6 +250,7 @@ private struct ChatContentView: View {
                             }
                         .padding()
                         .id("loading")
+                        .accessibilityIdentifier(AccessibilityID.Chat.loadingIndicator)
                     }
 
                         if vm.isCompressing {
@@ -287,25 +295,46 @@ private struct ChatContentView: View {
                 .onChange(of: displayMessages.count) {
                     let shouldForce = forceScrollToBottom
                     forceScrollToBottom = false
-                    guard shouldForce || scrollState.isNearBottom else { return }
+                    guard shouldForce || !scrollState.userDidScrollAway else { return }
                     withAnimation {
+                        proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
+                    }
+                    // Deferred re-scroll: LazyVStack + MarkdownContentView may not
+                    // have their final height when the first scrollTo fires (especially
+                    // for long messages transitioning from streaming to persisted).
+                    // Re-scroll after layout settles to ensure accurate bottom position.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        guard !scrollState.userDidScrollAway else { return }
                         proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
                     }
                 }
                 .onChange(of: vm.streamingContent) {
-                    guard scrollState.isNearBottom, !vm.streamingContent.isEmpty else { return }
+                    guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty else { return }
                     withAnimation {
                         proxy.scrollTo("streaming", anchor: .bottom)
                     }
                 }
                 .onChange(of: vm.streamingThinking) {
-                    guard scrollState.isNearBottom, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
+                    guard !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
                     withAnimation {
                         proxy.scrollTo("streaming", anchor: .bottom)
                     }
                 }
-                .onChange(of: vm.isVerbose) { _, newValue in
-                    guard newValue else { return }
+                .onChange(of: vm.isLoading) { wasLoading, isLoading in
+                    // When streaming ends, the streaming bubble is replaced by a
+                    // persisted message. This new message view needs multiple layout
+                    // passes for its full height. Schedule progressive scroll
+                    // corrections to ensure we end up at the actual bottom.
+                    guard wasLoading && !isLoading && !scrollState.userDidScrollAway else { return }
+                    guard let lastId = displayMessages.last?.id.uuidString else { return }
+                    for delay in [0.2, 0.5, 1.0] {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                            guard !scrollState.userDidScrollAway else { return }
+                            proxy.scrollTo(lastId, anchor: .bottom)
+                        }
+                    }
+                }
+                .onChange(of: vm.isVerbose) { _, _ in
                     guard let sv = scrollState.scrollView else { return }
                     let savedOffset = sv.contentOffset.y
                     let savedHeight = sv.contentSize.height
@@ -331,6 +360,7 @@ private struct ChatContentView: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Button {
+                        scrollState.userDidScrollAway = false
                         if let sv = scrollState.scrollView, sv.isDecelerating {
                             sv.setContentOffset(sv.contentOffset, animated: false)
                         }
@@ -351,10 +381,10 @@ private struct ChatContentView: View {
                     }
                     .padding(.trailing, 16)
                     .padding(.bottom, 8)
-                    .opacity(scrollState.isNearBottom ? 0 : 1)
-                    .scaleEffect(scrollState.isNearBottom ? 0.5 : 1)
-                    .animation(.easeInOut(duration: 0.2), value: scrollState.isNearBottom)
-                    .allowsHitTesting(!scrollState.isNearBottom)
+                    .opacity(scrollState.userDidScrollAway ? 1 : 0)
+                    .scaleEffect(scrollState.userDidScrollAway ? 1 : 0.5)
+                    .animation(.easeInOut(duration: 0.2), value: scrollState.userDidScrollAway)
+                    .allowsHitTesting(scrollState.userDidScrollAway)
                     .accessibilityIdentifier(AccessibilityID.Chat.scrollToBottom)
                 }
             }
@@ -789,8 +819,24 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
             offsetObservation = scrollView.observe(\.contentOffset, options: .new) { [weak self] sv, _ in
                 guard let self else { return }
                 let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
-                let threshold: CGFloat = (sv.isTracking || sv.isDragging) ? 50 : 200
+                let isUserScrolling = sv.isTracking || sv.isDragging
+                let threshold: CGFloat = isUserScrolling ? 50 : 200
                 let near = distance <= threshold
+
+                // Only mark userDidScrollAway when the user is actively dragging away.
+                // Content growth (without user gesture) should never set this flag.
+                if isUserScrolling && !near {
+                    if !self.scrollState.userDidScrollAway {
+                        DispatchQueue.main.async {
+                            self.scrollState.userDidScrollAway = true
+                        }
+                    }
+                } else if near && self.scrollState.userDidScrollAway {
+                    DispatchQueue.main.async {
+                        self.scrollState.userDidScrollAway = false
+                    }
+                }
+
                 if near != self.scrollState.isNearBottom {
                     self.pendingNearBottom = near
                     self.displayLink?.isPaused = false

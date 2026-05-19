@@ -26,6 +26,7 @@ struct MarkdownContentView: View {
                 renderBlock(block)
             }
         }
+        .accessibilityIdentifier(AccessibilityID.Chat.markdownContent)
         .onAppear { refreshBlocksIfNeeded() }
         .onChange(of: content) { _, _ in refreshBlocksIfNeeded() }
     }

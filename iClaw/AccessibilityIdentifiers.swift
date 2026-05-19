@@ -29,6 +29,14 @@ enum AccessibilityID {
         static let menuButton = "chat.menu"
         static let messageBubble = "chat.bubble"
         static let scrollToBottom = "chat.scrollToBottom"
+        static let streamingBubble = "chat.streamingBubble"
+        static let loadingIndicator = "chat.loadingIndicator"
+        static let displayModeCapsule = "chat.displayModeCapsule"
+        static let verboseOption = "chat.verboseOption"
+        static let silentOption = "chat.silentOption"
+        static let markdownContent = "chat.markdownContent"
+        static let toolCallCard = "chat.toolCallCard"
+        static let thinkingBubble = "chat.thinkingBubble"
     }
 
     enum AgentList {

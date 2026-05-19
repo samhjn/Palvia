@@ -41,6 +41,8 @@ enum iClawModelContainer {
     static let storeProtectionLevel: FileProtectionType = .completeUntilFirstUserAuthentication
 
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+    static let shouldSeedMarkdown = ProcessInfo.processInfo.arguments.contains("--uitesting-seed-markdown")
+    static let shouldSimulateStreaming = ProcessInfo.processInfo.arguments.contains("--uitesting-simulate-streaming")
 
     static let shared: ModelContainer = {
         if isUITesting {
