@@ -36,6 +36,7 @@ struct SessionListView: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                     }
+                    .accessibilityIdentifier(AccessibilityID.SessionList.newSessionButton)
                 }
             }
             .sheet(isPresented: $showNewSessionSheet) {
@@ -119,7 +120,9 @@ struct SessionListView: View {
                 showNewSessionSheet = true
             }
             .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier(AccessibilityID.SessionList.emptyNewSessionButton)
         }
+        .accessibilityIdentifier(AccessibilityID.SessionList.emptyState)
     }
 
     private func sessionsList(_ vm: SessionListViewModel) -> some View {
@@ -129,6 +132,7 @@ struct SessionListView: View {
                     SessionRowView(rowData: vm.rowDataCache[session.id]
                         ?? .empty)
                 }
+                .accessibilityIdentifier(AccessibilityID.SessionList.sessionRow)
                 .contextMenu {
                     Button(role: .destructive) {
                         vm.sessionToDelete = session
@@ -202,6 +206,7 @@ struct NewSessionSheet: View {
                             }
                         }
                         .tint(.primary)
+                        .accessibilityIdentifier(AccessibilityID.NewSessionSheet.agentRow)
                     }
                 }
             }
@@ -210,6 +215,7 @@ struct NewSessionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(L10n.Common.cancel) { dismiss() }
+                        .accessibilityIdentifier(AccessibilityID.NewSessionSheet.cancelButton)
                 }
             }
         }

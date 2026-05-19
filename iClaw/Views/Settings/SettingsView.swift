@@ -56,10 +56,12 @@ struct SettingsView: View {
                 } label: {
                     Label(L10n.Settings.addProvider, systemImage: "plus")
                 }
+                .accessibilityIdentifier(AccessibilityID.Settings.addProviderButton)
             }
 
             Section {
                 Toggle(L10n.Settings.backgroundKeepAlive, isOn: $keepAliveEnabled)
+                    .accessibilityIdentifier(AccessibilityID.Settings.backgroundToggle)
             } header: {
                 Text(L10n.Settings.backgroundExecution)
             } footer: {
@@ -68,6 +70,7 @@ struct SettingsView: View {
 
             Section {
                 Toggle(L10n.Settings.progressiveSkillDisclosure, isOn: $progressiveSkillDisclosure)
+                    .accessibilityIdentifier(AccessibilityID.Settings.skillDisclosureToggle)
             } header: {
                 Text(L10n.Settings.skills)
             } footer: {
@@ -85,6 +88,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityIdentifier(AccessibilityID.Settings.aboutRow)
             }
         }
         .listStyle(.insetGrouped)
@@ -147,6 +151,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                .accessibilityIdentifier(AccessibilityID.Settings.providerRow)
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
                         vm.confirmDeleteProvider(provider)

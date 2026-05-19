@@ -155,6 +155,22 @@ targets:
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "NO"
 
+  iClawUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: iClawUITests
+      - path: iClaw/AccessibilityIdentifiers.swift
+    dependencies:
+      - target: iClaw
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.iclaw.uitests
+        TEST_TARGET_NAME: iClaw
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
+
 schemes:
   iClaw:
     build:
@@ -167,6 +183,7 @@ schemes:
       testPlans:
         - path: iClaw.xctestplan
           defaultPlan: true
+        - path: iClawUITests.xctestplan
     profile:
       config: Release
     analyze:

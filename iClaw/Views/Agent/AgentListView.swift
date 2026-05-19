@@ -33,6 +33,7 @@ struct AgentListView: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                     }
+                    .accessibilityIdentifier(AccessibilityID.AgentList.createButton)
                 }
             }
             .alert(L10n.Agents.newAgent, isPresented: $showCreateSheet) {
@@ -68,7 +69,9 @@ struct AgentListView: View {
                 showCreateSheet = true
             }
             .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier(AccessibilityID.AgentList.emptyCreateButton)
         }
+        .accessibilityIdentifier(AccessibilityID.AgentList.emptyState)
     }
 
     private func agentList(_ vm: AgentViewModel) -> some View {
@@ -91,6 +94,7 @@ struct AgentListView: View {
                     }
                     .padding(.vertical, 4)
                 }
+                .accessibilityIdentifier(AccessibilityID.AgentList.agentRow)
                 .contextMenu {
                     Button {
                         renamingText = agent.name

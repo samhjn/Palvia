@@ -18,30 +18,35 @@ struct ContentView: View {
                     Label(L10n.Tabs.sessions, systemImage: "bubble.left.and.bubble.right")
                 }
                 .tag(Tab.sessions)
+                .accessibilityIdentifier(AccessibilityID.Tabs.sessions)
 
             AgentListView()
                 .tabItem {
                     Label(L10n.Tabs.agents, systemImage: "cpu")
                 }
                 .tag(Tab.agents)
+                .accessibilityIdentifier(AccessibilityID.Tabs.agents)
 
             BrowserView()
                 .tabItem {
                     Label(L10n.Tabs.browser, systemImage: "globe")
                 }
                 .tag(Tab.browser)
+                .accessibilityIdentifier(AccessibilityID.Tabs.browser)
 
             SkillLibraryView()
                 .tabItem {
                     Label(L10n.Tabs.skills, systemImage: "sparkles")
                 }
                 .tag(Tab.skills)
+                .accessibilityIdentifier(AccessibilityID.Tabs.skills)
 
             SettingsView()
                 .tabItem {
                     Label(L10n.Tabs.settings, systemImage: "gearshape")
                 }
                 .tag(Tab.settings)
+                .accessibilityIdentifier(AccessibilityID.Tabs.settings)
         }
         .imagePreviewOverlay()
         .textFilePreviewOverlay()

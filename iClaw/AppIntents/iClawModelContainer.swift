@@ -40,7 +40,18 @@ enum iClawModelContainer {
     /// RunningBoard kills the process with `0xdead10cc`.
     static let storeProtectionLevel: FileProtectionType = .completeUntilFirstUserAuthentication
 
+    static let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+
     static let shared: ModelContainer = {
+        if isUITesting {
+            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            do {
+                return try ModelContainer(for: schema, configurations: [memoryConfig])
+            } catch {
+                fatalError("Failed to create in-memory ModelContainer for UI testing: \(error)")
+            }
+        }
+
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         // Lower protection on the store directory before opening, so any

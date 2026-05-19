@@ -123,6 +123,7 @@ struct InputBarView: View {
                     maxLines: 6,
                     onPasteImage: { onAddImage?($0) }
                 )
+                .accessibilityIdentifier(AccessibilityID.Chat.inputField)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .background(
@@ -239,6 +240,7 @@ struct InputBarView: View {
                 }
             }
             .disabled(isCancelling)
+            .accessibilityIdentifier(AccessibilityID.Chat.stopButton)
             .transition(.scale.combined(with: .opacity))
         } else if isCompressing, let onStopCompression {
             Button {
@@ -283,6 +285,7 @@ struct InputBarView: View {
                     }
             }
             .disabled(!canSendMessage)
+            .accessibilityIdentifier(AccessibilityID.Chat.sendButton)
             .transition(.scale.combined(with: .opacity))
         }
     }

@@ -45,6 +45,12 @@ fastlane/test_output
 
 vendor/
 
+# Test Results
+TestResults/
+TestResults.xcresult
+UITestResults/
+UITestResults.xcresult
+
 # Misc
 *.orig
 *.bak

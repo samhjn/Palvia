@@ -84,6 +84,7 @@ struct ChatView: View {
                         .frame(minWidth: 32, minHeight: 32)
                         .contentShape(Rectangle())
                 }
+                .accessibilityIdentifier(AccessibilityID.Chat.menuButton)
             }
 
             ToolbarItem(placement: .topBarTrailing) {
@@ -210,6 +211,7 @@ private struct ChatContentView: View {
                         ForEach(displayMessages, id: \.id) { message in
                             MessageBubbleView(message: message, isVerbose: vm.isVerbose)
                                 .id(message.id.uuidString)
+                                .accessibilityIdentifier(AccessibilityID.Chat.messageBubble)
                         }
 
                         if vm.isLoading && (!vm.streamingContent.isEmpty || (vm.isVerbose && !vm.streamingThinking.isEmpty)) {
@@ -353,6 +355,7 @@ private struct ChatContentView: View {
                     .scaleEffect(scrollState.isNearBottom ? 0.5 : 1)
                     .animation(.easeInOut(duration: 0.2), value: scrollState.isNearBottom)
                     .allowsHitTesting(!scrollState.isNearBottom)
+                    .accessibilityIdentifier(AccessibilityID.Chat.scrollToBottom)
                 }
             }
 

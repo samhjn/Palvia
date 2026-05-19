@@ -74,3 +74,50 @@ jobs:
         with:
           name: TestResults
           path: TestResults.xcresult
+
+  ui-test:
+    name: UI Tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Latest Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)/Contents/Developer"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode Project
+        run: xcodegen generate
+
+      - name: Determine Simulator
+        run: |
+          SIMULATOR=$(xcrun simctl list devices available \
+            | grep -oE 'iPhone [0-9]+' \
+            | sort -t ' ' -k2 -n \
+            | tail -1)
+          if [ -z "$SIMULATOR" ]; then
+            echo "::error::No available iPhone simulator found"
+            exit 1
+          fi
+          echo "Using simulator: $SIMULATOR"
+          echo "SIMULATOR=$SIMULATOR" >> "$GITHUB_ENV"
+
+      - name: Run UI Tests
+        run: |
+          xcodebuild test \
+            -project iClaw.xcodeproj \
+            -scheme iClaw \
+            -testPlan iClawUITests \
+            -destination "platform=iOS Simulator,name=$SIMULATOR,OS=latest" \
+            -resultBundlePath UITestResults \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO | xcpretty --color && exit ${PIPESTATUS[0]}
+
+      - name: Upload UI Test Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: UITestResults
+          path: UITestResults.xcresult
