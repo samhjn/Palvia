@@ -179,6 +179,7 @@ private struct ChatContentView: View {
     @State private var forceScrollToBottom = false
     @State private var scrollState = ChatScrollState()
     @State private var displayMessages: [Message] = []
+    @State private var lastKnownMessageCount = 0
 
     /// Compute the filtered message list from current view-model state.
     /// The result is stored in `displayMessages` (`@State`) so that SwiftUI
@@ -272,10 +273,22 @@ private struct ChatContentView: View {
                     // can race with an in-flight animation completion.
                     if updated.map(\.id) != displayMessages.map(\.id) {
                         displayMessages = updated
+                        lastKnownMessageCount = updated.count
                     }
                 }
                 .onChange(of: vm.isVerbose) {
+                    // Capture the currently visible message before the list changes.
+                    let anchorId = scrollPosition
                     displayMessages = filteredMessages()
+                    lastKnownMessageCount = displayMessages.count
+                    // After the filtered list updates, restore scroll to the same
+                    // message. This replaces the old ratio-based setContentOffset
+                    // which broke when rows were removed from the middle.
+                    if let anchorId {
+                        DispatchQueue.main.async {
+                            proxy.scrollTo(anchorId, anchor: .center)
+                        }
+                    }
                 }
                 .onAppear {
                     if !hasRestoredScroll {
@@ -293,16 +306,20 @@ private struct ChatContentView: View {
                     }
                 }
                 .onChange(of: displayMessages.count) {
+                    let newCount = displayMessages.count
+                    let oldCount = lastKnownMessageCount
+                    lastKnownMessageCount = newCount
+
+                    // Count decrease = mode switch removed tool messages.
+                    // Position is handled by the isVerbose onChange; don't fight it.
+                    guard newCount > oldCount || forceScrollToBottom else { return }
+
                     let shouldForce = forceScrollToBottom
                     forceScrollToBottom = false
                     guard shouldForce || !scrollState.userDidScrollAway else { return }
                     withAnimation {
                         proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
                     }
-                    // Deferred re-scroll: LazyVStack + MarkdownContentView may not
-                    // have their final height when the first scrollTo fires (especially
-                    // for long messages transitioning from streaming to persisted).
-                    // Re-scroll after layout settles to ensure accurate bottom position.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                         guard !scrollState.userDidScrollAway else { return }
                         proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
@@ -334,22 +351,7 @@ private struct ChatContentView: View {
                         }
                     }
                 }
-                .onChange(of: vm.isVerbose) { _, _ in
-                    guard let sv = scrollState.scrollView else { return }
-                    let savedOffset = sv.contentOffset.y
-                    let savedHeight = sv.contentSize.height
-                    guard savedHeight > 0 else { return }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        let newHeight = sv.contentSize.height
-                        guard abs(newHeight - savedHeight) > 1 else { return }
-                        let newOffset = savedOffset * (newHeight / savedHeight)
-                        let maxScroll = max(0, newHeight - sv.bounds.height)
-                        sv.setContentOffset(
-                            CGPoint(x: 0, y: min(max(0, newOffset), maxScroll)),
-                            animated: false
-                        )
-                    }
-                }
+                
                 .onDisappear {
                     if let visibleId = scrollPosition,
                        let uuid = UUID(uuidString: visibleId) {
