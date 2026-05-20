@@ -63,12 +63,14 @@ struct iClawApp: App {
         // these helpers invalidate observers, which can recurse back into
         // body evaluation and trip a Swift runtime trap on iOS 17.0.
         Self.runOneTimeLaunchTasksIfNeeded { [modelContainer] in
+            #if DEBUG
             if iClawModelContainer.shouldSeedMarkdown {
                 Self.seedMarkdownTestData(in: modelContainer)
             }
             if iClawModelContainer.shouldSimulateStreaming {
                 Self.seedStreamingTestData(in: modelContainer)
             }
+            #endif
             Self.resetStaleActiveSessions(in: modelContainer)
             // Publish the root-agent snapshot for the Share Extension and sweep
             // any abandoned share-staging directories from earlier sessions.
