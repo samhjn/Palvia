@@ -121,14 +121,22 @@ struct MarkdownContentView: View {
                 }
             }
         case .blockquote(let text):
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(isUserMessage ? Color.white.opacity(0.4) : Color.accentColor.opacity(0.5))
-                    .frame(width: 3)
-                renderInlineText(text)
-                    .foregroundStyle(isUserMessage ? .white.opacity(0.8) : .secondary)
-            }
-            .padding(.vertical, 2)
+            renderInlineText(text)
+                .foregroundStyle(isUserMessage ? .white.opacity(0.8) : .secondary)
+                .padding(.leading, 14)
+                .padding(.trailing, 4)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(isUserMessage ? Color.white.opacity(0.4) : Color.accentColor.opacity(0.5))
+                        .frame(width: 3)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(isUserMessage ? Color.white.opacity(0.06) : Color(.systemGray6).opacity(0.6))
+                )
+                .padding(.vertical, 2)
         case .table(let table):
             MarkdownTableView(table: table, isUserMessage: isUserMessage)
         case .image(let alt, let url):
@@ -232,7 +240,7 @@ struct MarkdownContentView: View {
                     quoteLines.append(ql.hasPrefix("> ") ? String(ql.dropFirst(2)) : String(ql.dropFirst(1)))
                     i += 1
                 }
-                blocks.append(.blockquote(text: quoteLines.joined(separator: " ")))
+                blocks.append(.blockquote(text: quoteLines.joined(separator: "\n")))
                 continue
             }
 
