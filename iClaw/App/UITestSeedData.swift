@@ -289,6 +289,78 @@ extension iClawApp {
         try? context.save()
     }
 
+    // MARK: - Heavy Markdown Test Data (for initial scroll / scroll-to-bottom bugs)
+
+    @MainActor
+    static func seedHeavyMarkdownTestData(in container: ModelContainer) {
+        let context = container.mainContext
+
+        let agent = Agent(name: "HeavyMarkdownAgent")
+        agent.isVerbose = true
+        context.insert(agent)
+
+        let session = Session(title: "Heavy Markdown Session")
+        session.agent = agent
+        context.insert(session)
+
+        // 6 rounds, each message 7K-15K chars.
+        // Some messages combine two fixture rounds to create extremely long
+        // single-message renders that stress LazyVStack + MarkdownContentView.
+        let rounds: [(String, String, TimeInterval)] = [
+            ("深入讲解 Swift 泛型系统的高级用法",
+             StreamingFixtures.historyRound1 + "\n\n---\n\n" + StreamingFixtures.historyRound2, -600),
+            ("SwiftUI 大型项目架构设计全面讲解",
+             StreamingFixtures.historyRound3, -500),
+            ("并发编程性能优化完整指南",
+             StreamingFixtures.historyRound4 + "\n\n---\n\n" + StreamingFixtures.historyRound1, -400),
+            ("面向协议编程与泛型系统的结合应用",
+             StreamingFixtures.historyRound2 + "\n\n---\n\n" + StreamingFixtures.historyRound3, -300),
+            ("Swift 项目架构综合对比分析",
+             StreamingFixtures.historyRound4, -200),
+            ("综合所有内容的完整最佳实践文档",
+             StreamingFixtures.historyRound3 + "\n\n---\n\n" + StreamingFixtures.historyRound4
+             + "\n\n## 📋 总结清单\n\n以上就是完整的 Swift 最佳实践文档的全部内容。", -100),
+        ]
+
+        var allMessages: [Message] = []
+
+        for (i, (userContent, assistantContent, baseTime)) in rounds.enumerated() {
+            let userMsg = Message(role: .user, content: userContent)
+            userMsg.session = session
+            userMsg.timestamp = Date(timeIntervalSinceNow: baseTime)
+            context.insert(userMsg)
+            allMessages.append(userMsg)
+
+            // Add tool calls between rounds for extra complexity
+            for t in 0..<2 {
+                let callId = "call_\(i)_\(t)"
+                let toolCallData = try? JSONEncoder().encode([
+                    LLMToolCall(id: callId, name: "search", arguments: "{\"q\": \"\(userContent)\"}")
+                ])
+                let toolMsg = Message(role: .assistant, content: nil, toolCallsData: toolCallData)
+                toolMsg.session = session
+                toolMsg.timestamp = Date(timeIntervalSinceNow: baseTime + Double(t) + 1)
+                context.insert(toolMsg)
+                allMessages.append(toolMsg)
+
+                let toolResult = Message(role: .tool, content: "Found relevant documentation.", toolCallId: callId, name: "search")
+                toolResult.session = session
+                toolResult.timestamp = Date(timeIntervalSinceNow: baseTime + Double(t) + 2)
+                context.insert(toolResult)
+                allMessages.append(toolResult)
+            }
+
+            let assistantMsg = Message(role: .assistant, content: assistantContent)
+            assistantMsg.session = session
+            assistantMsg.timestamp = Date(timeIntervalSinceNow: baseTime + 10)
+            context.insert(assistantMsg)
+            allMessages.append(assistantMsg)
+        }
+
+        session.messages = allMessages
+        try? context.save()
+    }
+
     // MARK: - Streaming Stress Test Data
 
     @MainActor

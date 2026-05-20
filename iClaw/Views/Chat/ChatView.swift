@@ -169,6 +169,10 @@ final class ChatScrollState {
     /// Set only by user gesture (drag/track), not by content growth.
     /// Prevents auto-scroll from stopping due to rendering-induced position shifts.
     var userDidScrollAway = false
+    /// Incremented by the contentSize observer when the scroll view's content
+    /// grows while the view should be at bottom. SwiftUI reacts via onChange
+    /// to re-scroll, replacing fragile timer-based corrections.
+    var bottomCorrectionTick = 0
     weak var scrollView: UIScrollView?
 }
 
@@ -302,6 +306,9 @@ private struct ChatContentView: View {
                             DispatchQueue.main.async {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                             }
+                            // Subsequent corrections as markdown renders to full
+                            // height are handled reactively by the contentSize
+                            // KVO → bottomCorrectionTick → onChange pipeline.
                         }
                     }
                 }
@@ -320,10 +327,6 @@ private struct ChatContentView: View {
                     withAnimation {
                         proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        guard !scrollState.userDidScrollAway else { return }
-                        proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
-                    }
                 }
                 .onChange(of: vm.streamingContent) {
                     guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty else { return }
@@ -337,18 +340,12 @@ private struct ChatContentView: View {
                         proxy.scrollTo("streaming", anchor: .bottom)
                     }
                 }
-                .onChange(of: vm.isLoading) { wasLoading, isLoading in
-                    // When streaming ends, the streaming bubble is replaced by a
-                    // persisted message. This new message view needs multiple layout
-                    // passes for its full height. Schedule progressive scroll
-                    // corrections to ensure we end up at the actual bottom.
-                    guard wasLoading && !isLoading && !scrollState.userDidScrollAway else { return }
-                    guard let lastId = displayMessages.last?.id.uuidString else { return }
-                    for delay in [0.2, 0.5, 1.0] {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                            guard !scrollState.userDidScrollAway else { return }
-                            proxy.scrollTo(lastId, anchor: .bottom)
-                        }
+                .onChange(of: scrollState.bottomCorrectionTick) {
+                    guard !scrollState.userDidScrollAway else { return }
+                    if vm.isLoading && !vm.streamingContent.isEmpty {
+                        proxy.scrollTo("streaming", anchor: .bottom)
+                    } else if let lastId = displayMessages.last?.id {
+                        proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                     }
                 }
                 
@@ -373,6 +370,8 @@ private struct ChatContentView: View {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                             }
                         }
+                        // Further corrections as content renders are handled
+                        // by the contentSize KVO → bottomCorrectionTick pipeline.
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 13, weight: .semibold))
@@ -801,6 +800,7 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
     final class Coordinator: NSObject {
         let scrollState: ChatScrollState
         private var offsetObservation: NSKeyValueObservation?
+        private var contentSizeObservation: NSKeyValueObservation?
         private var displayLink: CADisplayLink?
         private var pendingNearBottom: Bool?
 
@@ -822,18 +822,24 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                 guard let self else { return }
                 let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
                 let isUserScrolling = sv.isTracking || sv.isDragging
+                // Deceleration after a user flick is still user-driven.
+                let isUserDriven = isUserScrolling || sv.isDecelerating
                 let threshold: CGFloat = isUserScrolling ? 50 : 200
                 let near = distance <= threshold
 
-                // Only mark userDidScrollAway when the user is actively dragging away.
-                // Content growth (without user gesture) should never set this flag.
-                if isUserScrolling && !near {
+                // userDidScrollAway uses a fixed tight threshold (50pt) for
+                // both setting and clearing — independent of the wider
+                // isNearBottom threshold that varies by interaction mode.
+                // This prevents the deceleration-phase 200pt threshold from
+                // immediately resetting userDidScrollAway after it was just set.
+                let awayFromBottom = distance > 50
+                if isUserDriven && awayFromBottom {
                     if !self.scrollState.userDidScrollAway {
                         DispatchQueue.main.async {
                             self.scrollState.userDidScrollAway = true
                         }
                     }
-                } else if near && self.scrollState.userDidScrollAway {
+                } else if !awayFromBottom && self.scrollState.userDidScrollAway && isUserDriven {
                     DispatchQueue.main.async {
                         self.scrollState.userDidScrollAway = false
                     }
@@ -844,6 +850,18 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                     self.displayLink?.isPaused = false
                 } else {
                     self.pendingNearBottom = nil
+                }
+            }
+
+            contentSizeObservation = scrollView.observe(\.contentSize) { [weak self] sv, _ in
+                guard let self else { return }
+                let isUserDriven = sv.isTracking || sv.isDragging || sv.isDecelerating
+                guard !self.scrollState.userDidScrollAway, !isUserDriven else { return }
+                let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
+                if distance > 50 {
+                    DispatchQueue.main.async {
+                        self.scrollState.bottomCorrectionTick &+= 1
+                    }
                 }
             }
         }
@@ -859,6 +877,7 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
 
         deinit {
             offsetObservation?.invalidate()
+            contentSizeObservation?.invalidate()
             displayLink?.invalidate()
         }
     }

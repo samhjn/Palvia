@@ -409,4 +409,38 @@ final class ChatStreamingTests: BaseTestCase {
         XCTAssertTrue(hasContent,
                       "After rapid scroll stress, streaming content should still be visible/accessible")
     }
+
+    // MARK: - Focus Retention After Long Reasoning Completion
+
+    /// Bug: after long thinking/reasoning content finishes streaming, the view
+    /// loses focus — the scroll position jumps away from the final message.
+    /// The streaming bubble (with thinking + content) is replaced by a persisted
+    /// message whose height differs substantially, causing layout-driven position drift.
+    func test_streaming_focusRetainedAfterLongReasoningCompletion() {
+        _ = enterStreamingSession()
+        guard waitForStreamingActive(timeout: 15) else {
+            XCTFail("Streaming did not start")
+            return
+        }
+
+        guard waitForStreamingComplete(timeout: 20) else {
+            XCTFail("Streaming did not complete in time")
+            return
+        }
+
+        XCTAssertTrue(waitForScrollToBottomHidden(timeout: 5),
+                      "After long reasoning content completes, the view should remain at bottom. "
+                      + "If scroll-to-bottom appears, the position was lost during the "
+                      + "streaming→persisted message transition.")
+
+        let finalKeywords = ["最终建议", "从简单开始", "核心要点回顾", "架构选择决策树"]
+        XCTAssertTrue(waitForAnyKeyword(finalKeywords, timeout: 5),
+                      "After reasoning completion, final content should be visible at bottom "
+                      + "without manual scrolling. If not, the view lost focus during "
+                      + "the streaming-to-persisted message transition.")
+
+        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
+        XCTAssertTrue(sendBtn.waitForExistence(timeout: 5),
+                      "Send button should return after streaming completes")
+    }
 }

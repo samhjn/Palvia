@@ -521,4 +521,5 @@ final class ChatDisplayModeTests: BaseTestCase {
         XCTAssertTrue(waitForAnyKeyword(topKeywords, timeout: 5),
                       "After Verbose→Silent at top, first round content should remain visible.")
     }
+
 }

@@ -67,6 +67,9 @@ struct iClawApp: App {
             if iClawModelContainer.shouldSeedMarkdown {
                 Self.seedMarkdownTestData(in: modelContainer)
             }
+            if iClawModelContainer.shouldSeedHeavyMarkdown {
+                Self.seedHeavyMarkdownTestData(in: modelContainer)
+            }
             if iClawModelContainer.shouldSimulateStreaming {
                 Self.seedStreamingTestData(in: modelContainer)
             }
