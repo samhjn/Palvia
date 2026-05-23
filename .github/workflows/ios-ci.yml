@@ -59,9 +59,9 @@ jobs:
       - name: Build and Test
         run: |
           xcodebuild test \
-            -project iClaw.xcodeproj \
-            -scheme iClaw \
-            -testPlan iClaw \
+            -project Pentia.xcodeproj \
+            -scheme Pentia \
+            -testPlan Pentia \
             -destination "platform=iOS Simulator,name=$SIMULATOR,OS=latest" \
             -resultBundlePath TestResults \
             CODE_SIGN_IDENTITY="" \
@@ -106,9 +106,9 @@ jobs:
       - name: Run UI Tests
         run: |
           xcodebuild test \
-            -project iClaw.xcodeproj \
-            -scheme iClaw \
-            -testPlan iClawUITests \
+            -project Pentia.xcodeproj \
+            -scheme Pentia \
+            -testPlan PentiaUITests \
             -destination "platform=iOS Simulator,name=$SIMULATOR,OS=latest" \
             -resultBundlePath UITestResults \
             CODE_SIGN_IDENTITY="" \

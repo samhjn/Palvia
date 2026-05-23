@@ -1,0 +1,22 @@
+/* English — Base language for Pentia Share Extension */
+
+// Picker screen
+"share.title" = "Pentia";
+"share.cancel" = "Cancel";
+"share.sectionHeader" = "Send to Agent";
+
+// Empty states
+"share.noAgents.title" = "No agents yet";
+"share.noAgents.message" = "Open Pentia and create an agent before sharing files.";
+
+"share.appGroupMissing.title" = "App Group not configured";
+"share.appGroupMissing.message" = "Pentia needs the 'group.com.iclaw.app' App Group enabled on both the app and this extension. Open the project in Xcode, go to Signing & Capabilities, and add App Groups to both targets.";
+
+// Done screen (shown after staging when iOS won't foreground the host app)
+"share.done.title" = "Saved to Pentia";
+"share.done.message" = "Open Pentia to continue the conversation — your files are already attached.";
+"share.done.button" = "Done";
+
+// Error alert
+"share.error.nothingToShare" = "Nothing to share. Check that Pentia has App Group access.";
+"share.error.ok" = "OK";

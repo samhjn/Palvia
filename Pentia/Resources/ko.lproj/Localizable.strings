@@ -1,0 +1,709 @@
+/* 한국어 */
+
+// MARK: - Migration
+"migration.alertTitle" = "데이터베이스 업데이트 실패";
+"migration.alertMessage" = "데이터베이스를 새 버전으로 마이그레이션할 수 없습니다. 데이터베이스를 초기화하고 앱을 재시작할 수 있지만, 모든 기존 데이터(세션, 에이전트, 설정)가 영구적으로 삭제됩니다. 변경 없이 앱을 종료할 수도 있습니다.";
+"migration.resetAndRestart" = "초기화 후 재시작";
+"migration.exitApp" = "앱 종료";
+
+// MARK: - Launch Tasks
+"launch.cleaningUp" = "정리 중…";
+"launch.buildingIndex" = "검색 인덱스 구축 중…";
+
+// MARK: - Tabs
+"tabs.sessions" = "세션";
+"tabs.agents" = "에이전트";
+"tabs.skills" = "스킬";
+"tabs.settings" = "설정";
+
+// MARK: - Common
+"common.save" = "저장";
+"common.cancel" = "취소";
+"common.delete" = "삭제";
+"common.create" = "생성";
+"common.edit" = "편집";
+"common.done" = "완료";
+"common.copy" = "복사";
+"common.copied" = "복사됨";
+"common.dismiss" = "닫기";
+"common.enable" = "활성화";
+"common.disable" = "비활성화";
+"common.default" = "기본";
+"common.active" = "활성";
+"common.preview" = "미리보기";
+"common.empty" = "*비어있음*";
+"common.refresh" = "새로고침";
+"common.add" = "추가";
+"common.name" = "이름";
+"common.unknown" = "알 수 없음";
+"common.confirm" = "확인";
+"common.import" = "가져오기";
+
+// MARK: - Chat
+"chat.messagePlaceholder" = "메시지…";
+"chat.cancelling" = "중지 중…";
+"chat.skillActivated" = "%@ 이(가) 활성화되었습니다 — 질문을 입력하세요.";
+"chat.thinking" = "생각 중…";
+"chat.compressingContext" = "컨텍스트 압축 중…";
+"chat.renameSession" = "세션 이름 변경";
+"chat.rename" = "이름 변경";
+"chat.compressContext" = "컨텍스트 압축";
+"chat.title" = "제목";
+"chat.openLink" = "링크 열기";
+"chat.share" = "공유";
+"chat.loadingImage" = "이미지 로딩 중…";
+"chat.imageLoadFailed" = "이미지 로딩 실패";
+"chat.newChat" = "새 대화";
+"chat.aborted" = "\n\n⚠️ *[중지됨]*";
+"chat.toolCallAborted" = "⚠️ *[도구 호출이 중지됨]*";
+"chat.noAgent" = "이 세션에 연결된 에이전트가 없습니다";
+"chat.noCompressModel" = "압축에 사용 가능한 모델이 없습니다";
+"chat.sessionBlocked" = "「%@」이(가) 처리 중입니다. 동일 에이전트당 하나의 활성 세션만 허용됩니다.";
+"chat.compressionInfo" = "컨텍스트 ≈%@ / %@ | %d개 메시지 (%d개 압축됨)";
+"chat.tokenUsage" = "%@ / %@ tokens";
+"chat.messageStats" = "%d개 메시지 (%d개 압축됨)";
+"chat.pendingCompression" = "%d개 메시지 압축 중";
+"chat.compressedBadge" = "%d개 압축됨";
+"chat.cancelStuckReason" = "중지하는 데 예상보다 오래 걸리고 있습니다 — 도구 호출이 아직 실행 중일 수 있습니다. 곧 강제 중지합니다…";
+"chat.forceStoppedContent" = "\n\n⚠️ *[강제 중지됨 — 도구 호출을 제시간에 중단할 수 없었습니다]*";
+"chat.deleteSessionTitle" = "세션 삭제";
+"chat.deleteSessionMessage" = "이 세션과 모든 메시지가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.";
+"chat.deleteAgentTitle" = "에이전트 삭제";
+"chat.deleteAgentMessage" = "에이전트 \"%@\"와 모든 세션, 하위 에이전트 및 데이터가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.";
+"chat.thinkingProcess" = "사고 과정";
+"chat.addMedia" = "미디어 추가";
+"chat.photosAndVideos" = "사진 및 동영상";
+"chat.camera" = "촬영";
+"chat.pasteFromClipboard" = "클립보드에서 붙여넣기";
+"chat.chooseFile" = "파일 선택";
+"chat.imagePlaceholder" = "[이미지]";
+"chat.saveImageToPhotos" = "이미지 저장";
+"chat.imageSaved" = "사진에 저장되었습니다";
+"chat.copyImage" = "이미지 복사";
+"chat.imageDeleted" = "이미지가 삭제되었습니다";
+"chat.videoDeleted" = "비디오가 삭제되었습니다";
+"chat.modalityStripped" = "컨텍스트에서 이미지 %d개 일시적으로 제외됨 — %@은(는) 비전을 지원하지 않습니다";
+"chat.toolUseUnsupported" = "%@은(는) 도구 사용을 지원하지 않습니다 — 브라우저, 서브 에이전트, 코드 실행 등의 기능을 사용할 수 없습니다";
+"chat.exportSession" = "세션 내보내기";
+"chat.retry" = "재시도";
+"chat.retryHint" = "생성이 중지되었습니다. 재시도하거나 새 메시지를 보낼 수 있습니다.";
+"chat.verbose" = "상세";
+"chat.silent" = "무음";
+"chat.switchToSilent" = "무음 모드로 전환";
+"chat.switchToVerbose" = "상세 모드로 전환";
+"chat.silentThinking" = "생각 중 (%d회차)…";
+"chat.silentRunningTool" = "%@ 실행 중…";
+"chat.displayModeScope" = "%@의 모든 세션에 적용";
+"chat.doubleTapToExpand" = "셀을 두 번 탭하여 전체 내용 보기";
+"chat.cellDetail" = "셀 상세";
+"chat.videoSubmitting" = "제출 중...";
+"chat.videoSubmitted" = "작업 제출됨";
+"chat.videoGenerating" = "동영상 생성 중 (%d초)";
+"chat.videoDownloading" = "동영상 다운로드 중...";
+"chat.videoCompleted" = "동영상 완료";
+"chat.videoFailed" = "실패: %@";
+
+// MARK: - Agents
+"agents.title" = "에이전트";
+"agents.newAgent" = "새 에이전트";
+"agents.agentName" = "에이전트 이름";
+"agents.createAgent" = "에이전트 생성";
+"agents.noAgents" = "에이전트 없음";
+"agents.createAgentDescription" = "AI 에이전트를 생성하여 시작하세요.";
+"agents.enterName" = "새 에이전트의 이름을 입력하세요.";
+"agents.renameAgent" = "에이전트 이름 바꾸기";
+
+// MARK: - Agent Detail
+"agentDetail.config" = "설정";
+"agentDetail.modelConfig" = "모델 설정";
+"agentDetail.skills" = "스킬";
+"agentDetail.cronJobs" = "예약 작업";
+"agentDetail.customConfigs" = "사용자 정의 설정";
+"agentDetail.subAgents" = "서브 에이전트";
+"agentDetail.codeSnippets" = "코드 스니펫";
+"agentDetail.newConfig" = "새 설정";
+"agentDetail.keyPlaceholder" = "키 이름 (예: RULES)";
+"agentDetail.noSubAgents" = "서브 에이전트 없음";
+"agentDetail.subAgentsDescription" = "서브 에이전트는 대화 중 AI에 의해 생성됩니다.";
+"agentDetail.sessionsCount" = "%d개 세션";
+"agentDetail.msgsCount" = "%d개 메시지";
+"agentDetail.subAgentsTitle" = "서브 에이전트 (%d)";
+"agentDetail.noCodeSnippets" = "코드 스니펫 없음";
+"agentDetail.codeSnippetsDescription" = "코드 스니펫은 AI 에이전트에 의해 저장됩니다.";
+"agentDetail.snippetInfo" = "정보";
+"agentDetail.snippetName" = "이름";
+"agentDetail.snippetLanguage" = "언어";
+"agentDetail.snippetCode" = "코드";
+"agentDetail.newSnippet" = "새 스니펫";
+"agentDetail.applePermissions" = "Apple 권한";
+
+// MARK: - Apple Permissions
+"applePermissions.title" = "Apple 권한";
+"applePermissions.description" = "이 에이전트가 접근할 수 있는 Apple 시스템 기능을 설정합니다. 읽기는 데이터 조회를 허용하고, 쓰기는 데이터 생성·수정·삭제를 허용합니다. 동일한 수준은 코드 실행에서 사용하는 `apple.*` JavaScript API와 이를 감싸는 설치된 스킬(예: Health Plus)에도 적용됩니다.";
+"applePermissions.readWrite" = "읽기 및 쓰기";
+"applePermissions.readOnly" = "읽기 전용";
+"applePermissions.writeOnly" = "쓰기 전용";
+"applePermissions.disabled" = "비활성화";
+"applePermissions.enableAll" = "모두 활성화 (읽기 및 쓰기)";
+"applePermissions.readOnlyAll" = "모두 읽기 전용으로 설정";
+"applePermissions.disableAll" = "모두 비활성화";
+"applePermissions.calendar" = "캘린더";
+"applePermissions.reminders" = "미리 알림";
+"applePermissions.contacts" = "연락처";
+"applePermissions.clipboard" = "클립보드";
+"applePermissions.notifications" = "알림";
+"applePermissions.location" = "위치";
+"applePermissions.map" = "지도";
+"applePermissions.health" = "건강";
+"applePermissions.summaryReadWrite" = "%d개의 도구 활성화됨";
+"applePermissions.summaryReadOnly" = "%d개의 읽기 도구 활성화됨";
+"applePermissions.summaryWriteOnly" = "%d개의 쓰기 도구 활성화됨";
+"applePermissions.summaryDisabled" = "모든 도구 비활성화됨";
+
+// MARK: - Model Config
+"modelConfig.title" = "모델 설정";
+"modelConfig.globalDefault" = "전역 기본";
+"modelConfig.primaryModel" = "기본 모델";
+"modelConfig.primaryModelFooter" = "이 에이전트와의 대화에 사용되는 주요 모델입니다.";
+"modelConfig.noFallback" = "폴백 모델 미설정";
+"modelConfig.addFallback" = "폴백 추가";
+"modelConfig.fallbackChain" = "폴백 체인";
+"modelConfig.fallbackFooter" = "기본 모델이 실패하면 이 순서대로 시도합니다. 드래그하여 순서 변경.";
+"modelConfig.inheritFromPrimary" = "기본 모델에서 상속";
+"modelConfig.subAgentModel" = "서브 에이전트 모델";
+"modelConfig.subAgentDefault" = "서브 에이전트 기본";
+"modelConfig.subAgentFooter" = "이 에이전트가 생성하는 서브 에이전트의 기본 모델입니다.";
+"modelConfig.compressionThreshold" = "압축 임계값 (토큰)";
+"modelConfig.defaultThreshold" = "기본 (%d)";
+"modelConfig.systemDefault" = "0 = 시스템 기본";
+"modelConfig.resetDefault" = "기본값으로 복원";
+"modelConfig.contextCompression" = "컨텍스트 압축";
+"modelConfig.compressionFooter" = "세션의 누적 토큰이 이 임계값을 초과하면 이전 메시지가 자동으로 요약으로 압축됩니다. 값을 높이면 더 많은 원본 컨텍스트가 보존되지만 API 비용이 증가합니다.";
+"modelConfig.noToolUse" = "%@ — 도구 사용 미지원";
+"modelConfig.noModels" = "사용 가능한 모델이 없습니다 — 설정에서 제공자를 구성하세요";
+"modelConfig.override" = "(재정의)";
+"modelConfig.primary" = "기본";
+"modelConfig.fallback" = "폴백";
+"modelConfig.subAgent" = "서브 에이전트";
+"modelConfig.resolutionOrder" = "해결 순서";
+"modelConfig.resolutionFooter" = "모델은 이 순서대로 시도됩니다. 동일 제공자가 다른 모델로 여러 번 나타날 수 있습니다.";
+"modelConfig.modelWhitelist" = "모델 화이트리스트";
+"modelConfig.whitelistAllModels" = "사용 가능한 모든 모델 허용";
+"modelConfig.addToWhitelist" = "화이트리스트에 추가";
+"modelConfig.clearWhitelist" = "화이트리스트 비우기";
+"modelConfig.whitelistFooter" = "서브 에이전트와 도구 호출이 사용할 수 있는 모델을 제한합니다. 비어있으면 사용 가능한 모든 모델이 허용됩니다.";
+"modelConfig.whitelistStaleWarning" = "%d개의 화이트리스트 항목이 삭제된 제공자/모델을 참조합니다";
+"modelConfig.whitelistMissingPrimary" = "기본 모델이 화이트리스트에 없습니다 — 메시지 전송에 실패합니다";
+"modelConfig.whitelistMissingSubAgent" = "서브 에이전트 기본 모델이 화이트리스트에 없습니다";
+"modelConfig.thinkingLevel" = "사고 레벨";
+"modelConfig.thinkingLevelUseModelDefault" = "모델 기본값 사용";
+"modelConfig.thinkingLevelFooter" = "이 에이전트의 모델 기본 사고 레벨을 재정의합니다. Extra High는 Opus 4.7 또는 DeepSeek v4에서만 지원됩니다. Max는 Opus 4.5+, Sonnet 4.6+ 또는 DeepSeek v4가 필요합니다. 지원되지 않는 레벨은 요청 시 자동으로 조정됩니다.";
+"modelConfig.imageProvider" = "이미지 생성 모델";
+"modelConfig.imageProviderNone" = "비활성화";
+"modelConfig.imageGenerationHeader" = "이미지 생성";
+"modelConfig.imageProviderFooter" = "generate_image 도구에서 사용할 모델을 선택하세요. 이미지 생성 기능이 있는 모델만 표시됩니다. 설정하면 에이전트가 도구 호출을 통해 이미지를 생성할 수 있습니다.";
+"modelConfig.videoProvider" = "동영상 생성 모델";
+"modelConfig.videoProviderNone" = "비활성화";
+"modelConfig.videoGenerationHeader" = "동영상 생성";
+"modelConfig.videoProviderFooter" = "generate_video 도구에 사용할 모델을 선택합니다. 동영상 생성 기능이 있는 모델만 표시됩니다. 동영상 생성은 보통 1~5분이 소요됩니다.";
+"modelConfig.i2vProvider" = "이미지→동영상 모델";
+"modelConfig.i2vSameAsT2V" = "텍스트→동영상과 동일";
+
+// MARK: - Cron Jobs
+"cronJobs.title" = "예약 작업";
+"cronJobs.noCronJobs" = "예약 작업 없음";
+"cronJobs.noCronJobsDescription" = "여기서 반복 작업을 생성하거나 AI 에이전트에게 생성을 요청하세요.";
+"cronJobs.shortcutsTrigger" = "단축어 연동 트리거";
+"cronJobs.shortcutsDescription" = "Apple 단축어로 작업의 안정적 실행 보장";
+"cronJobs.runsCount" = "%d회 실행";
+"cronJobs.nextPrefix" = "다음: ";
+"cronJobs.jobInfo" = "작업 정보";
+"cronJobs.schedule" = "스케줄";
+"cronJobs.description" = "설명";
+"cronJobs.enabled" = "활성화됨";
+"cronJobs.jobHint" = "작업 힌트";
+"cronJobs.statistics" = "통계";
+"cronJobs.totalRuns" = "총 실행 횟수";
+"cronJobs.lastRun" = "마지막 실행";
+"cronJobs.ago" = " 전";
+"cronJobs.nextRun" = "다음 실행";
+"cronJobs.created" = "생성일";
+"cronJobs.triggerURL" = "트리거 URL";
+"cronJobs.viewShortcutsGuide" = "단축어 설정 가이드 보기";
+"cronJobs.shortcutsIntegration" = "단축어 연동";
+"cronJobs.shortcutsIntegrationFooter" = "Apple 단축어의 \"자동화\" 기능으로 이 URL을 사용하여 예약 작업을 안정적으로 트리거합니다.";
+"cronJobs.lastSession" = "마지막 세션";
+"cronJobs.editJob" = "작업 편집";
+"cronJobs.newCronJob" = "새 예약 작업";
+"cronJobs.basic" = "기본";
+"cronJobs.jobName" = "작업 이름";
+"cronJobs.cronExpression" = "Cron 표현식";
+"cronJobs.nextFire" = "다음 실행:";
+"cronJobs.cronFormat" = "형식: 분 시 일 월 요일\n프리셋: @hourly @daily @weekly @monthly @yearly";
+"cronJobs.quickPresets" = "빠른 프리셋";
+"cronJobs.everyHour" = "매시간";
+"cronJobs.daily9am" = "매일 오전 9시";
+"cronJobs.weekdays9am" = "평일 오전 9시";
+"cronJobs.weeklyMon" = "매주 월요일";
+"cronJobs.every30min" = "30분마다";
+"cronJobs.monthly1st" = "매월 1일";
+"cronJobs.jobHintFooter" = "작업이 트리거될 때마다 이 프롬프트가 LLM에 전송됩니다.";
+
+// MARK: - Shortcuts Guide
+"shortcuts.title" = "단축어 가이드";
+"shortcuts.headerTitle" = "단축어로 예약 작업 트리거";
+"shortcuts.headerSubtitle" = "백그라운드에서 Cron 작업의 안정적 실행 보장";
+"shortcuts.whyNeeded" = "왜 단축어가 필요한가요?";
+"shortcuts.whyDescription" = "iOS는 백그라운드 작업에 엄격한 제한이 있습니다. 시스템이 BGAppRefreshTask를 지연하거나 건너뛸 수 있어 예약 작업이 정시에 트리거되지 않을 수 있습니다. Apple 단축어의 \"자동화\"와 Pentia의 App Intent(또는 대체 수단으로 URL Scheme)를 결합하면 예약 작업이 지정된 시간에 안정적으로 실행됩니다.";
+
+"shortcuts.appIntentSection" = "권장: App Intent(잠금 해제 불필요)";
+"shortcuts.appIntentDescription" = "Pentia의 기본 App Intent를 사용하면 단축어 자동화가 앱을 전면으로 가져오지 않고도 백그라운드에서 예약 작업을 실행합니다. 기기가 잠겨 있어도 작동하며 Face ID나 암호 입력이 요구되지 않습니다.";
+"shortcuts.appIntentStep1Title" = "개인 자동화 만들기";
+"shortcuts.appIntentStep1Detail" = "단축어 앱에서 자동화 → 개인 자동화 만들기 → 시각을 선택하고 트리거 시간을 설정합니다.";
+"shortcuts.appIntentStep2Title" = "Pentia 동작 추가";
+"shortcuts.appIntentStep2Detail" = "\"동작 추가\"를 누르고 \"Pentia\"를 검색하여 \"Run Due Cron Jobs\"를 선택합니다(특정 작업을 이름으로 지정하려면 \"Trigger Cron Job\").";
+"shortcuts.appIntentStep3Title" = "\"즉시 실행\" 활성화";
+"shortcuts.appIntentStep3Detail" = "\"즉시 실행\"을 켜고 \"실행 시 알림\"을 끕니다. 그러면 자동화가 잠금 화면에서 확인 없이 조용히 실행됩니다.";
+"shortcuts.appIntentStep4Title" = "완료";
+"shortcuts.appIntentStep4Detail" = "자동화를 저장합니다. 이제 기기가 잠겨 있어도 예약 작업이 지정된 시간에 실행됩니다.";
+
+"shortcuts.legacyFallbackSection" = "대체 수단: URL Scheme";
+"shortcuts.legacyFallbackDescription" = "아래의 URL Scheme은 여전히 사용할 수 있지만, \"URL 열기\" 동작은 Pentia를 전면으로 가져오므로 기기 잠금을 해제해야 합니다. 무인 실행을 원한다면 위의 App Intent 방식을 우선 사용하세요.";
+
+"shortcuts.setupSteps" = "설정 단계";
+"shortcuts.step1Title" = "단축어 앱 열기";
+"shortcuts.step1Detail" = "\"단축어\" 앱으로 이동하여 하단의 \"자동화\" 탭을 선택합니다.";
+"shortcuts.step2Title" = "개인 자동화 만들기";
+"shortcuts.step2Detail" = "오른쪽 상단 \"+\" → \"개인 자동화 만들기\" → \"시간\"을 선택합니다.";
+"shortcuts.step3Title" = "트리거 시간 설정";
+"shortcuts.step3Detail" = "Cron 작업 스케줄에 맞는 시간과 반복 규칙(매일/평일/특정 날짜)을 설정합니다.";
+"shortcuts.step4Title" = "동작 추가";
+"shortcuts.step4Detail" = "\"URL 열기\" 동작을 검색하여 추가하고 다음 URL을 입력합니다:";
+"shortcuts.step5Title" = "\"실행 전 묻기\" 비활성화";
+"shortcuts.step5Detail" = "\"실행 전 묻기\"를 끄면 자동화가 백그라운드에서 조용히 실행됩니다.";
+"shortcuts.step6Title" = "완료";
+"shortcuts.step6Detail" = "\"완료\"를 탭하여 자동화를 저장합니다. 이제 Cron 작업이 단축어를 통해 지정된 시간에 안정적으로 트리거됩니다.";
+"shortcuts.urlReference" = "URL 참조";
+"shortcuts.triggerSpecific" = "특정 작업 트리거";
+"shortcuts.triggerSpecificDesc" = "지정된 ID의 Cron 작업을 트리거";
+"shortcuts.runAllDue" = "만기된 모든 작업 실행";
+"shortcuts.runAllDueDesc" = "만기된 모든 Cron 작업을 확인하고 실행";
+"shortcuts.tips" = "팁";
+"shortcuts.tip1" = "고빈도 작업(예: 매시간)의 경우 앱 내 스케줄링과 단축어를 이중으로 사용하는 것을 권장합니다.";
+"shortcuts.tip2" = "단축어 자동화는 기기가 잠금 화면일 때도 실행할 수 있지만 네트워크 연결이 필요합니다.";
+"shortcuts.tip3" = "여러 Cron 작업이 있는 경우 \"만기된 모든 작업 실행\" URL로 한꺼번에 트리거할 수 있습니다.";
+"shortcuts.tip4" = "URL Scheme을 처음 사용할 때 시스템이 확인 대화상자를 표시할 수 있습니다. 확인 후 이후 호출은 조용히 실행됩니다.";
+
+// MARK: - App Intents (cron)
+"appIntent.entity.cronJob" = "예약 작업";
+"appIntent.runDue.title" = "예정된 예약 작업 실행";
+"appIntent.runDue.description" = "현재 예정 시각이 도래한 활성화된 Pentia 예약 작업을 모두 실행합니다. 앱을 전면으로 가져오지 않으므로 잠금 상태에서도 자동화가 동작합니다.";
+"appIntent.trigger.title" = "예약 작업 트리거";
+"appIntent.trigger.description" = "선택한 Pentia 예약 작업을 즉시 실행합니다. 앱을 전면으로 가져오지 않으므로 잠금 상태에서도 자동화가 동작합니다.";
+"appIntent.parameter.cronJob" = "예약 작업";
+
+// AppShortcut shortTitle keys — keep in sync with `shortTitle:` literals in PentiaAppShortcuts.swift.
+"Run Due Cron Jobs" = "예정된 예약 작업 실행";
+"Trigger Cron Job" = "예약 작업 트리거";
+
+// MARK: - Sessions
+"sessions.title" = "세션";
+"sessions.noSessions" = "세션 없음";
+"sessions.noSessionsDescription" = "새 세션을 만들어 AI 에이전트와 대화를 시작하세요.";
+"sessions.newSession" = "새 세션";
+"sessions.noAgents" = "에이전트 없음";
+"sessions.noAgentsDescription" = "먼저 에이전트 탭에서 에이전트를 생성하세요.";
+"sessions.sessionsCount" = "%d개 세션";
+"sessions.selectAgent" = "에이전트 선택";
+"sessions.messagesCount" = "%d개 메시지";
+"sessions.draft" = "임시 저장";
+"sessions.searchSessions" = "세션 검색";
+"sessions.selectSession" = "세션 선택";
+"sessions.selectSessionDescription" = "사이드바에서 세션을 선택하여 대화를 시작하세요.";
+
+// MARK: - Settings
+"settings.title" = "설정";
+"settings.llmProviders" = "LLM 제공자";
+"settings.imageProviders" = "이미지 생성";
+"settings.videoProviders" = "동영상 생성";
+"settings.addProvider" = "제공자 추가";
+"settings.deleteProviderTitle" = "제공자 삭제";
+"settings.deleteProviderMessage" = "이 제공자가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.";
+"settings.deleteProviderAffectedMessage" = "다음 에이전트가 이 제공자를 사용 중이며, 삭제 후 기본 제공자로 전환됩니다: %@";
+"settings.about" = "정보";
+"settings.version" = "버전";
+"settings.build" = "빌드";
+"settings.aboutDescription" = "Pentia는 LLM 에이전트와 상호작용하기 위한 오픈소스 iOS 클라이언트입니다. 멀티 프로바이더 모델 라우팅, 서브 에이전트, 브라우저 자동화, 코드 실행, cron 스케줄링, Apple 생태계 연동(캘린더, 미리 알림, 연락처, 건강, 지도 등)을 지원합니다.";
+"settings.sourceCode" = "소스 코드";
+"settings.license" = "MIT 라이선스에 따라 공개";
+"settings.backgroundExecution" = "백그라운드 실행";
+"settings.backgroundKeepAlive" = "라이브 활동";
+"settings.backgroundKeepAliveFooter" = "백그라운드 작업 실행 중 Dynamic Island에 라이브 활동을 고정하여 앱의 가시성을 유지합니다. 기본적으로 비활성화되어 있습니다.";
+"settings.skills" = "스킬";
+"settings.progressiveSkillDisclosure" = "점진적 공개";
+"settings.progressiveSkillDisclosureFooter" = "켜면 설치된 각 스킬이 시스템 프롬프트에서 휴면 상태가 됩니다 — 이름과 설명만 로드되며, 활성화(/<slug> 입력, 도구 호출, 스크립트 실행)할 때 전체 본문이 로드됩니다. 많은 스킬을 설치한 경우 프롬프트 예산을 크게 절약합니다. 기본 켜짐.";
+"liveActivity.running" = "작업 실행 중…";
+"liveActivity.done" = "모든 작업 완료";
+"liveActivity.error" = "작업 실패";
+"liveActivity.agentsRunning" = "%d개의 Agent 실행 중";
+
+// MARK: - LLM Provider
+"provider.editProvider" = "제공자 편집";
+"provider.addProvider" = "제공자 추가";
+"provider.addModel" = "모델 추가";
+"provider.modelNamePlaceholder" = "모델 이름 (예: gpt-4o-mini)";
+"provider.provider" = "제공자";
+"provider.endpoint" = "엔드포인트";
+"provider.authentication" = "인증";
+"provider.apiKey" = "API 키";
+"provider.defaultModel" = "기본 모델";
+"provider.defaultModelFooter" = "특정 모델이 선택되지 않았을 때 사용되는 기본 모델입니다.";
+"provider.noModelsEnabled" = "활성화된 모델 없음";
+"provider.setDefault" = "기본으로 설정";
+"provider.manuallyAddModel" = "수동으로 모델 추가";
+"provider.enabledModels" = "활성화된 모델";
+"provider.enabledModelsFooter" = "왼쪽 스와이프로 비활성화, 오른쪽 스와이프로 기본 설정. 활성화된 모델만 에이전트 모델 선택에 표시됩니다.";
+"provider.fetchFromAPI" = "API에서 가져오기";
+"provider.availableToEnable" = "활성화 가능 (%d)";
+"provider.allModelsEnabled" = "가져온 전체 %d개 모델이 활성화되었습니다";
+"provider.enableAll" = "모두 활성화";
+"provider.remoteModels" = "원격 모델";
+"provider.remoteModelsFooter" = "API 엔드포인트에서 모델을 가져온 다음 필요한 모델을 활성화하세요.";
+"provider.maxTokens" = "최대 토큰: %d";
+"provider.thinkingBudget" = "사고 예산: %d";
+"provider.thinkingBudgetFooter" = "확장 사고/추론의 토큰 예산입니다. max_tokens는 이 값보다 크도록 자동 조정됩니다.";
+"provider.parameters" = "매개변수";
+"provider.supportsVision" = "비전 지원";
+"provider.supportsVisionFooter" = "이 모델이 이미지 입력을 지원하는 경우 활성화하세요 (예: GPT-4o, Claude 3.5 Sonnet)";
+"provider.supportsVideoInput" = "동영상 입력 지원";
+"provider.supportsToolUse" = "도구 사용 지원";
+"provider.supportsToolUseFooter" = "이 모델이 함수 호출/도구 사용을 지원하지 않는 경우 비활성화하세요 (일부 OpenRouter 모델)";
+"provider.supportsImageGeneration" = "이미지 생성";
+"provider.supportsImageGenerationFooter" = "이미지를 생성할 수 있는 모델에 활성화하세요 (예: Gemini 2.5 Flash Image / Nano Banana). API에 modalities 매개변수를 전송합니다.";
+"provider.supportsVideoGeneration" = "동영상 생성";
+"provider.imageGenMode.none" = "없음";
+"provider.imageGenMode.chatInline" = "채팅 인라인";
+"provider.imageGenMode.dedicatedAPI" = "전용 API";
+"provider.imageGenMode.dashScope" = "DashScope";
+"provider.videoGenMode.none" = "없음";
+"provider.videoGenMode.auto" = "자동 감지";
+"provider.videoGenMode.restPolling" = "REST 폴링 (Sora, Runway, Luma)";
+"provider.testConnection" = "연결 테스트";
+"provider.testConnectionSuccess" = "%lld개 모델";
+"provider.testConnectionOK" = "OK";
+"provider.videoGenMode.googleVeo" = "Google Veo";
+"provider.videoGenMode.dashScope" = "DashScope (통의완상)";
+"provider.videoGenMode.kling" = "Kling";
+"provider.videoGenMode.seedance" = "Seedance (ByteDance)";
+"provider.supportsReasoning" = "추론 지원";
+"provider.supportsReasoningFooter" = "확장 사고/추론을 지원하는 모델에 활성화하세요 (예: Claude 확장 사고, DeepSeek R1, o1/o3). 사고 과정이 캡처되어 표시됩니다.";
+"provider.thinkingLevel" = "사고 레벨";
+"provider.thinkingLevelFooter" = "레벨이 높을수록 더 많은 추론 토큰을 사용합니다. Claude Opus 4.5+, Sonnet 4.6+, DeepSeek v4에서는 effort로, 구형 Claude에서는 budget_tokens로 매핑됩니다. OpenAI o 시리즈에서 Extra High와 Max는 High와 동일하게 처리됩니다.";
+"provider.thinkingLevelXHighSuffix" = "Opus 4.7 / DeepSeek v4";
+"provider.thinkingLevelMaxSuffix" = "Opus 4.5+ / Sonnet 4.6+ / DeepSeek v4";
+"provider.thinkingLevelXHighSuffixOpenAI" = "DeepSeek v4 (그 외는 High)";
+"provider.thinkingLevelMaxSuffixOpenAI" = "DeepSeek v4 (그 외는 High)";
+"provider.perModelMaxTokens" = "최대 토큰 수 재정의";
+"provider.temperature" = "온도: %.2f";
+"provider.perModelTemperature" = "온도 재정의";
+"provider.parametersFooter" = "모든 모델의 기본값입니다. 위의 '활성화된 모델' 섹션에서 모델별로 재정의할 수 있습니다.";
+"provider.providerType" = "제공자 유형";
+"provider.providerType.llm" = "LLM (채팅)";
+"provider.providerType.image" = "이미지 생성 (실험적)";
+"provider.providerType.video" = "동영상 생성 (실험적)";
+"provider.providerTypeFooter" = "LLM 제공자는 채팅 완성을 처리합니다. 동영상 제공자는 Kling, Veo, DashScope 등 동영상 생성 API 전용입니다.";
+"provider.apiStyle" = "API 프로토콜";
+"provider.apiStyle.openAIResponses" = "OpenAI Responses API";
+"provider.apiStyle.openAI" = "OpenAI 호환";
+"provider.apiStyle.anthropic" = "Anthropic";
+"provider.apiStyle.googleVeo" = "Google Veo";
+"provider.apiStyle.dashScope" = "DashScope (통의완상)";
+"provider.apiStyle.kling" = "Kling";
+"provider.apiStyle.seedance" = "Seedance (ByteDance)";
+"provider.apiStyleFooter" = "요청에 사용할 API 프로토콜을 지정합니다. OpenAI 호환은 /chat/completions를 사용하며 대부분의 타사 호환 제공업체(DeepSeek, OpenRouter, Ollama 등)에 적합합니다. OpenAI Responses는 /responses를 사용하며 OpenAI 또는 명시적으로 지원하는 제공업체에서만 선택하세요. Anthropic은 Anthropic 네이티브 Messages API입니다.";
+"provider.modelCapabilities" = "모델 기능";
+"provider.presets" = "프리셋";
+
+// MARK: - Skills
+"skills.title" = "스킬";
+"skills.noSkills" = "스킬 없음";
+"skills.noSkillsDescription" = "스킬을 생성하거나 AI 에이전트에게 구축을 요청하세요.";
+"skills.createSkill" = "스킬 생성";
+"skills.importSkill" = "스킬 가져오기…";
+"skills.importContinue" = "계속";
+"skills.importReplace" = "교체";
+"skills.importSecurityTitle" = "스킬을 가져올까요?";
+"skills.importSecurityBody" = "가져온 스킬은 에이전트 샌드박스에서 JavaScript를 실행하며, 에이전트 권한에 따라 파일 시스템과 Apple 에코시스템 API에 접근합니다. 신뢰할 수 없는 출처의 스킬을 가져오지 마세요 — 악성 스킬은 에이전트가 접근할 수 있는 모든 데이터를 읽거나 수정할 수 있습니다. 폴더 출처를 신뢰하는 경우에만 계속하세요.";
+"skills.importFailedTitle" = "가져오기 실패";
+"skills.importNotADirectory" = "선택한 경로는 스킬 패키지 디렉터리가 아닙니다.";
+"skills.importWarningsTitle" = "경고가 있는데 가져올까요?";
+"skills.importCollisionTitle" = "기존 스킬을 교체할까요?";
+"skills.importCollisionBody" = "'%@' 이름의 스킬이 이미 설치되어 있습니다. 교체하면 디스크의 패키지와 저장된 행이 모두 덮어써집니다.";
+"skills.importCollisionFooter" = "참고: '%@' 이름의 스킬이 이미 설치되어 있습니다. 확인하면 교체됩니다.";
+"skills.importBuiltInRefused" = "'%@'은(는) 빌트인 스킬이라 교체할 수 없습니다. 다른 폴더 이름으로 다시 가져와 주세요.";
+"skills.importValidationFailed" = "검증에서 %d개의 오류가 발견되었습니다:";
+"skills.importValidationWarnings" = "검증에서 %d개의 경고가 발견되었습니다 — 가져오기 전에 확인하세요:";
+"skills.importedTitle" = "가져왔습니다";
+"skills.importedBody" = "'%@' 이(가) 설치되었습니다.";
+"skills.revealInFiles" = "파일 앱에서 보기";
+"skills.showInFiles" = "파일 앱에서 Skills 폴더 열기";
+"skills.shareSkill" = "스킬 공유…";
+"skills.validationErrorsTitle" = "검증 오류";
+"skills.validationWarningsTitle" = "검증 경고";
+"skills.parameterOptional" = "(선택)";
+"skills.editScriptTitle" = "스크립트 편집";
+"skills.editToolTitle" = "도구 편집";
+"skills.customSkills" = "사용자 정의 스킬";
+"skills.builtInSkills" = "기본 제공 스킬";
+"skills.builtIn" = "기본 제공";
+"skills.searchSkills" = "스킬 검색…";
+"skills.deleteSkill" = "스킬 삭제";
+"skills.deleteSkillMessage" = "「%@」을(를) 영구적으로 삭제하고 모든 에이전트에서 제거합니다.";
+"skills.content" = "콘텐츠";
+"skills.noAgents" = "에이전트 없음";
+"skills.noAgentsDescription" = "먼저 에이전트를 생성하세요.";
+"skills.install" = "%@ 설치";
+"skills.skillsActive" = "%d개 스킬 활성";
+"skills.agents" = "에이전트";
+"skills.editSkill" = "스킬 편집";
+"skills.newSkill" = "새 스킬";
+"skills.info" = "정보";
+"skills.skillName" = "스킬 이름";
+"skills.summary" = "요약 (한 줄 설명)";
+"skills.tags" = "태그 (쉼표로 구분)";
+"skills.contentMarkdown" = "콘텐츠 (Markdown)";
+"skills.contentFooter" = "지침, 방법론 또는 지식을 작성합니다. 설치 후 에이전트의 시스템 프롬프트에 주입됩니다.";
+"skills.noSkillsInstalled" = "설치된 스킬 없음";
+"skills.installDescription" = "라이브러리에서 스킬을 설치하여 이 에이전트에 전문 능력을 추가하세요.";
+"skills.browseLibrary" = "라이브러리 찾아보기";
+"skills.uninstall" = "제거";
+"skills.skillLibrary" = "스킬 라이브러리";
+"skills.activeInstalled" = "%d개 활성 / %d개 설치됨";
+"skills.scriptsCount" = "스크립트 (%d)";
+"skills.customToolsCount" = "커스텀 도구 (%d)";
+"skills.parameters" = "매개변수";
+"skills.addScript" = "스크립트 추가";
+"skills.addTool" = "도구 추가";
+"skills.addParameter" = "매개변수 추가";
+"skills.scripts" = "스크립트";
+"skills.customTools" = "커스텀 도구";
+"skills.scriptsFooter" = "스킬 설치 시 JavaScript 스크립트가 코드 스니펫으로 자동 등록됩니다.";
+"skills.customToolsFooter" = "커스텀 도구는 JavaScript로 구동되는 에이전트 호출 가능 함수가 됩니다.";
+"skills.scriptName" = "스크립트 이름";
+"skills.descriptionOptional" = "설명 (선택사항)";
+"skills.jsCode" = "JavaScript 코드";
+"skills.toolName" = "도구 이름";
+"skills.toolInfo" = "도구 정보";
+"skills.description" = "설명";
+"skills.jsImplementation" = "JavaScript 구현";
+"skills.jsImplementationFooter" = "`args.매개변수명`으로 매개변수에 접근할 수 있습니다. 설치 설정은 `args.config`로 사용 가능합니다.";
+"skills.configure" = "설정";
+"skills.skillConfiguration" = "스킬 설정";
+"skills.required" = "필수";
+
+// MARK: - Cron Description
+"cron.invalidExpression" = "잘못된 Cron 표현식";
+"cron.everyMinute" = "매분";
+"cron.atMinute" = "%d분에";
+"cron.atMinutes" = "%@분에";
+"cron.ofEveryHour" = "매시간";
+"cron.ofHour" = "%d시에";
+"cron.ofHours" = "%@시에";
+"cron.onDays" = "매월 %@일에";
+"cron.inMonths" = "%@월에";
+"cron.onWeekdays" = "%@에";
+"cron.sun" = "일";
+"cron.mon" = "월";
+"cron.tue" = "화";
+"cron.wed" = "수";
+"cron.thu" = "목";
+"cron.fri" = "금";
+"cron.sat" = "토";
+
+// MARK: - Cron Executor
+"cronExec.completed" = "예약 작업 완료";
+"cronExec.completedBody" = "%@이(가) 완료되었습니다. 탭하여 세션을 확인하세요.";
+"cronExec.noProvider" = "[예약 작업 오류] LLM 제공자가 설정되지 않았습니다.";
+
+// MARK: - Chat Errors
+"chatError.noProvider" = "LLM 제공자가 설정되지 않았습니다. 설정에서 추가하세요.";
+"chatError.noAgent" = "이 세션에 연결된 에이전트가 없습니다.";
+"chatError.whitelistBlocked" = "사용 가능한 모델이 없습니다 — 현재 모델이 화이트리스트에 없습니다. 에이전트의 기본 모델과 화이트리스트 설정을 확인하세요.";
+
+// MARK: - Browser
+"tabs.browser" = "브라우저";
+"browser.title" = "브라우저";
+"browser.urlPlaceholder" = "검색 또는 URL 입력";
+"browser.agentControlling" = "「%@」이(가) 브라우저를 제어 중";
+"browser.takeOver" = "제어 가져오기";
+"browser.takeOverTitle" = "브라우저 제어 가져오기";
+"browser.takeOverMessage" = "에이전트 「%@」이(가) 브라우저를 자동 조작 중입니다. 제어를 가져오면 해당 작업이 중단됩니다. 계속하시겠습니까?";
+"browser.closePage" = "페이지 닫기";
+"browser.closePageTitle" = "현재 페이지 닫기";
+"browser.closePageMessage" = "현재 페이지를 닫고 빈 브라우저로 돌아갑니다.";
+
+// MARK: - Markdown Editor
+"markdownEditor.preview" = "미리보기";
+"markdownEditor.edit" = "편집";
+
+// MARK: - Tool Card Display Names
+"toolCard.javascript" = "JavaScript";
+"toolCard.readConfig" = "설정 읽기";
+"toolCard.writeConfig" = "설정 쓰기";
+"toolCard.saveCode" = "코드 저장";
+"toolCard.loadCode" = "코드 불러오기";
+"toolCard.listCode" = "코드 목록";
+"toolCard.createAgent" = "에이전트 생성";
+"toolCard.messageAgent" = "메시지 전송";
+"toolCard.collectOutput" = "출력 수집";
+"toolCard.listAgents" = "에이전트 목록";
+"toolCard.stopAgent" = "에이전트 중지";
+"toolCard.deleteAgent" = "에이전트 삭제";
+"toolCard.scheduleJob" = "작업 예약";
+"toolCard.removeJob" = "작업 제거";
+"toolCard.listJobs" = "작업 목록";
+"toolCard.createSkill" = "스킬 생성";
+"toolCard.deleteSkill" = "스킬 삭제";
+"toolCard.installSkill" = "스킬 설치";
+"toolCard.uninstallSkill" = "스킬 제거";
+"toolCard.listSkills" = "스킬 목록";
+"toolCard.readSkill" = "스킬 읽기";
+"toolCard.setModel" = "모델 설정";
+"toolCard.getModel" = "모델 조회";
+"toolCard.listModels" = "모델 목록";
+"toolCard.fileList" = "파일 목록";
+"toolCard.fileRead" = "파일 읽기";
+"toolCard.fileWrite" = "파일 쓰기";
+"toolCard.fileDelete" = "파일 삭제";
+"toolCard.fileInfo" = "파일 정보";
+"toolCard.attachMedia" = "미디어 첨부";
+"toolCard.browse" = "브라우즈";
+"toolCard.pageInfo" = "페이지 정보";
+"toolCard.click" = "클릭";
+"toolCard.input" = "입력";
+"toolCard.select" = "선택";
+"toolCard.extract" = "추출";
+"toolCard.browserJS" = "브라우저 JS";
+"toolCard.waitElement" = "요소 대기";
+"toolCard.scroll" = "스크롤";
+"toolCard.runSnippet" = "스니펫 실행";
+"toolCard.deleteCode" = "코드 삭제";
+"toolCard.calendarListCalendars" = "캘린더 목록";
+"toolCard.calendarCreateEvent" = "일정 생성";
+"toolCard.calendarSearchEvents" = "일정 검색";
+"toolCard.calendarUpdateEvent" = "일정 수정";
+"toolCard.calendarDeleteEvent" = "일정 삭제";
+"toolCard.reminderLists" = "미리 알림 목록";
+"toolCard.reminderList" = "미리 알림 보기";
+"toolCard.reminderCreate" = "미리 알림 생성";
+"toolCard.reminderComplete" = "미리 알림 완료";
+"toolCard.reminderDelete" = "미리 알림 삭제";
+"toolCard.contactsSearch" = "연락처 검색";
+"toolCard.contactsGetDetail" = "연락처 상세";
+"toolCard.clipboardRead" = "클립보드 읽기";
+"toolCard.clipboardWrite" = "클립보드 쓰기";
+"toolCard.notificationSchedule" = "알림 예약";
+"toolCard.notificationCancel" = "알림 취소";
+"toolCard.notificationList" = "알림 목록";
+"toolCard.locationGetCurrent" = "현재 위치";
+"toolCard.locationGeocode" = "주소 지오코딩";
+"toolCard.locationReverseGeocode" = "역지오코딩";
+"toolCard.mapSearchPlaces" = "장소 검색";
+"toolCard.mapGetDirections" = "길찾기";
+"toolCard.healthReadSteps" = "걸음 수 조회";
+"toolCard.healthReadHeartRate" = "심박수 조회";
+"toolCard.healthReadSleep" = "수면 조회";
+"toolCard.healthReadBodyMass" = "체중 조회";
+"toolCard.healthReadBloodPressure" = "혈압 조회";
+"toolCard.healthReadBloodGlucose" = "혈당 조회";
+"toolCard.healthReadBloodOxygen" = "혈중 산소 조회";
+"toolCard.healthReadBodyTemperature" = "체온 조회";
+"toolCard.healthWriteDietaryEnergy" = "칼로리 기록";
+"toolCard.healthWriteBodyMass" = "체중 기록";
+"toolCard.healthWriteDietaryWater" = "수분 섭취 기록";
+"toolCard.healthWriteDietaryCarbohydrates" = "탄수화물 기록";
+"toolCard.healthWriteDietaryProtein" = "단백질 기록";
+"toolCard.healthWriteDietaryFat" = "지방 기록";
+"toolCard.healthWriteBloodPressure" = "혈압 기록";
+"toolCard.healthWriteBodyFat" = "체지방 기록";
+"toolCard.healthWriteHeight" = "신장 기록";
+"toolCard.healthWriteBloodGlucose" = "혈당 기록";
+"toolCard.healthWriteBloodOxygen" = "혈중 산소 기록";
+"toolCard.healthWriteBodyTemperature" = "체온 기록";
+"toolCard.healthWriteHeartRate" = "심박수 기록";
+"toolCard.healthWriteWorkout" = "운동 기록";
+"toolCard.searchSessions" = "세션 검색";
+"toolCard.recallSession" = "세션 회상";
+"toolCard.generateImage" = "이미지 생성";
+"toolCard.generateVideo" = "동영상 생성";
+"toolCard.skillScope" = "스킬";
+
+// MARK: - Tool Result
+"toolResult.stdout" = "표준 출력";
+"toolResult.stderr" = "표준 오류";
+
+// MARK: - Tool Permissions
+"toolPermissions.title" = "도구 권한";
+"toolPermissions.description" = "이 에이전트가 사용할 수 있는 도구와 기능을 설정합니다. 읽기는 데이터 조회를 허용하고, 쓰기는 데이터 생성·수정·삭제를 허용합니다. JavaScript 브리지(`apple.*`, `fs.*` 등)를 노출하는 카테고리의 경우 동일한 수준이 `execute_javascript` 호출 및 이를 감싸는 기본 제공 스킬(File Ops, Health Plus)에도 적용됩니다.";
+"toolPermissions.browser" = "브라우저";
+"toolPermissions.codeExecution" = "코드 실행";
+"toolPermissions.subAgents" = "서브 에이전트";
+"toolPermissions.sessions" = "세션 기억";
+"toolPermissions.cron" = "예약 작업";
+"toolPermissions.skills" = "스킬";
+"toolPermissions.config" = "설정";
+"toolPermissions.model" = "모델";
+"toolPermissions.files" = "파일";
+"toolPermissions.imageGeneration" = "이미지 생성";
+"toolPermissions.videoGeneration" = "동영상 생성";
+"toolPermissions.appleSection" = "Apple 생태계";
+"toolPermissions.agentSection" = "에이전트 기능";
+"agentDetail.toolPermissions" = "도구 권한";
+
+// MARK: - Agent Files
+"agentFiles.title" = "파일 관리";
+"agentFiles.empty" = "파일 없음";
+"agentFiles.emptyDescription" = "에이전트가 생성하거나 업로드한 파일이 여기에 표시됩니다.";
+"agentFiles.deleteConfirmTitle" = "파일 삭제";
+"agentFiles.deleteConfirmMessage" = "\"%@\"을(를) 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.";
+"agentFiles.imagePermissionDisabled" = "이 에이전트의 파일 접근 권한이 비활성화되었습니다";
+"agentFiles.newFolder" = "새 폴더";
+"agentFiles.folderName" = "폴더 이름";
+"agentFiles.invalidFolderName" = "잘못된 폴더 이름";
+
+// MARK: - Permission Errors
+"permError.calendarDenied" = "[오류] 캘린더 접근이 거부되었습니다. 「설정 > 개인 정보 보호 > 캘린더」에서 활성화하세요.";
+"permError.calendarDeniedByUser" = "[오류] 사용자가 캘린더 접근을 거부했습니다.";
+"permError.calendarWriteOnly" = "[오류] 쓰기 권한만 부여되었습니다. 전체 접근 권한이 필요합니다. 「설정 > 개인 정보 보호 > 캘린더」에서 업데이트하세요.";
+"permError.calendarUnknown" = "[오류] 알 수 없는 캘린더 인증 상태입니다.";
+"permError.remindersDenied" = "[오류] 미리 알림 접근이 거부되었습니다. 「설정 > 개인 정보 보호 > 미리 알림」에서 활성화하세요.";
+"permError.remindersDeniedByUser" = "[오류] 사용자가 미리 알림 접근을 거부했습니다.";
+"permError.remindersUnknown" = "[오류] 알 수 없는 미리 알림 인증 상태입니다.";
+"permError.contactsDenied" = "[오류] 연락처 접근이 거부되었습니다. 「설정 > 개인 정보 보호 > 연락처」에서 활성화하세요.";
+"permError.contactsDeniedByUser" = "[오류] 사용자가 연락처 접근을 거부했습니다.";
+"permError.contactsUnknown" = "[오류] 알 수 없는 연락처 인증 상태입니다.";
+"permError.notificationDenied" = "[오류] 알림 권한이 거부되었습니다. 「설정 > 알림」에서 활성화하세요.";
+"permError.notificationDeniedByUser" = "[오류] 사용자가 알림 권한을 거부했습니다.";
+"permError.notificationUnknown" = "[오류] 알 수 없는 알림 인증 상태입니다.";
+"permError.locationDenied" = "[오류] 위치 접근이 거부되었습니다. 「설정 > 개인 정보 보호 > 위치 서비스」에서 활성화하세요.";
+"permError.locationDeniedByUser" = "[오류] 사용자가 위치 접근을 거부했습니다.";
+"permError.locationUnknown" = "[오류] 알 수 없는 위치 인증 상태입니다.";
+"permError.healthUnavailable" = "[오류] 이 기기에서 건강 데이터를 사용할 수 없습니다.";
+"permError.healthFailed" = "[오류] HealthKit 접근 권한 요청에 실패했습니다: %@";
+"permError.toolNotPermitted" = "[오류] 도구 '%@'(%@)은(는) 이 에이전트에 허용되지 않습니다. 에이전트 설정에서 도구 권한을 확인하세요.";
+
+// MARK: - Export
+"export.roleUser" = "사용자";
+"export.roleAssistant" = "어시스턴트";
+"export.roleTool" = "도구";
+"export.toolCall" = "도구 호출";
+
+// MARK: - 내장 스킬 콘텐츠
+// 내장 Skill의 표시 이름, 요약, 도구 및 파라미터 설명.
+// Markdown 본문은 BuiltInSkills/<Name>.md를 참조.
+
+// Deep Research
+
+// File Ops
+
+// Health Plus

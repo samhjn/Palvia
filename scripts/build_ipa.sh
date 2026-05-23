@@ -2,15 +2,15 @@
 set -euo pipefail
 
 #──────────────────────────────────────────────
-# iClaw IPA Build Script
+# Pentia IPA Build Script
 #──────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # ── 默认配置 ──
-PROJECT_NAME="iClaw"
-SCHEME="iClaw"
+PROJECT_NAME="Pentia"
+SCHEME="Pentia"
 BUNDLE_ID="com.iclaw.app"
 CONFIGURATION="Release"
 SDK="iphoneos"
@@ -388,7 +388,7 @@ print_result() {
 main() {
     echo ""
     echo -e "${CYAN}╔══════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║       iClaw IPA Build Script         ║${NC}"
+    echo -e "${CYAN}║       Pentia IPA Build Script         ║${NC}"
     echo -e "${CYAN}╚══════════════════════════════════════╝${NC}"
     echo ""
 

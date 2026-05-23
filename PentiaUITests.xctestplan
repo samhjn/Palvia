@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "A1B2C3D4-E5F6-7890-ABCD-EF0123456789",
+      "name" : "Default",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Pentia.xcodeproj",
+      "identifier" : "PentiaUITests",
+      "name" : "PentiaUITests"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Pentia.xcodeproj",
+        "identifier" : "PentiaUITests",
+        "name" : "PentiaUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,709 @@
+/* 日本語 */
+
+// MARK: - Migration
+"migration.alertTitle" = "データベースの更新に失敗";
+"migration.alertMessage" = "データベースを新しいバージョンに移行できません。データベースをリセットしてアプリを再起動できますが、すべてのデータ（セッション、エージェント、設定）が完全に失われます。変更せずにアプリを終了することもできます。";
+"migration.resetAndRestart" = "リセットして再起動";
+"migration.exitApp" = "アプリを終了";
+
+// MARK: - Launch Tasks
+"launch.cleaningUp" = "クリーンアップ中…";
+"launch.buildingIndex" = "検索インデックスを構築中…";
+
+// MARK: - Tabs
+"tabs.sessions" = "セッション";
+"tabs.agents" = "エージェント";
+"tabs.skills" = "スキル";
+"tabs.settings" = "設定";
+
+// MARK: - Common
+"common.save" = "保存";
+"common.cancel" = "キャンセル";
+"common.delete" = "削除";
+"common.create" = "作成";
+"common.edit" = "編集";
+"common.done" = "完了";
+"common.copy" = "コピー";
+"common.copied" = "コピー済み";
+"common.dismiss" = "閉じる";
+"common.enable" = "有効化";
+"common.disable" = "無効化";
+"common.default" = "デフォルト";
+"common.active" = "アクティブ";
+"common.preview" = "プレビュー";
+"common.empty" = "*空*";
+"common.refresh" = "更新";
+"common.add" = "追加";
+"common.name" = "名前";
+"common.unknown" = "不明";
+"common.confirm" = "OK";
+"common.import" = "インポート";
+
+// MARK: - Chat
+"chat.messagePlaceholder" = "メッセージ…";
+"chat.cancelling" = "中止中…";
+"chat.skillActivated" = "%@ を有効化しました — 質問をどうぞ。";
+"chat.thinking" = "考え中…";
+"chat.compressingContext" = "コンテキストを圧縮中…";
+"chat.renameSession" = "セッション名を変更";
+"chat.rename" = "名前変更";
+"chat.compressContext" = "コンテキスト圧縮";
+"chat.title" = "タイトル";
+"chat.openLink" = "リンクを開く";
+"chat.share" = "共有";
+"chat.loadingImage" = "画像を読み込み中…";
+"chat.imageLoadFailed" = "画像の読み込みに失敗しました";
+"chat.newChat" = "新しいチャット";
+"chat.aborted" = "\n\n⚠️ *[中止済み]*";
+"chat.toolCallAborted" = "⚠️ *[ツール呼び出しが中止されました]*";
+"chat.noAgent" = "このセッションにエージェントが関連付けられていません";
+"chat.noCompressModel" = "圧縮に使用できるモデルがありません";
+"chat.sessionBlocked" = "「%@」が処理中です。同一エージェントでは同時に1つのアクティブセッションのみ許可されます。";
+"chat.compressionInfo" = "コンテキスト ≈%@ / %@ | %d件（%d件圧縮済み）";
+"chat.tokenUsage" = "%@ / %@ tokens";
+"chat.messageStats" = "%d件（%d件圧縮済み）";
+"chat.pendingCompression" = "%d件を圧縮中";
+"chat.compressedBadge" = "%d件圧縮済み";
+"chat.cancelStuckReason" = "停止に予想以上の時間がかかっています — ツール呼び出しがまだ実行中の可能性があります。まもなく強制停止します…";
+"chat.forceStoppedContent" = "\n\n⚠️ *[強制停止されました — ツール呼び出しを時間内に中断できませんでした]*";
+"chat.deleteSessionTitle" = "セッションを削除";
+"chat.deleteSessionMessage" = "このセッションとすべてのメッセージが完全に削除されます。この操作は元に戻せません。";
+"chat.deleteAgentTitle" = "エージェントを削除";
+"chat.deleteAgentMessage" = "エージェント「%@」とそのすべてのセッション、サブエージェント、データが完全に削除されます。この操作は元に戻せません。";
+"chat.thinkingProcess" = "思考プロセス";
+"chat.addMedia" = "メディアを追加";
+"chat.photosAndVideos" = "写真とビデオ";
+"chat.camera" = "撮影";
+"chat.pasteFromClipboard" = "クリップボードから貼り付け";
+"chat.chooseFile" = "ファイルを選択";
+"chat.imagePlaceholder" = "[画像]";
+"chat.saveImageToPhotos" = "画像を保存";
+"chat.imageSaved" = "写真に保存しました";
+"chat.copyImage" = "画像をコピー";
+"chat.imageDeleted" = "画像は削除されました";
+"chat.videoDeleted" = "動画は削除されました";
+"chat.modalityStripped" = "コンテキストから画像 %d 枚を一時的に除外しました — %@ はビジョンに対応していません";
+"chat.toolUseUnsupported" = "%@ はツール使用に対応していません — ブラウザ、サブエージェント、コード実行などの機能が利用できません。";
+"chat.exportSession" = "セッションを書き出す";
+"chat.retry" = "リトライ";
+"chat.retryHint" = "生成が停止されました。リトライするか、新しいメッセージを送信できます。";
+"chat.verbose" = "詳細";
+"chat.silent" = "サイレント";
+"chat.switchToSilent" = "サイレントモードに切替";
+"chat.switchToVerbose" = "詳細モードに切替";
+"chat.silentThinking" = "思考中（%d回目）…";
+"chat.silentRunningTool" = "%@ を実行中…";
+"chat.displayModeScope" = "%@ の全セッションに適用";
+"chat.doubleTapToExpand" = "セルをダブルタップで全文表示";
+"chat.cellDetail" = "セル詳細";
+"chat.videoSubmitting" = "送信中...";
+"chat.videoSubmitted" = "タスク送信済み";
+"chat.videoGenerating" = "動画生成中 (%d秒)";
+"chat.videoDownloading" = "動画ダウンロード中...";
+"chat.videoCompleted" = "動画完了";
+"chat.videoFailed" = "失敗：%@";
+
+// MARK: - Agents
+"agents.title" = "エージェント";
+"agents.newAgent" = "新規エージェント";
+"agents.agentName" = "エージェント名";
+"agents.createAgent" = "エージェントを作成";
+"agents.noAgents" = "エージェントなし";
+"agents.createAgentDescription" = "AIエージェントを作成して始めましょう。";
+"agents.enterName" = "新しいエージェントの名前を入力してください。";
+"agents.renameAgent" = "エージェント名を変更";
+
+// MARK: - Agent Detail
+"agentDetail.config" = "設定";
+"agentDetail.modelConfig" = "モデル設定";
+"agentDetail.skills" = "スキル";
+"agentDetail.cronJobs" = "定期タスク";
+"agentDetail.customConfigs" = "カスタム設定";
+"agentDetail.subAgents" = "サブエージェント";
+"agentDetail.codeSnippets" = "コードスニペット";
+"agentDetail.newConfig" = "新規設定";
+"agentDetail.keyPlaceholder" = "キー名（例：RULES）";
+"agentDetail.noSubAgents" = "サブエージェントなし";
+"agentDetail.subAgentsDescription" = "サブエージェントは会話中にAIによって作成されます。";
+"agentDetail.sessionsCount" = "%d セッション";
+"agentDetail.msgsCount" = "%d 件";
+"agentDetail.subAgentsTitle" = "サブエージェント（%d）";
+"agentDetail.noCodeSnippets" = "コードスニペットなし";
+"agentDetail.codeSnippetsDescription" = "コードスニペットはAIエージェントによって保存されます。";
+"agentDetail.snippetInfo" = "情報";
+"agentDetail.snippetName" = "名前";
+"agentDetail.snippetLanguage" = "言語";
+"agentDetail.snippetCode" = "コード";
+"agentDetail.newSnippet" = "新規スニペット";
+"agentDetail.applePermissions" = "Apple 権限";
+
+// MARK: - Apple Permissions
+"applePermissions.title" = "Apple 権限";
+"applePermissions.description" = "このエージェントがアクセスできる Apple システム機能を設定します。読み取りはデータの照会を許可し、書き込みはデータの作成・変更・削除を許可します。同じレベルはコード実行で使う `apple.*` JavaScript API、およびそれをラップする導入済みスキル（Health Plus など）にも適用されます。";
+"applePermissions.readWrite" = "読み書き";
+"applePermissions.readOnly" = "読み取りのみ";
+"applePermissions.writeOnly" = "書き込みのみ";
+"applePermissions.disabled" = "無効";
+"applePermissions.enableAll" = "すべて有効（読み書き）";
+"applePermissions.readOnlyAll" = "すべて読み取りのみに設定";
+"applePermissions.disableAll" = "すべて無効";
+"applePermissions.calendar" = "カレンダー";
+"applePermissions.reminders" = "リマインダー";
+"applePermissions.contacts" = "連絡先";
+"applePermissions.clipboard" = "クリップボード";
+"applePermissions.notifications" = "通知";
+"applePermissions.location" = "位置情報";
+"applePermissions.map" = "マップ";
+"applePermissions.health" = "ヘルスケア";
+"applePermissions.summaryReadWrite" = "%d 個のツールが有効";
+"applePermissions.summaryReadOnly" = "%d 個の読み取りツールが有効";
+"applePermissions.summaryWriteOnly" = "%d 個の書き込みツールが有効";
+"applePermissions.summaryDisabled" = "すべてのツールが無効";
+
+// MARK: - Model Config
+"modelConfig.title" = "モデル設定";
+"modelConfig.globalDefault" = "グローバルデフォルト";
+"modelConfig.primaryModel" = "プライマリモデル";
+"modelConfig.primaryModelFooter" = "このエージェントとの会話に使用されるメインモデルです。";
+"modelConfig.noFallback" = "フォールバックモデル未設定";
+"modelConfig.addFallback" = "フォールバック追加";
+"modelConfig.fallbackChain" = "フォールバックチェーン";
+"modelConfig.fallbackFooter" = "プライマリモデルが失敗した場合、この順番で試行されます。ドラッグで並べ替え。";
+"modelConfig.inheritFromPrimary" = "プライマリから継承";
+"modelConfig.subAgentModel" = "サブエージェントモデル";
+"modelConfig.subAgentDefault" = "サブエージェントデフォルト";
+"modelConfig.subAgentFooter" = "このエージェントが作成するサブエージェントのデフォルトモデルです。";
+"modelConfig.compressionThreshold" = "圧縮しきい値（トークン）";
+"modelConfig.defaultThreshold" = "デフォルト（%d）";
+"modelConfig.systemDefault" = "0 = システムデフォルト";
+"modelConfig.resetDefault" = "デフォルトに戻す";
+"modelConfig.contextCompression" = "コンテキスト圧縮";
+"modelConfig.compressionFooter" = "セッションの累計トークンがこのしきい値を超えると、古いメッセージが自動的に要約に圧縮されます。値を上げるとより多くの元のコンテキストが保持されますが、APIコストが増加します。";
+"modelConfig.noToolUse" = "%@ — ツール使用非対応";
+"modelConfig.noModels" = "利用可能なモデルがありません — 設定でプロバイダーを構成してください";
+"modelConfig.override" = "（上書き）";
+"modelConfig.primary" = "プライマリ";
+"modelConfig.fallback" = "フォールバック";
+"modelConfig.subAgent" = "サブエージェント";
+"modelConfig.resolutionOrder" = "解決順序";
+"modelConfig.resolutionFooter" = "モデルはこの順序で試行されます。同じプロバイダーが異なるモデルで複数回表示される場合があります。";
+"modelConfig.modelWhitelist" = "モデルホワイトリスト";
+"modelConfig.whitelistAllModels" = "すべての利用可能なモデルを許可";
+"modelConfig.addToWhitelist" = "ホワイトリストに追加";
+"modelConfig.clearWhitelist" = "ホワイトリストをクリア";
+"modelConfig.whitelistFooter" = "サブエージェントやツール呼び出しで使用できるモデルを制限します。空の場合、すべての利用可能なモデルが許可されます。";
+"modelConfig.whitelistStaleWarning" = "%d 件のホワイトリストエントリが削除されたプロバイダー/モデルを参照しています";
+"modelConfig.whitelistMissingPrimary" = "プライマリモデルがホワイトリストにありません — メッセージ送信に失敗します";
+"modelConfig.whitelistMissingSubAgent" = "サブエージェントのデフォルトモデルがホワイトリストにありません";
+"modelConfig.thinkingLevel" = "思考レベル";
+"modelConfig.thinkingLevelUseModelDefault" = "モデルのデフォルトを使用";
+"modelConfig.thinkingLevelFooter" = "このエージェントのモデルデフォルト思考レベルを上書きします。Extra High は Opus 4.7 または DeepSeek v4 のみ。Max は Opus 4.5+、Sonnet 4.6+ または DeepSeek v4 が必要です。サポート外のレベルはリクエスト時に自動的に丸められます。";
+"modelConfig.imageProvider" = "画像生成モデル";
+"modelConfig.imageProviderNone" = "無効";
+"modelConfig.imageGenerationHeader" = "画像生成";
+"modelConfig.imageProviderFooter" = "generate_imageツールで使用するモデルを選択します。画像生成機能を持つモデルのみ表示されます。設定すると、エージェントはツール呼び出しで画像を生成できます。";
+"modelConfig.videoProvider" = "動画生成モデル";
+"modelConfig.videoProviderNone" = "無効";
+"modelConfig.videoGenerationHeader" = "動画生成";
+"modelConfig.videoProviderFooter" = "generate_video ツールで使用するモデルを選択します。動画生成に対応したモデルのみ表示されます。動画生成には通常1〜5分かかります。";
+"modelConfig.i2vProvider" = "画像→動画モデル";
+"modelConfig.i2vSameAsT2V" = "テキスト→動画と同じ";
+
+// MARK: - Cron Jobs
+"cronJobs.title" = "定期タスク";
+"cronJobs.noCronJobs" = "定期タスクなし";
+"cronJobs.noCronJobsDescription" = "ここから定期タスクを作成するか、AIエージェントに作成を依頼してください。";
+"cronJobs.shortcutsTrigger" = "ショートカット連携";
+"cronJobs.shortcutsDescription" = "Apple ショートカットでタスクの確実な実行を保証";
+"cronJobs.runsCount" = "%d 回実行";
+"cronJobs.nextPrefix" = "次回：";
+"cronJobs.jobInfo" = "タスク情報";
+"cronJobs.schedule" = "スケジュール";
+"cronJobs.description" = "説明";
+"cronJobs.enabled" = "有効";
+"cronJobs.jobHint" = "タスクヒント";
+"cronJobs.statistics" = "統計";
+"cronJobs.totalRuns" = "合計実行回数";
+"cronJobs.lastRun" = "前回実行";
+"cronJobs.ago" = "前";
+"cronJobs.nextRun" = "次回実行";
+"cronJobs.created" = "作成日";
+"cronJobs.triggerURL" = "トリガーURL";
+"cronJobs.viewShortcutsGuide" = "ショートカット設定ガイドを表示";
+"cronJobs.shortcutsIntegration" = "ショートカット連携";
+"cronJobs.shortcutsIntegrationFooter" = "Apple ショートカットの「オートメーション」機能を使用して、このURLで定期タスクを確実にトリガーします。";
+"cronJobs.lastSession" = "前回のセッション";
+"cronJobs.editJob" = "タスクを編集";
+"cronJobs.newCronJob" = "新規定期タスク";
+"cronJobs.basic" = "基本";
+"cronJobs.jobName" = "タスク名";
+"cronJobs.cronExpression" = "Cron 式";
+"cronJobs.nextFire" = "次回実行：";
+"cronJobs.cronFormat" = "形式：分 時 日 月 曜日\nプリセット：@hourly @daily @weekly @monthly @yearly";
+"cronJobs.quickPresets" = "クイックプリセット";
+"cronJobs.everyHour" = "毎時";
+"cronJobs.daily9am" = "毎日9時";
+"cronJobs.weekdays9am" = "平日9時";
+"cronJobs.weeklyMon" = "毎週月曜";
+"cronJobs.every30min" = "30分毎";
+"cronJobs.monthly1st" = "毎月1日";
+"cronJobs.jobHintFooter" = "タスクがトリガーされるたびに、このプロンプトがLLMに送信されます。";
+
+// MARK: - Shortcuts Guide
+"shortcuts.title" = "ショートカットガイド";
+"shortcuts.headerTitle" = "ショートカットで定期タスクをトリガー";
+"shortcuts.headerSubtitle" = "Cronジョブをバックグラウンドで確実に実行";
+"shortcuts.whyNeeded" = "なぜショートカットが必要？";
+"shortcuts.whyDescription" = "iOSはバックグラウンドタスクに厳しい制限があります。システムがBGAppRefreshTaskを遅延またはスキップすることがあり、定期タスクが時間通りにトリガーされない場合があります。ショートカットの「オートメーション」とPentiaのApp Intent（またはフォールバックとしてURL Scheme）を組み合わせれば、定期タスクを指定した時刻に確実に実行できます。";
+
+"shortcuts.appIntentSection" = "推奨：App Intent（ロック解除不要）";
+"shortcuts.appIntentDescription" = "PentiaのネイティブApp Intentを使うことで、ショートカットのオートメーションがバックグラウンドで定期タスクを実行でき、Appを前面に出しません。端末がロックされていても動作し、Face IDやパスコードも求められません。";
+"shortcuts.appIntentStep1Title" = "個人用オートメーションを作成";
+"shortcuts.appIntentStep1Detail" = "「ショートカット」Appで「オートメーション」→「個人用オートメーションを作成」→「時刻」を選び、トリガー時刻を設定します。";
+"shortcuts.appIntentStep2Title" = "Pentiaアクションを追加";
+"shortcuts.appIntentStep2Detail" = "「アクションを追加」をタップし、「Pentia」で検索して「Run Due Cron Jobs」（特定のジョブを指名したい場合は「Trigger Cron Job」）を選びます。";
+"shortcuts.appIntentStep3Title" = "「すぐに実行」を有効化";
+"shortcuts.appIntentStep3Detail" = "「すぐに実行」をオンに、「実行時に通知」をオフにします。ロック画面での確認なしに静かに実行されます。";
+"shortcuts.appIntentStep4Title" = "完了";
+"shortcuts.appIntentStep4Detail" = "オートメーションを保存します。以後、端末がロックされていても、定期タスクは指定時刻に実行されます。";
+
+"shortcuts.legacyFallbackSection" = "フォールバック：URL Scheme";
+"shortcuts.legacyFallbackDescription" = "以下のURL Schemeも引き続き使用できますが、「URLを開く」アクションはPentiaを前面に出すため、端末のロック解除が必要です。無人実行を重視する場合は、上のApp Intentの方法を優先してください。";
+
+"shortcuts.setupSteps" = "設定手順";
+"shortcuts.step1Title" = "ショートカット Appを開く";
+"shortcuts.step1Detail" = "「ショートカット」Appを開き、下部の「オートメーション」タブを選択します。";
+"shortcuts.step2Title" = "個人用オートメーションを作成";
+"shortcuts.step2Detail" = "右上の「+」→「個人用オートメーションを作成」→「時刻」を選択。";
+"shortcuts.step3Title" = "トリガー時刻を設定";
+"shortcuts.step3Detail" = "Cronジョブのスケジュールに合わせた時刻と繰り返しルール（毎日/平日/特定日）を設定。";
+"shortcuts.step4Title" = "アクションを追加";
+"shortcuts.step4Detail" = "「URLを開く」アクションを検索して追加し、以下のURLを入力：";
+"shortcuts.step5Title" = "「実行前に尋ねる」をオフに";
+"shortcuts.step5Detail" = "「実行前に尋ねる」をオフにして、オートメーションがバックグラウンドで静かに実行されるようにします。";
+"shortcuts.step6Title" = "完了";
+"shortcuts.step6Detail" = "「完了」をタップしてオートメーションを保存。これでCronジョブはショートカットを通じて指定時刻に確実にトリガーされます。";
+"shortcuts.urlReference" = "URL リファレンス";
+"shortcuts.triggerSpecific" = "特定タスクをトリガー";
+"shortcuts.triggerSpecificDesc" = "指定IDのCronジョブをトリガー";
+"shortcuts.runAllDue" = "期限到来タスクをすべて実行";
+"shortcuts.runAllDueDesc" = "期限到来のCronジョブをすべてチェックして実行";
+"shortcuts.tips" = "ヒント";
+"shortcuts.tip1" = "高頻度タスク（毎時など）の場合、アプリ内スケジューリングとショートカットの二重保護を推奨します。";
+"shortcuts.tip2" = "ショートカットのオートメーションはデバイスがロック画面でも実行できますが、ネットワーク接続が必要です。";
+"shortcuts.tip3" = "複数のCronジョブがある場合、「期限到来タスクをすべて実行」URLでまとめてトリガーできます。";
+"shortcuts.tip4" = "URL Schemeの初回使用時にシステムが確認ダイアログを表示する場合があります。確認後、以降の呼び出しは静かに実行されます。";
+
+// MARK: - App Intents (cron)
+"appIntent.entity.cronJob" = "定期タスク";
+"appIntent.runDue.title" = "期限の来た定期タスクを実行";
+"appIntent.runDue.description" = "有効かつスケジュールが期限に達したPentiaの定期タスクをすべて実行します。Appを前面に出さないため、ロック中でも自動化が動作します。";
+"appIntent.trigger.title" = "定期タスクを実行";
+"appIntent.trigger.description" = "選択したPentiaの定期タスクをすぐに実行します。Appを前面に出さないため、ロック中でも自動化が動作します。";
+"appIntent.parameter.cronJob" = "定期タスク";
+
+// AppShortcut shortTitle keys — keep in sync with `shortTitle:` literals in PentiaAppShortcuts.swift.
+"Run Due Cron Jobs" = "期限の来た定期タスクを実行";
+"Trigger Cron Job" = "定期タスクをトリガー";
+
+// MARK: - Sessions
+"sessions.title" = "セッション";
+"sessions.noSessions" = "セッションなし";
+"sessions.noSessionsDescription" = "新しいセッションを作成してAIエージェントとチャットを始めましょう。";
+"sessions.newSession" = "新規セッション";
+"sessions.noAgents" = "エージェントなし";
+"sessions.noAgentsDescription" = "まずエージェントタブでエージェントを作成してください。";
+"sessions.sessionsCount" = "%d セッション";
+"sessions.selectAgent" = "エージェントを選択";
+"sessions.messagesCount" = "%d 件のメッセージ";
+"sessions.draft" = "下書き";
+"sessions.searchSessions" = "セッションを検索";
+"sessions.selectSession" = "セッションを選択";
+"sessions.selectSessionDescription" = "サイドバーからセッションを選択してチャットを始めましょう。";
+
+// MARK: - Settings
+"settings.title" = "設定";
+"settings.llmProviders" = "LLM プロバイダー";
+"settings.imageProviders" = "画像生成";
+"settings.videoProviders" = "動画生成";
+"settings.addProvider" = "プロバイダーを追加";
+"settings.deleteProviderTitle" = "プロバイダーを削除";
+"settings.deleteProviderMessage" = "このプロバイダーは完全に削除されます。この操作は元に戻せません。";
+"settings.deleteProviderAffectedMessage" = "以下のエージェントがこのプロバイダーを使用しています。削除後はデフォルトのプロバイダーにフォールバックします：%@";
+"settings.about" = "このアプリについて";
+"settings.version" = "バージョン";
+"settings.build" = "ビルド";
+"settings.aboutDescription" = "Pentia は LLM エージェントと対話するためのオープンソース iOS クライアントです。マルチプロバイダーモデルルーティング、サブエージェント、ブラウザ自動化、コード実行、cron スケジューリング、Apple エコシステム連携（カレンダー、リマインダー、連絡先、ヘルスケア、マップなど）に対応しています。";
+"settings.sourceCode" = "ソースコード";
+"settings.license" = "MIT ライセンスに基づき公開";
+"settings.backgroundExecution" = "バックグラウンド実行";
+"settings.backgroundKeepAlive" = "ライブアクティビティ";
+"settings.backgroundKeepAliveFooter" = "バックグラウンドタスクの実行中にDynamic Islandにライブアクティビティを固定し、アプリの可視性を維持します。デフォルトでは無効です。";
+"settings.skills" = "スキル";
+"settings.progressiveSkillDisclosure" = "段階的開示";
+"settings.progressiveSkillDisclosureFooter" = "有効時、インストール済みの各スキルはシステムプロンプト内で休止状態になります — 名前と説明のみが読み込まれ、有効化（/<slug> を入力、ツール呼び出し、スクリプト実行）するとフルロードされます。多数のスキルがある場合にプロンプト予算を大きく節約。既定はオン。";
+"liveActivity.running" = "タスク実行中…";
+"liveActivity.done" = "すべてのタスクが完了";
+"liveActivity.error" = "タスクが失敗";
+"liveActivity.agentsRunning" = "%d個のAgentが実行中";
+
+// MARK: - LLM Provider
+"provider.editProvider" = "プロバイダーを編集";
+"provider.addProvider" = "プロバイダーを追加";
+"provider.addModel" = "モデルを追加";
+"provider.modelNamePlaceholder" = "モデル名（例：gpt-4o-mini）";
+"provider.provider" = "プロバイダー";
+"provider.endpoint" = "エンドポイント";
+"provider.authentication" = "認証";
+"provider.apiKey" = "API キー";
+"provider.defaultModel" = "デフォルトモデル";
+"provider.defaultModelFooter" = "特定のモデルが選択されていない場合に使用されるデフォルトモデルです。";
+"provider.noModelsEnabled" = "有効なモデルがありません";
+"provider.setDefault" = "デフォルトに設定";
+"provider.manuallyAddModel" = "手動でモデルを追加";
+"provider.enabledModels" = "有効なモデル";
+"provider.enabledModelsFooter" = "左スワイプで無効化、右スワイプでデフォルトに設定。有効なモデルのみがエージェントのモデル選択に表示されます。";
+"provider.fetchFromAPI" = "APIから取得";
+"provider.availableToEnable" = "有効化可能（%d）";
+"provider.allModelsEnabled" = "取得した全 %d モデルが有効です";
+"provider.enableAll" = "すべて有効化";
+"provider.remoteModels" = "リモートモデル";
+"provider.remoteModelsFooter" = "APIエンドポイントからモデルを取得し、必要なものを有効にします。";
+"provider.maxTokens" = "最大トークン数：%d";
+"provider.thinkingBudget" = "思考バジェット：%d";
+"provider.thinkingBudgetFooter" = "拡張思考/推論のトークンバジェット。max_tokensはこの値より大きくなるように自動調整されます。";
+"provider.parameters" = "パラメータ";
+"provider.supportsVision" = "ビジョン対応";
+"provider.supportsVisionFooter" = "このモデルが画像入力に対応している場合は有効にしてください（例：GPT-4o、Claude 3.5 Sonnet）";
+"provider.supportsVideoInput" = "動画入力対応";
+"provider.supportsToolUse" = "ツール使用対応";
+"provider.supportsToolUseFooter" = "このモデルが関数呼び出し/ツール使用に対応していない場合は無効にしてください（一部の OpenRouter モデル）";
+"provider.supportsImageGeneration" = "画像生成";
+"provider.supportsImageGenerationFooter" = "画像を生成できるモデルで有効にしてください（例：Gemini 2.5 Flash Image / Nano Banana）。APIにmodalitiesパラメータを送信します。";
+"provider.supportsVideoGeneration" = "動画生成";
+"provider.imageGenMode.none" = "なし";
+"provider.imageGenMode.chatInline" = "チャットインライン";
+"provider.imageGenMode.dedicatedAPI" = "専用API";
+"provider.imageGenMode.dashScope" = "DashScope";
+"provider.videoGenMode.none" = "なし";
+"provider.videoGenMode.auto" = "自動検出";
+"provider.videoGenMode.restPolling" = "REST ポーリング (Sora, Runway, Luma)";
+"provider.testConnection" = "接続テスト";
+"provider.testConnectionSuccess" = "%lldモデル";
+"provider.testConnectionOK" = "OK";
+"provider.videoGenMode.googleVeo" = "Google Veo";
+"provider.videoGenMode.dashScope" = "DashScope (通義万象)";
+"provider.videoGenMode.kling" = "Kling";
+"provider.videoGenMode.seedance" = "Seedance (ByteDance)";
+"provider.supportsReasoning" = "推論対応";
+"provider.supportsReasoningFooter" = "拡張思考/推論に対応するモデルで有効にしてください（例：Claude拡張思考、DeepSeek R1、o1/o3）。思考過程がキャプチャされ表示されます。";
+"provider.thinkingLevel" = "思考レベル";
+"provider.thinkingLevelFooter" = "レベルが高いほど推論トークンを多く消費します。Claude Opus 4.5+ / Sonnet 4.6+ / DeepSeek v4 では effort に、旧 Claude では budget_tokens にマッピングされます。OpenAI o シリーズでは Extra High / Max は High と同等になります。";
+"provider.thinkingLevelXHighSuffix" = "Opus 4.7 / DeepSeek v4";
+"provider.thinkingLevelMaxSuffix" = "Opus 4.5+ / Sonnet 4.6+ / DeepSeek v4";
+"provider.thinkingLevelXHighSuffixOpenAI" = "DeepSeek v4（他は High）";
+"provider.thinkingLevelMaxSuffixOpenAI" = "DeepSeek v4（他は High）";
+"provider.perModelMaxTokens" = "最大トークン数を上書き";
+"provider.temperature" = "温度：%.2f";
+"provider.perModelTemperature" = "温度を上書き";
+"provider.parametersFooter" = "全モデルのデフォルト値です。上の「有効なモデル」セクションでモデルごとに上書きできます。";
+"provider.providerType" = "プロバイダー種別";
+"provider.providerType.llm" = "LLM（チャット）";
+"provider.providerType.image" = "画像生成 (実験的)";
+"provider.providerType.video" = "動画生成 (実験的)";
+"provider.providerTypeFooter" = "LLMプロバイダーはチャット補完を処理します。動画プロバイダーはKling、Veo、DashScopeなどの動画生成APIに特化しています。";
+"provider.apiStyle" = "APIプロトコル";
+"provider.apiStyle.openAIResponses" = "OpenAI Responses API";
+"provider.apiStyle.openAI" = "OpenAI互換";
+"provider.apiStyle.anthropic" = "Anthropic";
+"provider.apiStyle.googleVeo" = "Google Veo";
+"provider.apiStyle.dashScope" = "DashScope (通義万相)";
+"provider.apiStyle.kling" = "Kling";
+"provider.apiStyle.seedance" = "Seedance (ByteDance)";
+"provider.apiStyleFooter" = "リクエストに使用するAPIプロトコルを指定します。OpenAI互換は /chat/completions を使用し、多くのサードパーティ互換プロバイダー（DeepSeek、OpenRouter、Ollamaなど）向けです。OpenAI Responses は /responses を使用し、OpenAIまたは明示的に対応するプロバイダーでのみ選択してください。AnthropicはAnthropic独自のMessages APIです。";
+"provider.modelCapabilities" = "モデル機能";
+"provider.presets" = "プリセット";
+
+// MARK: - Skills
+"skills.title" = "スキル";
+"skills.noSkills" = "スキルなし";
+"skills.noSkillsDescription" = "スキルを作成するか、AIエージェントに構築を依頼してください。";
+"skills.createSkill" = "スキルを作成";
+"skills.importSkill" = "スキルをインポート…";
+"skills.importContinue" = "続ける";
+"skills.importReplace" = "置き換える";
+"skills.importSecurityTitle" = "スキルをインポートしますか？";
+"skills.importSecurityBody" = "インポートされたスキルはエージェントのサンドボックス内で JavaScript を実行し、エージェントの権限に従ってファイルシステムや Apple エコシステム API にアクセスします。信頼できないソースからスキルをインポートしないでください — 悪意のあるスキルはエージェントがアクセスできるあらゆるデータを読み取ったり変更したりする可能性があります。フォルダの出所を信頼している場合のみ続行してください。";
+"skills.importFailedTitle" = "インポート失敗";
+"skills.importNotADirectory" = "選択されたパスはスキルパッケージのディレクトリではありません。";
+"skills.importWarningsTitle" = "警告がありますがインポートしますか？";
+"skills.importCollisionTitle" = "既存のスキルを置き換えますか？";
+"skills.importCollisionBody" = "'%@' という名前のスキルがすでにインストールされています。置き換えるとディスク上のパッケージと保存済みの行が上書きされます。";
+"skills.importCollisionFooter" = "注意: '%@' というスキルがすでにインストールされています。確認すると置き換えられます。";
+"skills.importBuiltInRefused" = "'%@' はビルトインスキルのため置き換えられません。別のフォルダ名で再度インポートしてください。";
+"skills.importValidationFailed" = "検証で %d 個のエラーが見つかりました：";
+"skills.importValidationWarnings" = "検証で %d 個の警告が見つかりました — インポート前にご確認ください：";
+"skills.importedTitle" = "インポート完了";
+"skills.importedBody" = "'%@' をインストールしました。";
+"skills.revealInFiles" = "ファイル App で表示";
+"skills.showInFiles" = "Skills フォルダをファイル App で開く";
+"skills.shareSkill" = "スキルを共有…";
+"skills.validationErrorsTitle" = "検証エラー";
+"skills.validationWarningsTitle" = "検証の警告";
+"skills.parameterOptional" = "（任意）";
+"skills.editScriptTitle" = "スクリプトを編集";
+"skills.editToolTitle" = "ツールを編集";
+"skills.customSkills" = "カスタムスキル";
+"skills.builtInSkills" = "組み込みスキル";
+"skills.builtIn" = "組み込み";
+"skills.searchSkills" = "スキルを検索…";
+"skills.deleteSkill" = "スキルを削除";
+"skills.deleteSkillMessage" = "「%@」を完全に削除し、すべてのエージェントから削除します。";
+"skills.content" = "コンテンツ";
+"skills.noAgents" = "エージェントなし";
+"skills.noAgentsDescription" = "まずエージェントを作成してください。";
+"skills.install" = "%@ をインストール";
+"skills.skillsActive" = "%d 個のスキルがアクティブ";
+"skills.agents" = "エージェント";
+"skills.editSkill" = "スキルを編集";
+"skills.newSkill" = "新規スキル";
+"skills.info" = "情報";
+"skills.skillName" = "スキル名";
+"skills.summary" = "概要（一行の説明）";
+"skills.tags" = "タグ（カンマ区切り）";
+"skills.contentMarkdown" = "コンテンツ（Markdown）";
+"skills.contentFooter" = "指示、方法論、または知識を記述します。インストール後、エージェントのシステムプロンプトに注入されます。";
+"skills.noSkillsInstalled" = "スキル未インストール";
+"skills.installDescription" = "ライブラリからスキルをインストールして、このエージェントに専門能力を追加します。";
+"skills.browseLibrary" = "ライブラリを参照";
+"skills.uninstall" = "アンインストール";
+"skills.skillLibrary" = "スキルライブラリ";
+"skills.activeInstalled" = "%d 個アクティブ / %d 個インストール済み";
+"skills.scriptsCount" = "スクリプト (%d)";
+"skills.customToolsCount" = "カスタムツール (%d)";
+"skills.parameters" = "パラメータ";
+"skills.addScript" = "スクリプトを追加";
+"skills.addTool" = "ツールを追加";
+"skills.addParameter" = "パラメータを追加";
+"skills.scripts" = "スクリプト";
+"skills.customTools" = "カスタムツール";
+"skills.scriptsFooter" = "スキルのインストール時にJavaScriptスクリプトがコードスニペットとして自動登録されます。";
+"skills.customToolsFooter" = "カスタムツールはJavaScriptで実装されたエージェント用の呼び出し可能な関数になります。";
+"skills.scriptName" = "スクリプト名";
+"skills.descriptionOptional" = "説明（任意）";
+"skills.jsCode" = "JavaScriptコード";
+"skills.toolName" = "ツール名";
+"skills.toolInfo" = "ツール情報";
+"skills.description" = "説明";
+"skills.jsImplementation" = "JavaScript実装";
+"skills.jsImplementationFooter" = "`args.パラメータ名`でパラメータにアクセスできます。インストール設定は`args.config`で利用可能です。";
+"skills.configure" = "設定";
+"skills.skillConfiguration" = "スキル設定";
+"skills.required" = "必須";
+
+// MARK: - Cron Description
+"cron.invalidExpression" = "無効なCron式";
+"cron.everyMinute" = "毎分";
+"cron.atMinute" = "%d 分に";
+"cron.atMinutes" = "%@ 分に";
+"cron.ofEveryHour" = "毎時";
+"cron.ofHour" = "%d 時に";
+"cron.ofHours" = "%@ 時に";
+"cron.onDays" = "毎月 %@ 日に";
+"cron.inMonths" = "%@ 月に";
+"cron.onWeekdays" = "%@ に";
+"cron.sun" = "日";
+"cron.mon" = "月";
+"cron.tue" = "火";
+"cron.wed" = "水";
+"cron.thu" = "木";
+"cron.fri" = "金";
+"cron.sat" = "土";
+
+// MARK: - Cron Executor
+"cronExec.completed" = "定期タスク完了";
+"cronExec.completedBody" = "%@ が完了しました。タップしてセッションを表示。";
+"cronExec.noProvider" = "[定期タスクエラー] LLMプロバイダーが設定されていません。";
+
+// MARK: - Chat Errors
+"chatError.noProvider" = "LLMプロバイダーが設定されていません。設定で追加してください。";
+"chatError.noAgent" = "このセッションにエージェントが関連付けられていません。";
+"chatError.whitelistBlocked" = "利用可能なモデルがありません — 現在のモデルがホワイトリストにありません。エージェントのデフォルトモデルとホワイトリストの設定を確認してください。";
+
+// MARK: - Browser
+"tabs.browser" = "ブラウザ";
+"browser.title" = "ブラウザ";
+"browser.urlPlaceholder" = "検索またはURLを入力";
+"browser.agentControlling" = "「%@」がブラウザを制御中";
+"browser.takeOver" = "操作を引き継ぐ";
+"browser.takeOverTitle" = "ブラウザを引き継ぐ";
+"browser.takeOverMessage" = "エージェント「%@」がブラウザを自動操作中です。引き継ぐとその操作が中断されます。続行しますか？";
+"browser.closePage" = "ページを閉じる";
+"browser.closePageTitle" = "現在のページを閉じる";
+"browser.closePageMessage" = "現在のページを閉じて空白ブラウザに戻ります。";
+
+// MARK: - Markdown Editor
+"markdownEditor.preview" = "プレビュー";
+"markdownEditor.edit" = "編集";
+
+// MARK: - Tool Card Display Names
+"toolCard.javascript" = "JavaScript";
+"toolCard.readConfig" = "設定読取";
+"toolCard.writeConfig" = "設定書込";
+"toolCard.saveCode" = "コード保存";
+"toolCard.loadCode" = "コード読込";
+"toolCard.listCode" = "コード一覧";
+"toolCard.createAgent" = "エージェント作成";
+"toolCard.messageAgent" = "メッセージ送信";
+"toolCard.collectOutput" = "出力収集";
+"toolCard.listAgents" = "エージェント一覧";
+"toolCard.stopAgent" = "エージェント停止";
+"toolCard.deleteAgent" = "エージェント削除";
+"toolCard.scheduleJob" = "タスク作成";
+"toolCard.removeJob" = "タスク削除";
+"toolCard.listJobs" = "タスク一覧";
+"toolCard.createSkill" = "スキル作成";
+"toolCard.deleteSkill" = "スキル削除";
+"toolCard.installSkill" = "スキルインストール";
+"toolCard.uninstallSkill" = "スキルアンインストール";
+"toolCard.listSkills" = "スキル一覧";
+"toolCard.readSkill" = "スキル読取";
+"toolCard.setModel" = "モデル設定";
+"toolCard.getModel" = "モデル取得";
+"toolCard.listModels" = "モデル一覧";
+"toolCard.fileList" = "ファイル一覧";
+"toolCard.fileRead" = "ファイル読み取り";
+"toolCard.fileWrite" = "ファイル書き込み";
+"toolCard.fileDelete" = "ファイル削除";
+"toolCard.fileInfo" = "ファイル情報";
+"toolCard.attachMedia" = "メディア添付";
+"toolCard.browse" = "ブラウズ";
+"toolCard.pageInfo" = "ページ情報";
+"toolCard.click" = "クリック";
+"toolCard.input" = "入力";
+"toolCard.select" = "選択";
+"toolCard.extract" = "抽出";
+"toolCard.browserJS" = "ブラウザ JS";
+"toolCard.waitElement" = "要素待機";
+"toolCard.scroll" = "スクロール";
+"toolCard.runSnippet" = "スニペット実行";
+"toolCard.deleteCode" = "コード削除";
+"toolCard.calendarListCalendars" = "カレンダー一覧";
+"toolCard.calendarCreateEvent" = "予定作成";
+"toolCard.calendarSearchEvents" = "予定検索";
+"toolCard.calendarUpdateEvent" = "予定更新";
+"toolCard.calendarDeleteEvent" = "予定削除";
+"toolCard.reminderLists" = "リマインダーリスト一覧";
+"toolCard.reminderList" = "リマインダー一覧";
+"toolCard.reminderCreate" = "リマインダー作成";
+"toolCard.reminderComplete" = "リマインダー完了";
+"toolCard.reminderDelete" = "リマインダー削除";
+"toolCard.contactsSearch" = "連絡先検索";
+"toolCard.contactsGetDetail" = "連絡先詳細";
+"toolCard.clipboardRead" = "クリップボード読取";
+"toolCard.clipboardWrite" = "クリップボード書込";
+"toolCard.notificationSchedule" = "通知予約";
+"toolCard.notificationCancel" = "通知キャンセル";
+"toolCard.notificationList" = "通知一覧";
+"toolCard.locationGetCurrent" = "現在地取得";
+"toolCard.locationGeocode" = "住所ジオコーディング";
+"toolCard.locationReverseGeocode" = "逆ジオコーディング";
+"toolCard.mapSearchPlaces" = "場所検索";
+"toolCard.mapGetDirections" = "経路案内";
+"toolCard.healthReadSteps" = "歩数取得";
+"toolCard.healthReadHeartRate" = "心拍数取得";
+"toolCard.healthReadSleep" = "睡眠取得";
+"toolCard.healthReadBodyMass" = "体重取得";
+"toolCard.healthReadBloodPressure" = "血圧取得";
+"toolCard.healthReadBloodGlucose" = "血糖値取得";
+"toolCard.healthReadBloodOxygen" = "血中酸素取得";
+"toolCard.healthReadBodyTemperature" = "体温取得";
+"toolCard.healthWriteDietaryEnergy" = "カロリー記録";
+"toolCard.healthWriteBodyMass" = "体重記録";
+"toolCard.healthWriteDietaryWater" = "水分摂取記録";
+"toolCard.healthWriteDietaryCarbohydrates" = "炭水化物記録";
+"toolCard.healthWriteDietaryProtein" = "たんぱく質記録";
+"toolCard.healthWriteDietaryFat" = "脂質記録";
+"toolCard.healthWriteBloodPressure" = "血圧記録";
+"toolCard.healthWriteBodyFat" = "体脂肪記録";
+"toolCard.healthWriteHeight" = "身長記録";
+"toolCard.healthWriteBloodGlucose" = "血糖値記録";
+"toolCard.healthWriteBloodOxygen" = "血中酸素記録";
+"toolCard.healthWriteBodyTemperature" = "体温記録";
+"toolCard.healthWriteHeartRate" = "心拍数記録";
+"toolCard.healthWriteWorkout" = "ワークアウト記録";
+"toolCard.searchSessions" = "セッション検索";
+"toolCard.recallSession" = "セッション想起";
+"toolCard.generateImage" = "画像生成";
+"toolCard.generateVideo" = "動画生成";
+"toolCard.skillScope" = "スキル";
+
+// MARK: - Tool Result
+"toolResult.stdout" = "標準出力";
+"toolResult.stderr" = "標準エラー";
+
+// MARK: - Tool Permissions
+"toolPermissions.title" = "ツール権限";
+"toolPermissions.description" = "このエージェントが使用できるツールと機能を設定します。読み取りはデータの照会を許可し、書き込みはデータの作成・変更・削除を許可します。JavaScript ブリッジ（`apple.*`、`fs.*` など）を公開するカテゴリでは、`execute_javascript` からの呼び出しや、それらをラップする組み込みスキル（File Ops、Health Plus）にも同じレベルが適用されます。";
+"toolPermissions.browser" = "ブラウザ";
+"toolPermissions.codeExecution" = "コード実行";
+"toolPermissions.subAgents" = "サブエージェント";
+"toolPermissions.sessions" = "セッション記憶";
+"toolPermissions.cron" = "定期タスク";
+"toolPermissions.skills" = "スキル";
+"toolPermissions.config" = "設定";
+"toolPermissions.model" = "モデル";
+"toolPermissions.files" = "ファイル";
+"toolPermissions.imageGeneration" = "画像生成";
+"toolPermissions.videoGeneration" = "動画生成";
+"toolPermissions.appleSection" = "Apple エコシステム";
+"toolPermissions.agentSection" = "エージェント機能";
+"agentDetail.toolPermissions" = "ツール権限";
+
+// MARK: - Agent Files
+"agentFiles.title" = "ファイル管理";
+"agentFiles.empty" = "ファイルなし";
+"agentFiles.emptyDescription" = "エージェントが作成したファイルやアップロードしたファイルがここに表示されます。";
+"agentFiles.deleteConfirmTitle" = "ファイルを削除";
+"agentFiles.deleteConfirmMessage" = "「%@」を削除してもよろしいですか？この操作は取り消せません。";
+"agentFiles.imagePermissionDisabled" = "このエージェントのファイルアクセス権限は無効です";
+"agentFiles.newFolder" = "新規フォルダ";
+"agentFiles.folderName" = "フォルダ名";
+"agentFiles.invalidFolderName" = "無効なフォルダ名";
+
+// MARK: - Permission Errors
+"permError.calendarDenied" = "[エラー] カレンダーへのアクセスが拒否されました。「設定 > プライバシー > カレンダー」で有効にしてください。";
+"permError.calendarDeniedByUser" = "[エラー] ユーザーがカレンダーへのアクセスを拒否しました。";
+"permError.calendarWriteOnly" = "[エラー] 書き込みアクセスのみ付与されています。フルアクセスが必要です。「設定 > プライバシー > カレンダー」で更新してください。";
+"permError.calendarUnknown" = "[エラー] 不明なカレンダー認証状態です。";
+"permError.remindersDenied" = "[エラー] リマインダーへのアクセスが拒否されました。「設定 > プライバシー > リマインダー」で有効にしてください。";
+"permError.remindersDeniedByUser" = "[エラー] ユーザーがリマインダーへのアクセスを拒否しました。";
+"permError.remindersUnknown" = "[エラー] 不明なリマインダー認証状態です。";
+"permError.contactsDenied" = "[エラー] 連絡先へのアクセスが拒否されました。「設定 > プライバシー > 連絡先」で有効にしてください。";
+"permError.contactsDeniedByUser" = "[エラー] ユーザーが連絡先へのアクセスを拒否しました。";
+"permError.contactsUnknown" = "[エラー] 不明な連絡先認証状態です。";
+"permError.notificationDenied" = "[エラー] 通知の権限が拒否されました。「設定 > 通知」で有効にしてください。";
+"permError.notificationDeniedByUser" = "[エラー] ユーザーが通知の権限を拒否しました。";
+"permError.notificationUnknown" = "[エラー] 不明な通知認証状態です。";
+"permError.locationDenied" = "[エラー] 位置情報へのアクセスが拒否されました。「設定 > プライバシー > 位置情報サービス」で有効にしてください。";
+"permError.locationDeniedByUser" = "[エラー] ユーザーが位置情報へのアクセスを拒否しました。";
+"permError.locationUnknown" = "[エラー] 不明な位置情報認証状態です。";
+"permError.healthUnavailable" = "[エラー] このデバイスではヘルスデータを利用できません。";
+"permError.healthFailed" = "[エラー] HealthKitのアクセス権限のリクエストに失敗しました：%@";
+"permError.toolNotPermitted" = "[エラー] ツール '%@'（%@）はこのエージェントに許可されていません。エージェント設定でツール権限を確認してください。";
+
+// MARK: - Export
+"export.roleUser" = "ユーザー";
+"export.roleAssistant" = "アシスタント";
+"export.roleTool" = "ツール";
+"export.toolCall" = "ツール呼び出し";
+
+// MARK: - 組み込みスキルのコンテンツ
+// 組み込み Skill の表示名、概要、ツール／パラメータ説明。
+// Markdown 本文は BuiltInSkills/<Name>.md を参照。
+
+// Deep Research
+
+// File Ops
+
+// Health Plus

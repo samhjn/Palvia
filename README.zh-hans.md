@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.PNG" width="128" height="128" alt="iClaw Logo" />
+  <img src="icon.PNG" width="128" height="128" alt="Pentia Logo" />
 </p>
 
-<h1 align="center">iClaw</h1>
+<h1 align="center">Pentia</h1>
 
 <p align="center">
   <strong>把 AI Agent 装进口袋，随时随地释放智能</strong><br/>
@@ -19,11 +19,11 @@
 
 ---
 
-## 为什么选择 iClaw？
+## 为什么选择 Pentia？
 
-市面上的 AI 聊天应用只是对话框。**iClaw 不一样**——它是一个完整的 **AI Agent 平台**，每个 Agent 都有自己的灵魂、记忆和技能，还能直接在手机上运行代码。
+市面上的 AI 聊天应用只是对话框。**Pentia 不一样**——它是一个完整的 **AI Agent 平台**，每个 Agent 都有自己的灵魂、记忆和技能，还能直接在手机上运行代码。
 
-| 维度 | 普通 AI 聊天 | iClaw |
+| 维度 | 普通 AI 聊天 | Pentia |
 |------|------------|-------|
 | **多角色** | 单一对话 | 多 Agent，各有独立人格与记忆 |
 | **代码执行** | 不支持 | 内置 JavaScript 解释器 |
@@ -34,28 +34,15 @@
 
 ---
 
-## 灵感来源：OpenClaw
+## 灵感来源：Pentimento
 
-iClaw 的灵感来自 [OpenClaw](https://github.com/openclaw/openclaw) —— 开源个人 AI 助手。我们共享同一个愿景：让用户拥有真正属于自己的、可定制的 AI Agent。一些共同的设计基因：
+**Pentia** 一名源自 **Pentimento**（绘画中“修改痕迹可见”的概念），寓意智能体在设备端持续迭代、分层演进。
 
-- **灵魂驱动的 Agent** — OpenClaw 首创了 Brain-Body-Soul 模型；iClaw 采用类似理念，通过 SOUL.md / MEMORY.md / USER.md 心智文件定义 Agent
+- **灵魂驱动的 Agent** — 通过 SOUL.md / MEMORY.md / USER.md 心智文件定义个性与记忆连续性
 - **多 LLM 提供商** — 两者都支持自由切换模型，不丢失上下文
 - **定时任务调度** — 两者都支持 Agent 定时任务（Cron）
 - **Function Calling & 工具调用** — Agent 不只是聊天，还能执行真实操作
 
-### iClaw 的不同之处
-
-| | OpenClaw | iClaw |
-|---|---|---|
-| **架构** | C/S 架构 — 需要在 Mac/Linux/Windows 上运行 Gateway 服务 | 完全独立 — 一切原生运行在 iOS 上，无需服务器 |
-| **技术栈** | TypeScript + Node.js | Swift + SwiftUI + SwiftData |
-| **渠道** | 29+ 消息平台（WhatsApp、Telegram、Slack…） | 专注原生 iOS 体验，为移动端深度优化 |
-| **代码执行** | 服务端 Shell 命令 & Docker 沙盒 | 端侧 JavaScript（WKWebView 沙盒），离线可用 |
-| **数据存储** | JSONL 日志 + 向量数据库，存于 Gateway 服务器 | SwiftData 本地存储，零云端依赖 |
-| **上手门槛** | 安装 Node ≥22，运行 Gateway，配对客户端 | 打开 Xcode，编译，完成 |
-| **目标用户** | 拥有家庭服务器或 VPS 的高级用户 | 任何想随身携带 AI Agent 的 iPhone 用户 |
-
-**一句话总结**：OpenClaw 是你服务器上的 AI 指挥中心；iClaw 把同样的能力直接装进口袋——无需任何基础设施。
 
 ---
 
@@ -78,7 +65,7 @@ iClaw 的灵感来自 [OpenClaw](https://github.com/openclaw/openclaw) —— �
 - **自动上下文压缩**——超出 Token 阈值时自动压缩历史消息，摘要注入系统提示
 
 ### 🔍 会话 RAG & 搜索
-Agent 不只是聊天——它们还能**回忆**。iClaw 内置了一套检索增强生成（RAG）框架，将历史会话转化为可搜索的知识库，让 Agent 能够回顾和推理过往对话。
+Agent 不只是聊天——它们还能**回忆**。Pentia 内置了一套检索增强生成（RAG）框架，将历史会话转化为可搜索的知识库，让 Agent 能够回顾和推理过往对话。
 
 - **端侧向量嵌入** — 基于 Apple NaturalLanguage 框架（句子级嵌入，词向量兜底），全部在本地计算，零云端依赖
 - **混合搜索** — 向量相似度搜索（余弦相似度，阈值 >0.3）+ 关键词自动兜底，即使没有嵌入也能保证返回结果
@@ -138,11 +125,11 @@ Agent 不只是聊天——它们还能**回忆**。iClaw 内置了一套检索�
 brew install xcodegen
 
 # 生成 Xcode 工程
-cd iClaw
+cd Pentia
 xcodegen generate
 
 # 打开项目
-open iClaw.xcodeproj
+open Pentia.xcodeproj
 ```
 
 ### 首次使用
@@ -156,9 +143,9 @@ open iClaw.xcodeproj
 ## 项目结构
 
 ```
-iClaw/
+Pentia/
 ├── project.yml              # XcodeGen 配置
-├── iClaw/
+├── Pentia/
 │   ├── App/                 # 应用入口和根导航
 │   ├── Models/              # SwiftData 数据模型
 │   ├── Services/
@@ -199,6 +186,6 @@ Copyright (c) 2026 ShadowMov
 ---
 
 <p align="center">
-  <strong>iClaw</strong> — 把 AI Agent 装进口袋<br/>
+  <strong>Pentia</strong> — 把 AI Agent 装进口袋<br/>
   <a href="https://iclaw.shadow.mov">iclaw.shadow.mov</a>
 </p>

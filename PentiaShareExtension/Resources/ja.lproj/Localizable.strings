@@ -1,0 +1,22 @@
+/* 日本語 — Pentia 共有拡張機能 */
+
+// エージェント選択画面
+"share.title" = "Pentia";
+"share.cancel" = "キャンセル";
+"share.sectionHeader" = "エージェントに送信";
+
+// 空状態
+"share.noAgents.title" = "エージェントがありません";
+"share.noAgents.message" = "Pentia を開いてエージェントを作成してから、ファイルを共有してください。";
+
+"share.appGroupMissing.title" = "App Group が未設定です";
+"share.appGroupMissing.message" = "Pentia は本体アプリと本拡張機能の両方で「group.com.iclaw.app」App Group を有効にする必要があります。Xcode でプロジェクトを開き、Signing & Capabilities から両方のターゲットに App Groups を追加してください。";
+
+// 完了画面（iOS がホストアプリをフォアグラウンドにすることを許可しない場合に表示）
+"share.done.title" = "Pentia に保存しました";
+"share.done.message" = "Pentia を開いて会話を続けてください。ファイルはすでに添付されています。";
+"share.done.button" = "完了";
+
+// エラー
+"share.error.nothingToShare" = "共有するものがありません。Pentia の App Group アクセスをご確認ください。";
+"share.error.ok" = "OK";

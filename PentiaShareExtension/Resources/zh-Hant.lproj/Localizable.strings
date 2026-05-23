@@ -1,0 +1,22 @@
+/* 繁體中文 — Pentia 分享擴充功能 */
+
+// 選擇 Agent 頁
+"share.title" = "Pentia";
+"share.cancel" = "取消";
+"share.sectionHeader" = "傳送給 Agent";
+
+// 空狀態
+"share.noAgents.title" = "還沒有 Agent";
+"share.noAgents.message" = "請先在 Pentia 中建立一個 Agent，再分享檔案過來。";
+
+"share.appGroupMissing.title" = "未設定 App Group";
+"share.appGroupMissing.message" = "Pentia 需要在主 App 與此擴充功能上同時啟用「group.com.iclaw.app」App Group 能力。請在 Xcode 開啟專案，前往 Signing & Capabilities，為兩個目標都加入 App Groups。";
+
+// 完成頁（當 iOS 不允許擴充將主 App 帶到前景時顯示）
+"share.done.title" = "已儲存至 Pentia";
+"share.done.message" = "請打開 Pentia 繼續對話，分享的檔案已附加至工作階段。";
+"share.done.button" = "完成";
+
+// 錯誤訊息
+"share.error.nothingToShare" = "沒有可分享的內容。請確認 Pentia 已啟用 App Group 權限。";
+"share.error.ok" = "好";
