@@ -181,10 +181,15 @@ for relpath in $CHANGED_MODEL_FILES; do
         | grep -n '^+' | grep -v '^[0-9]*:+++' \
         | grep -oP '(?<=@@\s\+)\d+' || true)
 
-    # Alternative: get added var lines directly from the diff
+    # Alternative: get added/removed var lines directly from the diff.
+    # Ignore pure rename noise by skipping added var lines that have an
+    # identical removed counterpart in the same file diff.
     ADDED_VARS=$(git diff "$DIFF_RANGE" -- "$relpath" \
         | grep '^+' | grep -v '^+++' \
         | grep -E '^\+[[:space:]]*var[[:space:]]' || true)
+    REMOVED_VARS=$(git diff "$DIFF_RANGE" -- "$relpath" \
+        | grep '^-' | grep -v '^---' \
+        | grep -E '^-[[:space:]]*var[[:space:]]' || true)
 
     if [[ -z "$ADDED_VARS" ]]; then
         continue
@@ -194,6 +199,13 @@ for relpath in $CHANGED_MODEL_FILES; do
     while IFS= read -r diffline; do
         # Strip leading +
         line="${diffline#+}"
+
+        # If this exact var line also existed before (rename/reflow), ignore it.
+        if [[ -n "${REMOVED_VARS:-}" ]]; then
+            if echo "$REMOVED_VARS" | sed 's/^-//' | grep -Fxq "$line"; then
+                continue
+            fi
+        fi
 
         # Skip @Transient / @Relationship (handled by context, but catch simple cases)
         if [[ "$line" =~ @(Transient|Relationship) ]]; then
