@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://iclaw.shadow.mov">官网</a> ·
+  <a href="https://palvia.net">官网</a> ·
   <a href="#features">功能特性</a> ·
   <a href="#quick-start">快速开始</a> ·
   <a href="LICENSE">MIT License</a> ·
@@ -188,5 +188,5 @@ Copyright (c) 2026 ShadowMov
 
 <p align="center">
   <strong>Palvia</strong> — 把 AI Agent 装进口袋<br/>
-  <a href="https://iclaw.shadow.mov">iclaw.shadow.mov</a>
+  <a href="https://palvia.net">palvia.net</a>
 </p>

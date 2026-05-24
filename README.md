@@ -10,13 +10,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/samhjn/iclaw/actions/workflows/ios-ci.yml">
-    <img src="https://github.com/samhjn/iclaw/actions/workflows/ios-ci.yml/badge.svg" alt="iOS CI" />
+  <a href="https://github.com/samhjn/palvia/actions/workflows/ios-ci.yml">
+    <img src="https://github.com/samhjn/palvia/actions/workflows/ios-ci.yml/badge.svg" alt="iOS CI" />
   </a>
 </p>
 
 <p align="center">
-  <a href="https://iclaw.shadow.mov">Website</a> ·
+  <a href="https://palvia.net">Website</a> ·
   <a href="#features">Features</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="LICENSE">MIT License</a> ·
@@ -194,5 +194,5 @@ Copyright (c) 2026 ShadowMov
 
 <p align="center">
   <strong>Palvia</strong> — Your AI Agents, In Your Pocket.<br/>
-  <a href="https://iclaw.shadow.mov">iclaw.shadow.mov</a>
+  <a href="https://palvia.net">palvia.net</a>
 </p>
