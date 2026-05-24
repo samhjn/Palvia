@@ -1,0 +1,22 @@
+/* 简体中文 — Palvia 分享扩展 */
+
+// 选择 Agent 页
+"share.title" = "Palvia";
+"share.cancel" = "取消";
+"share.sectionHeader" = "发送给 Agent";
+
+// 空状态
+"share.noAgents.title" = "还没有 Agent";
+"share.noAgents.message" = "请先在 Palvia 中创建一个 Agent，再分享文件过来。";
+
+"share.appGroupMissing.title" = "未配置 App Group";
+"share.appGroupMissing.message" = "Palvia 需要在主 App 与此扩展上同时开启「group.com.iclaw.app」App Group 能力。请在 Xcode 中打开项目，前往 Signing & Capabilities，为两个目标都添加 App Groups。";
+
+// 完成页（当 iOS 不允许扩展将主 App 调至前台时显示）
+"share.done.title" = "已保存至 Palvia";
+"share.done.message" = "请打开 Palvia 继续对话，分享的文件已经附在会话里了。";
+"share.done.button" = "完成";
+
+// 错误提示
+"share.error.nothingToShare" = "没有可分享的内容。请确认 Palvia 已开启 App Group 权限。";
+"share.error.ok" = "好";

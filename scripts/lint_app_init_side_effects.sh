@@ -5,7 +5,7 @@
 # Heavy I/O or SwiftData mutations in `init()` cascade through observation
 # back into view invalidation, and on iOS 17.0 GA this re-entrancy reliably
 # trips a Swift runtime trap (EXC_BREAKPOINT brk 1) inside libswiftCore at
-# launch — see iClaw/App/iClawApp.swift for the documented fix.
+# launch — see Palvia/App/PalviaApp.swift for the documented fix.
 #
 # Forbidden in init() bodies of types conforming to `App` or `View`:
 #   - .save()                          SwiftData / Core Data writes
@@ -28,7 +28,7 @@
 
 set -euo pipefail
 ROOT="${1:-.}"
-SRC="$ROOT/iClaw"
+SRC="$ROOT/Palvia"
 EXIT=0
 
 echo "=== App/View init() Side-Effect Linter ==="
@@ -131,7 +131,7 @@ else
     echo "trips a Swift runtime trap at launch (EXC_BREAKPOINT brk 1)."
     echo ""
     echo "Fix: move the work to .task / .onAppear, or gate it with a"
-    echo "process-wide static flag (see iClawApp.didRunOneTimeLaunchTasks)."
+    echo "process-wide static flag (see PalviaApp.didRunOneTimeLaunchTasks)."
     echo "If the call site is genuinely safe, append:"
     echo "    // lint:ignore launch-side-effect"
 fi

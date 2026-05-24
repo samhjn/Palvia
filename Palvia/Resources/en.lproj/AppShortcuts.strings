@@ -1,0 +1,9 @@
+/* AppShortcuts.strings — phrase localization for AppShortcutsProvider.
+   Only invocation phrases belong here; `shortTitle` is a LocalizedStringResource
+   localized via Localizable.strings. Keys must EXACTLY match the phrase strings
+   declared in PalviaAppShortcuts.swift. */
+
+"Run due cron jobs in ${applicationName}" = "Run due cron jobs in ${applicationName}";
+"Run ${applicationName} cron jobs" = "Run ${applicationName} cron jobs";
+"Trigger cron job in ${applicationName}" = "Trigger cron job in ${applicationName}";
+"Run ${applicationName} scheduled task" = "Run ${applicationName} scheduled task";

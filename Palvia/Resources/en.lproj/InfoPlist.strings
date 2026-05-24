@@ -1,0 +1,11 @@
+/* English — Info.plist permission descriptions */
+
+NSCalendarsFullAccessUsageDescription = "Palvia needs access to your calendars so the AI agent can create, read, and manage calendar events on your behalf.";
+NSCameraUsageDescription = "Palvia needs camera access to capture photos and record videos for use in conversations with the AI agent.";
+NSMicrophoneUsageDescription = "Palvia needs microphone access to record audio when capturing videos for conversations with the AI agent.";
+NSContactsUsageDescription = "Palvia needs access to your contacts so the AI agent can look up contact information when you ask.";
+NSHealthShareUsageDescription = "Palvia needs read access to your Health data so the AI agent can analyze trends such as steps, sleep, heart rate, and body metrics.";
+NSHealthUpdateUsageDescription = "Palvia needs write access to your Health data so the AI agent can log entries such as calorie intake and body metrics.";
+NSLocationWhenInUseUsageDescription = "Palvia needs your location to provide location-aware responses, nearby place searches, and directions.";
+NSPhotoLibraryUsageDescription = "Palvia needs photo library access to attach images to conversations with the AI agent.";
+NSRemindersFullAccessUsageDescription = "Palvia needs access to your reminders so the AI agent can create, complete, and manage reminders on your behalf.";

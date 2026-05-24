@@ -15,7 +15,7 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODEL_DIR="$ROOT/iClaw/Models"
+MODEL_DIR="$ROOT/Palvia/Models"
 EXIT=0
 
 echo "=== SwiftData Migration Safety Linter ==="
@@ -161,7 +161,7 @@ echo "Mode: Diff check ($DIFF_RANGE)"
 echo ""
 
 # Get list of model files changed in the diff range
-CHANGED_MODEL_FILES=$(git diff --name-only "$DIFF_RANGE" -- 'iClaw/Models/*.swift' 2>/dev/null || true)
+CHANGED_MODEL_FILES=$(git diff --name-only "$DIFF_RANGE" -- 'Palvia/Models/*.swift' 2>/dev/null || true)
 
 if [[ -z "$CHANGED_MODEL_FILES" ]]; then
     echo "No model files changed in $DIFF_RANGE."
@@ -181,10 +181,15 @@ for relpath in $CHANGED_MODEL_FILES; do
         | grep -n '^+' | grep -v '^[0-9]*:+++' \
         | grep -oP '(?<=@@\s\+)\d+' || true)
 
-    # Alternative: get added var lines directly from the diff
+    # Alternative: get added/removed var lines directly from the diff.
+    # Ignore pure rename noise by skipping added var lines that have an
+    # identical removed counterpart in the same file diff.
     ADDED_VARS=$(git diff "$DIFF_RANGE" -- "$relpath" \
         | grep '^+' | grep -v '^+++' \
         | grep -E '^\+[[:space:]]*var[[:space:]]' || true)
+    REMOVED_VARS=$(git diff "$DIFF_RANGE" -- "$relpath" \
+        | grep '^-' | grep -v '^---' \
+        | grep -E '^-[[:space:]]*var[[:space:]]' || true)
 
     if [[ -z "$ADDED_VARS" ]]; then
         continue
@@ -194,6 +199,13 @@ for relpath in $CHANGED_MODEL_FILES; do
     while IFS= read -r diffline; do
         # Strip leading +
         line="${diffline#+}"
+
+        # If this exact var line also existed before (rename/reflow), ignore it.
+        if [[ -n "${REMOVED_VARS:-}" ]]; then
+            if echo "$REMOVED_VARS" | sed 's/^-//' | grep -Fxq "$line"; then
+                continue
+            fi
+        fi
 
         # Skip @Transient / @Relationship (handled by context, but catch simple cases)
         if [[ "$line" =~ @(Transient|Relationship) ]]; then
