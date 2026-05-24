@@ -34,28 +34,16 @@
 
 ---
 
-## 灵感来源：Palvia
+## 产品定位
 
-Palvia 的灵感来自 [Palvia](https://github.com/palvia/palvia) —— 开源个人 AI 助手。我们共享同一个愿景：让用户拥有真正属于自己的、可定制的 AI Agent。一些共同的设计基因：
+Palvia 是一款 **原生 iOS AI Agent 应用**，核心方向是自主能力、可扩展性与隐私。
 
-- **灵魂驱动的 Agent** — Palvia 首创了 Brain-Body-Soul 模型；Palvia 采用类似理念，通过 SOUL.md / MEMORY.md / USER.md 心智文件定义 Agent
-- **多 LLM 提供商** — 两者都支持自由切换模型，不丢失上下文
-- **定时任务调度** — 两者都支持 Agent 定时任务（Cron）
-- **Function Calling & 工具调用** — Agent 不只是聊天，还能执行真实操作
+- **原生 iOS 优先**：基于 Swift + SwiftUI 构建，针对 iPhone / iPad 交互深度优化
+- **端侧架构**：会话、记忆与向量检索数据通过 SwiftData 本地持久化
+- **可执行型 Agent**：支持代码执行、网页自动化、工具调用、定时任务和子 Agent
+- **高度可定制**：每个 Agent 都可拥有独立 SOUL.md / MEMORY.md / USER.md 与自定义技能
 
-### Palvia 的不同之处
-
-| | Palvia | Palvia |
-|---|---|---|
-| **架构** | C/S 架构 — 需要在 Mac/Linux/Windows 上运行 Gateway 服务 | 完全独立 — 一切原生运行在 iOS 上，无需服务器 |
-| **技术栈** | TypeScript + Node.js | Swift + SwiftUI + SwiftData |
-| **渠道** | 29+ 消息平台（WhatsApp、Telegram、Slack…） | 专注原生 iOS 体验，为移动端深度优化 |
-| **代码执行** | 服务端 Shell 命令 & Docker 沙盒 | 端侧 JavaScript（WKWebView 沙盒），离线可用 |
-| **数据存储** | JSONL 日志 + 向量数据库，存于 Gateway 服务器 | SwiftData 本地存储，零云端依赖 |
-| **上手门槛** | 安装 Node ≥22，运行 Gateway，配对客户端 | 打开 Xcode，编译，完成 |
-| **目标用户** | 拥有家庭服务器或 VPS 的高级用户 | 任何想随身携带 AI Agent 的 iPhone 用户 |
-
-**一句话总结**：Palvia 是你服务器上的 AI 指挥中心；Palvia 把同样的能力直接装进口袋——无需任何基础设施。
+**一句话总结**：Palvia 把强大的 AI Agent 能力直接装进口袋，无需额外服务器基础设施。
 
 ---
 

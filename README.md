@@ -40,28 +40,16 @@ Most AI chat apps are just chat boxes. **Palvia is different** — it's a full-b
 
 ---
 
-## Inspired by Palvia
+## Product Positioning
 
-Palvia is inspired by [Palvia](https://github.com/palvia/palvia) — the open-source personal AI assistant. We share the same vision of giving users a truly personal, customizable AI agent. Some shared DNA:
+Palvia is a **native iOS AI agent app** focused on autonomy, extensibility, and privacy.
 
-- **Soul-driven agents** — Palvia pioneered the Brain-Body-Soul model; Palvia adopts a similar philosophy with SOUL.md / MEMORY.md / USER.md mind files
-- **Multi-provider LLM** — both let you swap models freely without losing context
-- **Cron scheduling** — both support scheduled agent tasks
-- **Function calling & tool use** — agents can take real actions, not just chat
+- **Native iOS first** — built with Swift + SwiftUI, optimized for iPhone/iPad interaction patterns
+- **On-device architecture** — sessions, memories, and vector retrieval are persisted locally via SwiftData
+- **Action-oriented agents** — supports code execution, browser automation, tool calling, scheduling, and sub-agents
+- **Highly customizable** — every agent can have its own SOUL.md / MEMORY.md / USER.md and custom skills
 
-### How Palvia differs
-
-| | Palvia | Palvia |
-|---|---|---|
-| **Architecture** | Client-Server — requires a Gateway running on Mac/Linux/Windows | Fully standalone — everything runs natively on iOS, no server needed |
-| **Tech stack** | TypeScript + Node.js | Swift + SwiftUI + SwiftData |
-| **Channels** | 29+ messaging platforms (WhatsApp, Telegram, Slack…) | Dedicated native iOS experience, optimized for mobile |
-| **Code execution** | Server-side shell & Docker sandboxing | On-device JavaScript (WKWebView sandbox), works offline |
-| **Data storage** | JSONL transcripts + vector DB on Gateway | SwiftData on-device, zero cloud dependency |
-| **Setup** | Install Node ≥22, run Gateway, pair clients | Open Xcode, build, done |
-| **Target** | Power users running a home server or VPS | Anyone with an iPhone who wants AI agents on the go |
-
-**In short**: Palvia is your AI command center on a server; Palvia puts the same power directly into your pocket — no infrastructure required.
+**In short**: Palvia brings powerful AI agents directly to your pocket, without requiring extra server infrastructure.
 
 ---
 
