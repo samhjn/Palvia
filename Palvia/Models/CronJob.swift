@@ -3,18 +3,18 @@ import SwiftData
 
 @Model
 final class CronJob {
-    var id: UUID
-    var name: String
-    var cronExpression: String
-    var jobHint: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var cronExpression: String = ""
+    var jobHint: String = ""
     var agent: Agent?
-    var isEnabled: Bool
+    var isEnabled: Bool = true
     var lastRunAt: Date?
     var nextRunAt: Date?
-    var runCount: Int
+    var runCount: Int = 0
     var lastSessionId: UUID?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     init(
         name: String,

@@ -71,24 +71,24 @@ struct SkillConfigField: Codable, Hashable {
 
 @Model
 final class Skill {
-    var id: UUID
-    var name: String
+    var id: UUID = UUID()
+    var name: String = ""
     var nameLowercase: String = ""
     /// Localized display name for built-in skills. Empty for custom skills,
     /// which fall back to `name`. Never used as an identifier — `name` remains
     /// the stable English key for template matching, tool-name generation, and
     /// CodeSnippet registration.
     var displayName: String = ""
-    var summary: String
-    var content: String
-    var tagsRaw: String
-    var author: String
-    var version: String
-    var isBuiltIn: Bool
+    var summary: String = ""
+    var content: String = ""
+    var tagsRaw: String = ""
+    var author: String = ""
+    var version: String = "1.0.0"
+    var isBuiltIn: Bool = false
     @Relationship(deleteRule: .cascade, inverse: \InstalledSkill.skill)
-    var installations: [InstalledSkill]
-    var createdAt: Date
-    var updatedAt: Date
+    var installations: [InstalledSkill] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     // Executable skill data (JSON-encoded)
     var scriptsRaw: String = "[]"

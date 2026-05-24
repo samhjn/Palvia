@@ -3,12 +3,12 @@ import SwiftData
 
 @Model
 final class AgentConfig {
-    var id: UUID
-    var key: String
-    var content: String
+    var id: UUID = UUID()
+    var key: String = ""
+    var content: String = ""
     var agent: Agent?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     init(key: String, content: String) {
         self.id = UUID()

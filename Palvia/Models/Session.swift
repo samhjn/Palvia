@@ -3,16 +3,16 @@ import SwiftData
 
 @Model
 final class Session {
-    var id: UUID
+    var id: UUID = UUID()
     var agent: Agent?
-    var title: String
+    var title: String = ""
     @Relationship(deleteRule: .cascade, inverse: \Message.session)
-    var messages: [Message]
+    var messages: [Message] = []
     var compressedContext: String?
-    var compressedUpToIndex: Int
-    var isArchived: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var compressedUpToIndex: Int = 0
+    var isArchived: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     /// Whether this session is currently active (agent is generating / processing).
     var isActive: Bool = false

@@ -3,24 +3,24 @@ import SwiftData
 
 @Model
 final class Agent {
-    var id: UUID
-    var name: String
+    var id: UUID = UUID()
+    var name: String = ""
     var parentAgent: Agent?
     @Relationship(deleteRule: .cascade, inverse: \Agent.parentAgent)
-    var subAgents: [Agent]
-    var soulMarkdown: String
-    var memoryMarkdown: String
-    var userMarkdown: String
+    var subAgents: [Agent] = []
+    var soulMarkdown: String = ""
+    var memoryMarkdown: String = ""
+    var userMarkdown: String = ""
     @Relationship(deleteRule: .cascade, inverse: \AgentConfig.agent)
-    var customConfigs: [AgentConfig]
+    var customConfigs: [AgentConfig] = []
     @Relationship(deleteRule: .cascade, inverse: \Session.agent)
-    var sessions: [Session]
+    var sessions: [Session] = []
     @Relationship(deleteRule: .cascade, inverse: \CodeSnippet.agent)
-    var codeSnippets: [CodeSnippet]
+    var codeSnippets: [CodeSnippet] = []
     @Relationship(deleteRule: .cascade, inverse: \CronJob.agent)
-    var cronJobs: [CronJob]
+    var cronJobs: [CronJob] = []
     @Relationship(deleteRule: .cascade, inverse: \InstalledSkill.agent)
-    var installedSkills: [InstalledSkill]
+    var installedSkills: [InstalledSkill] = []
 
     // MARK: - Model configuration
 
@@ -76,8 +76,8 @@ final class Agent {
         set { thinkingLevelOverrideRaw = newValue?.rawValue }
     }
 
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     // MARK: - Computed
 

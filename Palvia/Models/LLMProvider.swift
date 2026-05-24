@@ -764,15 +764,15 @@ struct ModelCapabilities: Codable, Equatable {
 
 @Model
 final class LLMProvider {
-    var id: UUID
-    var name: String
-    var endpoint: String
-    var apiKey: String
-    var modelName: String
-    var isDefault: Bool
-    var maxTokens: Int
-    var temperature: Double
-    var createdAt: Date
+    var id: UUID = UUID()
+    var name: String = ""
+    var endpoint: String = ""
+    var apiKey: String = ""
+    var modelName: String = ""
+    var isDefault: Bool = false
+    var maxTokens: Int = 4096
+    var temperature: Double = 0.7
+    var createdAt: Date = Date()
 
     /// All model names enabled for this provider (in addition to modelName).
     /// Stored as comma-separated string for SwiftData compatibility.

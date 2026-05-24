@@ -3,18 +3,18 @@ import SwiftData
 
 @Model
 final class SessionEmbedding {
-    var id: UUID
+    var id: UUID = UUID()
     /// The session this embedding belongs to (stored as raw string to avoid cascade coupling).
-    var sessionIdRaw: String
+    var sessionIdRaw: String = ""
     /// Raw embedding vector stored as binary Data (little-endian Float array).
-    var vectorData: Data
+    var vectorData: Data = Data()
     /// Number of dimensions, for validation.
-    var dimensions: Int
+    var dimensions: Int = 0
     /// The model name that produced this embedding (e.g. "text-embedding-3-small").
-    var modelName: String
+    var modelName: String = ""
     /// Hash of the text that was embedded (for cache invalidation).
-    var sourceTextHash: String
-    var createdAt: Date
+    var sourceTextHash: String = ""
+    var createdAt: Date = Date()
 
     var sessionId: UUID {
         get { UUID(uuidString: sessionIdRaw) ?? UUID() }

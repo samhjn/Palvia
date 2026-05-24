@@ -3,13 +3,13 @@ import SwiftData
 
 @Model
 final class CodeSnippet {
-    var id: UUID
-    var name: String
-    var language: String
-    var code: String
+    var id: UUID = UUID()
+    var name: String = ""
+    var language: String = "javascript"
+    var code: String = ""
     var agent: Agent?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
     init(name: String, language: String = "javascript", code: String) {
         self.id = UUID()

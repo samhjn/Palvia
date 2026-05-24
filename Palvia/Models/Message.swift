@@ -10,9 +10,9 @@ enum MessageRole: String, Codable {
 
 @Model
 final class Message {
-    var id: UUID
+    var id: UUID = UUID()
     var session: Session?
-    var roleRaw: String
+    var roleRaw: String = MessageRole.user.rawValue
     var content: String?
     var toolCallsData: Data?
     var toolCallId: String?
@@ -26,8 +26,8 @@ final class Message {
     var imageAttachmentsData: Data?
     var videoAttachmentsData: Data?
     var fileAttachmentsData: Data?
-    var timestamp: Date
-    var tokenEstimate: Int
+    var timestamp: Date = Date()
+    var tokenEstimate: Int = 0
 
     /// API-reported prompt token count (nil if not available from vendor).
     var apiPromptTokens: Int?

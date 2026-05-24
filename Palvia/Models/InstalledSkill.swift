@@ -3,13 +3,13 @@ import SwiftData
 
 @Model
 final class InstalledSkill {
-    var id: UUID
+    var id: UUID = UUID()
     var agent: Agent?
     var skill: Skill?
-    var isEnabled: Bool
+    var isEnabled: Bool = true
     var priority: Int = 0
     var configRaw: String = "{}"
-    var installedAt: Date
+    var installedAt: Date = Date()
 
     var config: [String: String] {
         get { (try? JSONDecoder().decode([String: String].self, from: Data(configRaw.utf8))) ?? [:] }
