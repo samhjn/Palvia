@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Coverage for the App Intents–based cron trigger path. These tests exercise
 /// `CronJobRunner`, `CronJobEntityQuery`, and the `openAppWhenRun` flag on

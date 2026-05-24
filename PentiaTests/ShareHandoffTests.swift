@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Tests for `ShareHandoff` — the main-app side of the Share Extension flow.
 ///

@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 8a: round-trip tests for `SkillPackage.write` + the launch-time
 /// `SkillService.migrateRowsToOnDiskPackages`.

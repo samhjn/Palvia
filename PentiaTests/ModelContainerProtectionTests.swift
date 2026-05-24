@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Regression coverage for the iOS-18 background-launch crash where the
 /// SwiftData store sat at the iOS default `.complete` protection class,

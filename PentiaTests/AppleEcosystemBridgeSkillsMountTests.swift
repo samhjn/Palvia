@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 4b: bridge-level enforcement for the `/skills/` mount.
 ///

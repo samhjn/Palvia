@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Covers the `snippets.*` bridge surface: preamble wiring, list dispatch,
 /// and the invoke-dispatch guards (missing name, unknown snippet, non-JS language).

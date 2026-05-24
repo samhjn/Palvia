@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Tests for the reserved `skills/` mount in `AgentFileManager.resolvedURL`.
 ///

@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Tests for the universal `agentfile://` file reference mechanism across
 /// MarkdownContentView, Message extraction, ContextManager injection,

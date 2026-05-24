@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Tests for `HandoffManifest` — the payload the Share Extension drops into
 /// each staging directory to tell the main app which files belong to which

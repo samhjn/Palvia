@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Regression coverage for the iOS-17.0 launch-crash class: SwiftUI
 /// re-creates the `App` struct on every body re-evaluation, so any

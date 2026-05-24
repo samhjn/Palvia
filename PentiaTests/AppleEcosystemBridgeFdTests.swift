@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Covers the POSIX fd table on AppleEcosystemBridge: monotonic fd assignment,
 /// write/seek/read round-trip, lifecycle (close, auto-close on unregister),

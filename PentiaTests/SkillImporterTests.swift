@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 7a: SkillImporter — directory-based import with validate-then-copy
 /// semantics.

@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 private let testSchema = Schema([
     Agent.self, LLMProvider.self, Session.self, AgentConfig.self,

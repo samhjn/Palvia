@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Tests verifying that SwiftData model access is properly isolated to `@MainActor`,
 /// preventing concurrent relationship traversal crashes (EXC_BREAKPOINT in SwiftData).

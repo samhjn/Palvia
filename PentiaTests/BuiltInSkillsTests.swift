@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Structural and behavioral tests for the shipped built-in skills.
 ///

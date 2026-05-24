@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 // MARK: - SubAgentManager Nesting Depth Tests
 

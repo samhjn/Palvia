@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 6: progressive disclosure of installed-skill bodies in the system
 /// prompt.

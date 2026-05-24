@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 8b: SkillService.deleteSkill removes the on-disk package mirror, and
 /// the migration helper covers the read path. The UI write path (SkillEditView

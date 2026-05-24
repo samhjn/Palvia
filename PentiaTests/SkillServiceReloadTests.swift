@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 4c: SkillService.reload(slug:) with last-good cache semantics.
 ///

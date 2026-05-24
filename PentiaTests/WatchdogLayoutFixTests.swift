@@ -1,7 +1,7 @@
 import XCTest
 import SwiftData
 import WebKit
-@testable import iClaw
+@testable import Pentia
 
 // MARK: - ScrollViewOffsetObserver Coalescing Tests
 

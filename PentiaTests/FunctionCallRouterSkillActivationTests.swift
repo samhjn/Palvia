@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 6b: `FunctionCallRouter.activateSkillForSession` marks the skill
 /// active in the session record so progressive disclosure expands its body

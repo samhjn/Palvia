@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Stress tests attempting to reproduce the SwiftData ModelContext crash:
 ///

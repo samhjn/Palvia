@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 final class OpenAIResponsesAdapterTests: XCTestCase {
     private func makeAdapter() -> OpenAIResponsesAdapter {

@@ -1,7 +1,7 @@
 import XCTest
 import SwiftData
 import BackgroundTasks
-@testable import iClaw
+@testable import Pentia
 
 // MARK: - LaunchTaskManager Batch Embedding Tests
 

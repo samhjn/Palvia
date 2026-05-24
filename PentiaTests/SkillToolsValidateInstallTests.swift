@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 4d coverage for `SkillTools`:
 ///   - `validate_skill` returns the same JSON ValidationReport shape every

@@ -1,6 +1,6 @@
 import XCTest
 import SwiftData
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 5b: ChatViewModel.sendMessage() slash-command preprocessing.
 ///

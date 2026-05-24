@@ -1,6 +1,6 @@
 import XCTest
 import UIKit
-@testable import iClaw
+@testable import Pentia
 
 // MARK: - Table Parsing Tests
 

@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 @MainActor
 final class AgentDirectoryPublisherTests: XCTestCase {

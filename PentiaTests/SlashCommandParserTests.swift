@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Phase 5a: pure parser for the `/skill-slug` slash-command.
 final class SlashCommandParserTests: XCTestCase {

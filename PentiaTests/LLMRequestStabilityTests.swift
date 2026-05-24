@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Verifies that outgoing LLM request bodies are byte-stable across runs.
 ///

@@ -1,5 +1,5 @@
 import XCTest
-@testable import iClaw
+@testable import Pentia
 
 /// Covers the new cp / mv / truncate / appendFile helpers added to AgentFileManager,
 /// including recursive directory copy and path-traversal regressions on the new entry points.
