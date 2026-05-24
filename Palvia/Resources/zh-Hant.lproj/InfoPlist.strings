@@ -1,0 +1,11 @@
+/* 繁體中文 — Info.plist 權限描述 */
+
+NSCalendarsFullAccessUsageDescription = "Palvia 需要取用你的日曆，以便 AI 智能體為你建立、讀取和管理日曆事件。";
+NSCameraUsageDescription = "Palvia 需要使用相機來拍攝照片和錄製影片，用於與 AI 智能體的對話中。";
+NSMicrophoneUsageDescription = "Palvia 需要使用麥克風來錄製影片中的音訊，用於與 AI 智能體的對話中。";
+NSContactsUsageDescription = "Palvia 需要取用你的聯絡資訊，以便 AI 智能體在你需要時查詢聯絡人資料。";
+NSHealthShareUsageDescription = "Palvia 需要讀取你的健康資料，以便 AI 智能體分析步數、睡眠、心率和身體指標等趨勢。";
+NSHealthUpdateUsageDescription = "Palvia 需要寫入你的健康資料，以便 AI 智能體記錄熱量攝取和身體指標等項目。";
+NSLocationWhenInUseUsageDescription = "Palvia 需要取得你的位置，以提供位置相關的回覆、附近地點搜尋和路線規劃。";
+NSPhotoLibraryUsageDescription = "Palvia 需要取用相簿，以便將圖片附加到與 AI 智能體的對話中。";
+NSRemindersFullAccessUsageDescription = "Palvia 需要取用你的提醒事項，以便 AI 智能體為你建立、完成和管理提醒。";

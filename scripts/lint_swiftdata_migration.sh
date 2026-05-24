@@ -15,7 +15,7 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MODEL_DIR="$ROOT/iClaw/Models"
+MODEL_DIR="$ROOT/Palvia/Models"
 EXIT=0
 
 echo "=== SwiftData Migration Safety Linter ==="
@@ -161,7 +161,7 @@ echo "Mode: Diff check ($DIFF_RANGE)"
 echo ""
 
 # Get list of model files changed in the diff range
-CHANGED_MODEL_FILES=$(git diff --name-only "$DIFF_RANGE" -- 'iClaw/Models/*.swift' 2>/dev/null || true)
+CHANGED_MODEL_FILES=$(git diff --name-only "$DIFF_RANGE" -- 'Palvia/Models/*.swift' 2>/dev/null || true)
 
 if [[ -z "$CHANGED_MODEL_FILES" ]]; then
     echo "No model files changed in $DIFF_RANGE."

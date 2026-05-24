@@ -1,0 +1,11 @@
+/* 한국어 — Info.plist 권한 설명 */
+
+NSCalendarsFullAccessUsageDescription = "Palvia은 AI 에이전트가 캘린더 이벤트를 생성, 읽기 및 관리할 수 있도록 캘린더 접근 권한이 필요합니다.";
+NSCameraUsageDescription = "Palvia은 AI 에이전트와의 대화에서 사용할 사진 촬영 및 동영상 녹화를 위해 카메라 접근 권한이 필요합니다.";
+NSMicrophoneUsageDescription = "Palvia은 동영상 녹화 시 오디오를 녹음하기 위해 마이크 접근 권한이 필요합니다.";
+NSContactsUsageDescription = "Palvia은 AI 에이전트가 연락처 정보를 검색할 수 있도록 연락처 접근 권한이 필요합니다.";
+NSHealthShareUsageDescription = "Palvia은 AI 에이전트가 걸음 수, 수면, 심박수, 신체 지표 등의 추세를 분석할 수 있도록 건강 데이터 읽기 권한이 필요합니다.";
+NSHealthUpdateUsageDescription = "Palvia은 AI 에이전트가 칼로리 섭취량 및 신체 지표 등을 기록할 수 있도록 건강 데이터 쓰기 권한이 필요합니다.";
+NSLocationWhenInUseUsageDescription = "Palvia은 위치 기반 응답, 주변 장소 검색 및 경로 안내를 제공하기 위해 위치 정보가 필요합니다.";
+NSPhotoLibraryUsageDescription = "Palvia은 AI 에이전트와의 대화에 이미지를 첨부하기 위해 사진 라이브러리 접근 권한이 필요합니다.";
+NSRemindersFullAccessUsageDescription = "Palvia은 AI 에이전트가 미리 알림을 생성, 완료 및 관리할 수 있도록 미리 알림 접근 권한이 필요합니다.";

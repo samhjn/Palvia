@@ -1,4 +1,4 @@
-name: iClaw
+name: Palvia
 options:
   bundleIdPrefix: com.iclaw
   deploymentTarget:
@@ -25,11 +25,11 @@ settings:
     STRING_CATALOG_GENERATE_SYMBOLS: "YES"
 
 targets:
-  iClaw:
+  Palvia:
     type: application
     platform: iOS
     sources:
-      - path: iClaw
+      - path: Palvia
         excludes:
           - Info.plist
           # Built-in skill packages are added as a single folder reference
@@ -37,12 +37,12 @@ targets:
           # without this exclude, XcodeGen would flatten every nested file
           # to the bundle root and the three SKILL.md files would collide.
           - Resources/BuiltInSkills
-      - path: iClaw/Resources/BuiltInSkills
+      - path: Palvia/Resources/BuiltInSkills
         type: folder
         buildPhase: resources
     settings:
       base:
-        INFOPLIST_FILE: iClaw/Info.plist
+        INFOPLIST_FILE: Palvia/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.iclaw.app
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_STYLE: Automatic
@@ -51,7 +51,7 @@ targets:
         LOCALIZATION_PREFERS_STRING_CATALOGS: "YES"
         ENABLE_USER_SCRIPT_SANDBOXING: "NO"
         ENABLE_PREVIEWS: "YES"
-        SWIFT_OBJC_BRIDGING_HEADER: iClaw/iClaw-Bridging-Header.h
+        SWIFT_OBJC_BRIDGING_HEADER: Palvia/Palvia-Bridging-Header.h
     postBuildScripts:
       - script: |
           PLIST="${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
@@ -71,27 +71,27 @@ targets:
         name: Stamp Git Info
         basedOnDependencyAnalysis: false
     entitlements:
-      path: iClaw/iClaw.entitlements
+      path: Palvia/Palvia.entitlements
       properties:
         com.apple.developer.healthkit: true
         com.apple.developer.healthkit.access: []
         com.apple.security.application-groups:
           - group.com.iclaw.app
     dependencies:
-      - target: iClawWidgets
-      - target: iClawShareExtension
+      - target: PalviaWidgets
+      - target: PalviaShareExtension
 
-  iClawWidgets:
+  PalviaWidgets:
     type: app-extension
     platform: iOS
     sources:
-      - path: iClawWidgets
+      - path: PalviaWidgets
         excludes:
           - Info.plist
-      - path: iClaw/Services/BackgroundKeepAlive/CronActivityAttributes.swift
+      - path: Palvia/Services/BackgroundKeepAlive/CronActivityAttributes.swift
     settings:
       base:
-        INFOPLIST_FILE: iClawWidgets/Info.plist
+        INFOPLIST_FILE: PalviaWidgets/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.iclaw.app.widgets
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_STYLE: Automatic
@@ -105,22 +105,22 @@ targets:
       - sdk: SwiftUI.framework
       - sdk: ActivityKit.framework
 
-  iClawShareExtension:
+  PalviaShareExtension:
     type: app-extension
     platform: iOS
     sources:
-      - path: iClawShareExtension
+      - path: PalviaShareExtension
         excludes:
           - Info.plist
-          - iClawShareExtension.entitlements
-      - path: iClaw/Services/Share/SharedContainer.swift
-      - path: iClaw/Services/Share/AgentSnapshot.swift
-      - path: iClaw/Services/Share/HandoffManifest.swift
+          - PalviaShareExtension.entitlements
+      - path: Palvia/Services/Share/SharedContainer.swift
+      - path: Palvia/Services/Share/AgentSnapshot.swift
+      - path: Palvia/Services/Share/HandoffManifest.swift
     settings:
       base:
-        INFOPLIST_FILE: iClawShareExtension/Info.plist
+        INFOPLIST_FILE: PalviaShareExtension/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.iclaw.app.share
-        PRODUCT_MODULE_NAME: iClawShareExtension
+        PRODUCT_MODULE_NAME: PalviaShareExtension
         DEVELOPMENT_TEAM: ""
         CODE_SIGN_STYLE: Automatic
         SWIFT_EMIT_LOC_STRINGS: "YES"
@@ -129,7 +129,7 @@ targets:
         SKIP_INSTALL: "YES"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../Frameworks"
     entitlements:
-      path: iClawShareExtension/iClawShareExtension.entitlements
+      path: PalviaShareExtension/PalviaShareExtension.entitlements
       properties:
         com.apple.security.application-groups:
           - group.com.iclaw.app
@@ -138,52 +138,52 @@ targets:
       - sdk: SwiftUI.framework
       - sdk: UniformTypeIdentifiers.framework
 
-  iClawTests:
+  PalviaTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: iClawTests
+      - path: PalviaTests
     dependencies:
-      - target: iClaw
+      - target: Palvia
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iclaw.tests
         ENABLE_TESTABILITY: "YES"
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/iClaw.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iClaw"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Palvia.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Palvia"
         BUNDLE_LOADER: "$(TEST_HOST)"
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "NO"
 
-  iClawUITests:
+  PalviaUITests:
     type: bundle.ui-testing
     platform: iOS
     sources:
-      - path: iClawUITests
-      - path: iClaw/AccessibilityIdentifiers.swift
+      - path: PalviaUITests
+      - path: Palvia/AccessibilityIdentifiers.swift
     dependencies:
-      - target: iClaw
+      - target: Palvia
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.iclaw.uitests
-        TEST_TARGET_NAME: iClaw
+        TEST_TARGET_NAME: Palvia
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: "NO"
         CODE_SIGNING_ALLOWED: "NO"
 
 schemes:
-  iClaw:
+  Palvia:
     build:
       targets:
-        iClaw: all
+        Palvia: all
     run:
       config: Debug
     test:
       config: Debug
       testPlans:
-        - path: iClaw.xctestplan
+        - path: Palvia.xctestplan
           defaultPlan: true
-        - path: iClawUITests.xctestplan
+        - path: PalviaUITests.xctestplan
     profile:
       config: Release
     analyze:

@@ -1,0 +1,22 @@
+/* 한국어 — Palvia 공유 확장 */
+
+// 에이전트 선택 화면
+"share.title" = "Palvia";
+"share.cancel" = "취소";
+"share.sectionHeader" = "에이전트에 전송";
+
+// 빈 상태
+"share.noAgents.title" = "아직 에이전트가 없습니다";
+"share.noAgents.message" = "Palvia를 열고 에이전트를 만든 다음 파일을 공유하세요.";
+
+"share.appGroupMissing.title" = "App Group이 구성되지 않았습니다";
+"share.appGroupMissing.message" = "Palvia는 본 앱과 이 확장 모두에서 'group.com.iclaw.app' App Group을 활성화해야 합니다. Xcode에서 프로젝트를 열고 Signing & Capabilities에서 두 타겟에 App Groups를 추가하세요.";
+
+// 완료 화면 (iOS가 호스트 앱을 포그라운드로 가져오지 못할 때 표시)
+"share.done.title" = "Palvia에 저장되었습니다";
+"share.done.message" = "Palvia를 열고 대화를 계속하세요. 파일은 이미 첨부되어 있습니다.";
+"share.done.button" = "완료";
+
+// 오류
+"share.error.nothingToShare" = "공유할 항목이 없습니다. Palvia의 App Group 액세스를 확인하세요.";
+"share.error.ok" = "확인";

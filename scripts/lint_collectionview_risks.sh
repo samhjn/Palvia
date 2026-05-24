@@ -15,7 +15,7 @@
 
 set -euo pipefail
 ROOT="${1:-.}"
-SRC="$ROOT/iClaw"
+SRC="$ROOT/Palvia"
 EXIT=0
 
 echo "=== SwiftUI List Crash Risk Linter ==="

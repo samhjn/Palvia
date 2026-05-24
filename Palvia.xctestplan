@@ -1,0 +1,28 @@
+{
+  "configurations" : [
+    {
+      "id" : "9A1B2C3D-4E5F-6789-ABCD-EF0123456789",
+      "name" : "Default",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Palvia.xcodeproj",
+      "identifier" : "PalviaTests",
+      "name" : "PalviaTests"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Palvia.xcodeproj",
+        "identifier" : "980C6BDD40A72EF20924695E",
+        "name" : "PalviaTests"
+      }
+    }
+  ],
+  "version" : 1
+}

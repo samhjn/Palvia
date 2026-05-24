@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="icon.PNG" width="128" height="128" alt="iClaw Logo" />
+  <img src="icon.PNG" width="128" height="128" alt="Palvia Logo" />
 </p>
 
-<h1 align="center">iClaw</h1>
+<h1 align="center">Palvia</h1>
 
 <p align="center">
   <strong>Your AI Agents, In Your Pocket</strong><br/>
@@ -25,11 +25,11 @@
 
 ---
 
-## Why iClaw?
+## Why Palvia?
 
-Most AI chat apps are just chat boxes. **iClaw is different** — it's a full-blown **AI Agent platform** where every agent has its own soul, memory, and skills, and can execute code directly on your device.
+Most AI chat apps are just chat boxes. **Palvia is different** — it's a full-blown **AI Agent platform** where every agent has its own soul, memory, and skills, and can execute code directly on your device.
 
-| | Typical AI Chat | iClaw |
+| | Typical AI Chat | Palvia |
 |---|---|---|
 | **Personas** | Single conversation | Multiple agents, each with independent personality & memory |
 | **Code Execution** | Not supported | Built-in JavaScript interpreters |
@@ -40,18 +40,18 @@ Most AI chat apps are just chat boxes. **iClaw is different** — it's a full-bl
 
 ---
 
-## Inspired by OpenClaw
+## Inspired by Palvia
 
-iClaw is inspired by [OpenClaw](https://github.com/openclaw/openclaw) — the open-source personal AI assistant. We share the same vision of giving users a truly personal, customizable AI agent. Some shared DNA:
+Palvia is inspired by [Palvia](https://github.com/palvia/palvia) — the open-source personal AI assistant. We share the same vision of giving users a truly personal, customizable AI agent. Some shared DNA:
 
-- **Soul-driven agents** — OpenClaw pioneered the Brain-Body-Soul model; iClaw adopts a similar philosophy with SOUL.md / MEMORY.md / USER.md mind files
+- **Soul-driven agents** — Palvia pioneered the Brain-Body-Soul model; Palvia adopts a similar philosophy with SOUL.md / MEMORY.md / USER.md mind files
 - **Multi-provider LLM** — both let you swap models freely without losing context
 - **Cron scheduling** — both support scheduled agent tasks
 - **Function calling & tool use** — agents can take real actions, not just chat
 
-### How iClaw differs
+### How Palvia differs
 
-| | OpenClaw | iClaw |
+| | Palvia | Palvia |
 |---|---|---|
 | **Architecture** | Client-Server — requires a Gateway running on Mac/Linux/Windows | Fully standalone — everything runs natively on iOS, no server needed |
 | **Tech stack** | TypeScript + Node.js | Swift + SwiftUI + SwiftData |
@@ -61,7 +61,7 @@ iClaw is inspired by [OpenClaw](https://github.com/openclaw/openclaw) — the op
 | **Setup** | Install Node ≥22, run Gateway, pair clients | Open Xcode, build, done |
 | **Target** | Power users running a home server or VPS | Anyone with an iPhone who wants AI agents on the go |
 
-**In short**: OpenClaw is your AI command center on a server; iClaw puts the same power directly into your pocket — no infrastructure required.
+**In short**: Palvia is your AI command center on a server; Palvia puts the same power directly into your pocket — no infrastructure required.
 
 ---
 
@@ -84,7 +84,7 @@ iClaw is inspired by [OpenClaw](https://github.com/openclaw/openclaw) — the op
 - **Auto context compression** — when token limits are exceeded, older messages are compressed and summaries are injected into system prompts
 
 ### 🔍 Session RAG & Search
-Agents don't just chat — they **remember**. iClaw includes a built-in Retrieval-Augmented Generation (RAG) framework that turns past sessions into a searchable knowledge base, so agents can recall and reason about prior conversations.
+Agents don't just chat — they **remember**. Palvia includes a built-in Retrieval-Augmented Generation (RAG) framework that turns past sessions into a searchable knowledge base, so agents can recall and reason about prior conversations.
 
 - **On-device vector embeddings** — powered by Apple's NaturalLanguage framework (sentence-level with word-vector fallback), all computed locally with zero cloud dependency
 - **Hybrid search** — vector similarity search (cosine, threshold >0.3) with automatic keyword fallback, ensuring results are always available even without embeddings
@@ -144,11 +144,11 @@ Agents don't just chat — they **remember**. iClaw includes a built-in Retrieva
 brew install xcodegen
 
 # Generate the Xcode project
-cd iClaw
+cd Palvia
 xcodegen generate
 
 # Open in Xcode
-open iClaw.xcodeproj
+open Palvia.xcodeproj
 ```
 
 ### First Launch
@@ -162,9 +162,9 @@ open iClaw.xcodeproj
 ## Project Structure
 
 ```
-iClaw/
+Palvia/
 ├── project.yml              # XcodeGen config
-├── iClaw/
+├── Palvia/
 │   ├── App/                 # App entry point & root navigation
 │   ├── Models/              # SwiftData models
 │   ├── Services/
@@ -205,6 +205,6 @@ Copyright (c) 2026 ShadowMov
 ---
 
 <p align="center">
-  <strong>iClaw</strong> — Your AI Agents, In Your Pocket.<br/>
+  <strong>Palvia</strong> — Your AI Agents, In Your Pocket.<br/>
   <a href="https://iclaw.shadow.mov">iclaw.shadow.mov</a>
 </p>
