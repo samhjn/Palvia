@@ -171,7 +171,7 @@ final class BrowserElementIdResolutionTests: XCTestCase {
     func testResolveElementId() {
         let service = BrowserService.shared
         let result = service.resolveElementId("ab3k7")
-        XCTAssertEqual(result, "document.querySelector('[data-iclaw-id=' + 'ab3k7' + ']')")
+        XCTAssertEqual(result, "document.querySelector('[data-palvia-id=' + 'ab3k7' + ']')")
     }
 
     func testResolveElementIdEscapesSpecialChars() {
@@ -200,7 +200,7 @@ final class BrowserElementIdResolutionTests: XCTestCase {
         let service = BrowserService.shared
         let result = service.resolveTarget(elementId: "ab3k7", xpath: "//button", selector: "#btn")
         XCTAssertNotNil(result)
-        XCTAssertTrue(result!.contains("data-iclaw-id"))
+        XCTAssertTrue(result!.contains("data-palvia-id"))
         XCTAssertFalse(result!.contains("document.evaluate"))
         XCTAssertFalse(result!.contains("querySelector('#btn')"))
     }

@@ -105,7 +105,7 @@ enum SkillImporter {
 
         let derivedSlug = SkillPackage.derivedSlug(
             forName: pkg.frontmatter.name,
-            override: pkg.frontmatter.iclaw.slash
+            override: pkg.frontmatter.palvia.slash
         )
         let collision = lookupCollision(forSlug: derivedSlug, modelContext: modelContext)
 
@@ -208,7 +208,7 @@ enum SkillImporter {
             name: pkg.frontmatter.name,
             summary: pkg.description,
             content: pkg.body,
-            tags: pkg.frontmatter.iclaw.tags,
+            tags: pkg.frontmatter.palvia.tags,
             author: "imported",
             scripts: pkg.toSkillScripts(),
             customTools: pkg.toCustomTools()

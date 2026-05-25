@@ -41,7 +41,7 @@ enum BuiltInSkillsDirectoryLoader {
             displayName: pkg.displayName,
             summary: pkg.description,
             content: pkg.body,
-            tags: frontmatter.iclaw.tags,
+            tags: frontmatter.palvia.tags,
             scripts: pkg.toSkillScripts(),
             customTools: pkg.toCustomTools(),
             configSchema: []

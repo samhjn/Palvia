@@ -10,7 +10,7 @@ fs.mkdir('skills/code-review')
 fs.writeFile('skills/code-review/SKILL.md', `---
 name: Code Review
 description: Walk a diff or PR with attention to correctness, edge cases, and code-style consistency.
-iclaw:
+palvia:
   tags: [code-review, quality]
 ---
 # Code Review

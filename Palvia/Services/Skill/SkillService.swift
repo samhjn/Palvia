@@ -383,7 +383,7 @@ final class SkillService {
                 name: pkg.frontmatter.name,
                 summary: pkg.description,
                 content: pkg.body,
-                tags: pkg.frontmatter.iclaw.tags,
+                tags: pkg.frontmatter.palvia.tags,
                 author: "imported",
                 scripts: pkg.toSkillScripts(),
                 customTools: pkg.toCustomTools()
@@ -435,8 +435,8 @@ final class SkillService {
             skill.displayName = pkg.displayName
             changed = true
         }
-        if skill.tags != pkg.frontmatter.iclaw.tags {
-            skill.tags = pkg.frontmatter.iclaw.tags
+        if skill.tags != pkg.frontmatter.palvia.tags {
+            skill.tags = pkg.frontmatter.palvia.tags
             changed = true
         }
         if skill.scripts != newScripts {

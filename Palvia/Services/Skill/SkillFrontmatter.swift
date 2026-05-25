@@ -8,13 +8,13 @@ import Foundation
 struct SkillFrontmatter: Hashable {
     var name: String
     var description: String
-    var iclaw: IClawBlock
+    var palvia: PalviaBlock
 
     /// Other top-level keys found in the frontmatter (preserved for warnings
     /// and future-proofing). Values are the raw line text after the colon.
     var unknownKeys: [String: String] = [:]
 
-    struct IClawBlock: Hashable {
+    struct PalviaBlock: Hashable {
         var version: String? = nil
         var tags: [String] = []
         var slash: String? = nil
@@ -121,7 +121,7 @@ enum SkillFrontmatterParser {
 
     private static func parseFrontmatterBlock(_ text: String) throws -> SkillFrontmatter {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        var fm = SkillFrontmatter(name: "", description: "", iclaw: .init())
+        var fm = SkillFrontmatter(name: "", description: "", palvia: .init())
 
         var i = 0
         while i < lines.count {
@@ -131,8 +131,8 @@ enum SkillFrontmatterParser {
             if trimmed.isEmpty || trimmed.hasPrefix("#") { i += 1; continue }
 
             // Indented lines belong to a preceding nested block — only the
-            // `iclaw:` block is recognized, and its parsing is handled in
-            // `parseIClawBlock`. At the top level we expect `key: value` or
+            // `palvia:` block is recognized, and its parsing is handled in
+            // `parsePalviaBlock`. At the top level we expect `key: value` or
             // `key:` (followed by an indented block).
             guard !isIndented(raw) else {
                 throw FrontmatterError.malformed(line: lineNum, reason: "Unexpected indented line at top level")
@@ -143,7 +143,7 @@ enum SkillFrontmatterParser {
             let key = String(trimmed[..<colonIdx]).trimmingCharacters(in: .whitespaces)
             let valuePart = String(trimmed[trimmed.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
 
-            if key == "iclaw" {
+            if key == "palvia" {
                 // Nested block: collect all following indented lines.
                 var blockLines: [String] = []
                 var j = i + 1
@@ -161,7 +161,7 @@ enum SkillFrontmatterParser {
                         break
                     }
                 }
-                fm.iclaw = try parseIClawBlock(blockLines, startLine: lineNum + 1)
+                fm.palvia = try parsePalviaBlock(blockLines, startLine: lineNum + 1)
                 i = j
                 continue
             }
@@ -176,8 +176,8 @@ enum SkillFrontmatterParser {
         return fm
     }
 
-    private static func parseIClawBlock(_ lines: [String], startLine: Int) throws -> SkillFrontmatter.IClawBlock {
-        var block = SkillFrontmatter.IClawBlock()
+    private static func parsePalviaBlock(_ lines: [String], startLine: Int) throws -> SkillFrontmatter.PalviaBlock {
+        var block = SkillFrontmatter.PalviaBlock()
         var i = 0
         while i < lines.count {
             let lineNum = startLine + i
@@ -186,7 +186,7 @@ enum SkillFrontmatterParser {
             if trimmed.isEmpty || trimmed.hasPrefix("#") { i += 1; continue }
 
             guard let colonIdx = trimmed.firstIndex(of: ":") else {
-                throw FrontmatterError.malformed(line: lineNum, reason: "Expected `key: value` in iclaw block")
+                throw FrontmatterError.malformed(line: lineNum, reason: "Expected `key: value` in palvia block")
             }
             let key = String(trimmed[..<colonIdx]).trimmingCharacters(in: .whitespaces)
             let value = String(trimmed[trimmed.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
@@ -221,7 +221,7 @@ enum SkillFrontmatterParser {
                 i = j
                 continue
             default:
-                // Unknown iclaw-block key: ignore silently — keeps the format
+                // Unknown palvia-block key: ignore silently — keeps the format
                 // extensible without forcing an error on older parsers.
                 break
             }

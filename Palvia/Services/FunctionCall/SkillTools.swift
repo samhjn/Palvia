@@ -87,7 +87,7 @@ struct SkillTools {
             name: pkg.frontmatter.name,
             summary: pkg.description,
             content: pkg.body,
-            tags: pkg.frontmatter.iclaw.tags,
+            tags: pkg.frontmatter.palvia.tags,
             author: agent.name,
             scripts: pkg.toSkillScripts(),
             customTools: pkg.toCustomTools()
@@ -200,7 +200,7 @@ struct SkillTools {
                 let q = query.lowercased()
                 let matches = pkg.frontmatter.name.lowercased().contains(q)
                     || pkg.description.lowercased().contains(q)
-                    || pkg.frontmatter.iclaw.tags.contains(where: { $0.lowercased().contains(q) })
+                    || pkg.frontmatter.palvia.tags.contains(where: { $0.lowercased().contains(q) })
                 if !matches { continue }
             }
             lines.append("- **\(pkg.frontmatter.name)** (slug: `\(slug)`) — \(pkg.description)")

@@ -58,7 +58,7 @@ final class SkillPackageWriteTests: XCTestCase {
         XCTAssertTrue(report.ok, "Round-tripped package must validate cleanly. Errors: \(report.errors)")
         XCTAssertEqual(parsed?.frontmatter.name, "Round Trip")
         XCTAssertEqual(parsed?.description, "A test of write + parse round-trip.")
-        XCTAssertEqual(parsed?.frontmatter.iclaw.tags, ["test", "round-trip"])
+        XCTAssertEqual(parsed?.frontmatter.palvia.tags, ["test", "round-trip"])
         XCTAssertTrue(parsed?.body.contains("Body content.") ?? false)
     }
 

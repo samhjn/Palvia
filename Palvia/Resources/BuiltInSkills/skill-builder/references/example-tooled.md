@@ -20,7 +20,7 @@ skills/greeter/
 ---
 name: Greeter
 description: Greet users by name with optional formality. Demonstrates the canonical authoring pattern.
-iclaw:
+palvia:
   version: "1.0"
   tags: [demo, authoring]
 ---
@@ -35,7 +35,7 @@ canonicalizes input names and is reused by the tool.
 ```
 
 The frontmatter has exactly two **required** fields: `name` and `description`.
-Names ≤ 64 chars, descriptions ≤ 200 chars. The `iclaw:` block holds
+Names ≤ 64 chars, descriptions ≤ 200 chars. The `palvia:` block holds
 Palvia-specific extras (tags, optional `slash:` slug override, configuration
 schemas).
 

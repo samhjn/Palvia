@@ -54,12 +54,12 @@ final class SkillPackageTests: XCTestCase {
         XCTAssertTrue(body.hasPrefix("# Body"))
     }
 
-    func testFrontmatterParsesIClawBlock() throws {
+    func testFrontmatterParsesPalviaBlock() throws {
         let src = """
         ---
         name: Foo
         description: Bar
-        iclaw:
+        palvia:
           version: "1.0"
           slash: foo
           tags: [research, analysis]
@@ -67,9 +67,9 @@ final class SkillPackageTests: XCTestCase {
         body
         """
         let (fm, _, _) = try SkillFrontmatterParser.parse(src)
-        XCTAssertEqual(fm.iclaw.version, "1.0")
-        XCTAssertEqual(fm.iclaw.slash, "foo")
-        XCTAssertEqual(fm.iclaw.tags, ["research", "analysis"])
+        XCTAssertEqual(fm.palvia.version, "1.0")
+        XCTAssertEqual(fm.palvia.slash, "foo")
+        XCTAssertEqual(fm.palvia.tags, ["research", "analysis"])
     }
 
     func testFrontmatterParsesConfigList() throws {
@@ -77,16 +77,16 @@ final class SkillPackageTests: XCTestCase {
         ---
         name: Foo
         description: Bar
-        iclaw:
+        palvia:
           config:
             - { key: api_key, type: string, required: true }
             - { key: max_len, type: number, default: "5000" }
         ---
         """
         let (fm, _, _) = try SkillFrontmatterParser.parse(src)
-        XCTAssertEqual(fm.iclaw.configRaw.count, 2)
-        XCTAssertEqual(fm.iclaw.configRaw[0]["key"], "api_key")
-        XCTAssertEqual(fm.iclaw.configRaw[1]["default"], "5000")
+        XCTAssertEqual(fm.palvia.configRaw.count, 2)
+        XCTAssertEqual(fm.palvia.configRaw[0]["key"], "api_key")
+        XCTAssertEqual(fm.palvia.configRaw[1]["default"], "5000")
     }
 
     func testFrontmatterRejectsMissingOpener() {
@@ -455,7 +455,7 @@ final class SkillPackageTests: XCTestCase {
             ---
             name: Hello
             description: Greeting skill.
-            iclaw:
+            palvia:
               tags: [研究, analysis]
             ---
             """,
