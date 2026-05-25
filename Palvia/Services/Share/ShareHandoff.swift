@@ -2,7 +2,7 @@ import Foundation
 import SwiftData
 import os.log
 
-/// Processes `iclaw://session/new?agentId=<uuid>&handoffId=<uuid>` deep links
+/// Processes `palvia://session/new?agentId=<uuid>&handoffId=<uuid>` deep links
 /// emitted by the Share Extension. When the deep-link open fails (Apple
 /// disabled the legacy `openURL:` selector in iOS 18), the main app falls
 /// back to `processPending(…)` on launch / foreground to pick up any
@@ -27,7 +27,7 @@ enum ShareHandoff {
     /// Returns true if the URL is a share-handoff deep link this processor
     /// knows how to handle.
     static func isHandoffURL(_ url: URL) -> Bool {
-        guard url.scheme == "iclaw" else { return false }
+        guard ["iclaw", "palvia"].contains(url.scheme?.lowercased() ?? "") else { return false }
         guard url.host == "session" else { return false }
         let components = url.pathComponents.filter { $0 != "/" }
         return components.first == "new"

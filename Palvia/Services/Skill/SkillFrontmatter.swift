@@ -8,13 +8,13 @@ import Foundation
 struct SkillFrontmatter: Hashable {
     var name: String
     var description: String
-    var iclaw: IClawBlock
+    var palvia: PalviaBlock
 
     /// Other top-level keys found in the frontmatter (preserved for warnings
     /// and future-proofing). Values are the raw line text after the colon.
     var unknownKeys: [String: String] = [:]
 
-    struct IClawBlock: Hashable {
+    struct PalviaBlock: Hashable {
         var version: String? = nil
         var tags: [String] = []
         var slash: String? = nil
@@ -121,7 +121,7 @@ enum SkillFrontmatterParser {
 
     private static func parseFrontmatterBlock(_ text: String) throws -> SkillFrontmatter {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-        var fm = SkillFrontmatter(name: "", description: "", iclaw: .init())
+        var fm = SkillFrontmatter(name: "", description: "", palvia: .init())
 
         var i = 0
         while i < lines.count {
@@ -131,7 +131,7 @@ enum SkillFrontmatterParser {
             if trimmed.isEmpty || trimmed.hasPrefix("#") { i += 1; continue }
 
             // Indented lines belong to a preceding nested block — only the
-            // `iclaw:` block is recognized, and its parsing is handled in
+            // `palvia:` block is recognized, and its parsing is handled in
             // `parseIClawBlock`. At the top level we expect `key: value` or
             // `key:` (followed by an indented block).
             guard !isIndented(raw) else {
@@ -143,7 +143,7 @@ enum SkillFrontmatterParser {
             let key = String(trimmed[..<colonIdx]).trimmingCharacters(in: .whitespaces)
             let valuePart = String(trimmed[trimmed.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
 
-            if key == "iclaw" {
+            if key == "palvia" {
                 // Nested block: collect all following indented lines.
                 var blockLines: [String] = []
                 var j = i + 1
@@ -161,7 +161,7 @@ enum SkillFrontmatterParser {
                         break
                     }
                 }
-                fm.iclaw = try parseIClawBlock(blockLines, startLine: lineNum + 1)
+                fm.palvia = try parseIClawBlock(blockLines, startLine: lineNum + 1)
                 i = j
                 continue
             }

@@ -244,8 +244,8 @@ struct PalviaApp: App {
     // MARK: - Deep Link Handling
 
     /// Handles URL schemes:
-    /// - `iclaw://cron/trigger/{jobId}` / `iclaw://cron/run-due` — cron triggers
-    /// - `iclaw://session/new?agentId=...&handoffId=...` — Share Extension handoff
+    /// - `palvia://cron/trigger/{jobId}` / `palvia://cron/run-due` — cron triggers
+    /// - `palvia://session/new?agentId=...&handoffId=...` — Share Extension handoff
     /// - `agentfile://<agentId>/<filename>` — in-app file preview
     private func handleDeepLink(_ url: URL) {
         if url.scheme == "agentfile" {
@@ -253,7 +253,7 @@ struct PalviaApp: App {
             return
         }
 
-        guard url.scheme == "iclaw" else { return }
+        guard ["iclaw", "palvia"].contains(url.scheme?.lowercased() ?? "") else { return }
 
         if ShareHandoff.isHandoffURL(url) {
             Task { @MainActor in
@@ -265,7 +265,7 @@ struct PalviaApp: App {
         let pathComponents = url.pathComponents.filter { $0 != "/" }
         let host = url.host ?? ""
 
-        // Normalize: iclaw://cron/trigger/{id} or iclaw://cron/run-due
+        // Normalize: palvia://cron/trigger/{id} or palvia://cron/run-due
         let fullPath = ([host] + pathComponents).joined(separator: "/")
 
         if fullPath.hasPrefix("cron/trigger/") {

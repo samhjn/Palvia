@@ -1,7 +1,7 @@
 ---
 name: Deep Research
 description: Systematic research methodology with source evaluation and synthesis
-iclaw:
+palvia:
   version: "1.0"
   tags: [research, analysis, methodology]
 ---

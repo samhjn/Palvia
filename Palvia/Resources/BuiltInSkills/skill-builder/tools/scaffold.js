@@ -39,7 +39,7 @@ if (!slug) {
       await fs.mkdir(`${dir}/scripts`);
 
       const tagsLine = args.tags
-        ? `\niclaw:\n  tags: [${args.tags.split(',').map(t => t.trim()).filter(Boolean).join(', ')}]\n`
+        ? `\npalvia:\n  tags: [${args.tags.split(',').map(t => t.trim()).filter(Boolean).join(', ')}]\n`
         : "\n";
 
       const body = [
