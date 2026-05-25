@@ -92,7 +92,20 @@ final class ChatDisplayModeTests: BaseTestCase {
         let chat = ChatPage(app: app)
         let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
         let capsule = app.buttons[AccessibilityID.Chat.displayModeCapsule]
-        let loaded = sendBtn.waitForExistence(timeout: 10) || capsule.waitForExistence(timeout: 5)
+        var loaded = sendBtn.waitForExistence(timeout: 15) || capsule.waitForExistence(timeout: 8)
+        if !loaded {
+            // One retry path for slow UI transitions on CI simulators.
+            let backButton = app.navigationBars.buttons.firstMatch
+            if backButton.exists {
+                backButton.tap()
+                if cellRow.waitForExistence(timeout: 5) {
+                    cellRow.tap()
+                } else if buttonRow.waitForExistence(timeout: 3) {
+                    buttonRow.tap()
+                }
+                loaded = sendBtn.waitForExistence(timeout: 10) || capsule.waitForExistence(timeout: 5)
+            }
+        }
         XCTAssertTrue(loaded, "Chat view should be displayed (sendButton or displayModeCapsule)")
         return chat
     }

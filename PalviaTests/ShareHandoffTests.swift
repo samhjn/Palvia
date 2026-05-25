@@ -11,7 +11,13 @@ final class ShareHandoffTests: XCTestCase {
 
     // MARK: - isHandoffURL
 
-    func testAcceptsSessionNewURL() {
+
+    func testAcceptsLegacyIClawScheme() {
+        let url = URL(string: "iclaw://session/new?agentId=\(UUID().uuidString)&handoffId=\(UUID().uuidString)")!
+        XCTAssertTrue(ShareHandoff.isHandoffURL(url))
+    }
+
+    func testAcceptsPalviaScheme() {
         let url = URL(string: "palvia://session/new?agentId=\(UUID().uuidString)&handoffId=\(UUID().uuidString)")!
         XCTAssertTrue(ShareHandoff.isHandoffURL(url))
     }
