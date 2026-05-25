@@ -489,12 +489,12 @@ final class BrowserService: NSObject {
 
     // MARK: - Element ID & XPath Resolution
 
-    /// Resolve element(s) by data-iclaw-id attribute.
+    /// Resolve element(s) by data-palvia-id attribute.
     func resolveElementId(_ elementId: String, all: Bool = false) -> String {
         if all {
-            return "document.querySelectorAll('[data-iclaw-id=' + \(jsEscape(elementId)) + ']')"
+            return "document.querySelectorAll('[data-palvia-id=' + \(jsEscape(elementId)) + ']')"
         } else {
-            return "document.querySelector('[data-iclaw-id=' + \(jsEscape(elementId)) + ']')"
+            return "document.querySelector('[data-palvia-id=' + \(jsEscape(elementId)) + ']')"
         }
     }
 
@@ -532,7 +532,7 @@ final class BrowserService: NSObject {
     }
 
     /// Extracts a simplified readable DOM: text, links, inputs, buttons, etc.
-    /// Interactive elements are tagged with 5-char random IDs (data-iclaw-id) for easy reference.
+    /// Interactive elements are tagged with 5-char random IDs (data-palvia-id) for easy reference.
     private static let simplifiedDOMScript = """
     (function() {
         var _ids = new Set();
@@ -545,7 +545,7 @@ final class BrowserService: NSObject {
         }
         function tagEl(node) {
             var id = genId();
-            node.setAttribute('data-iclaw-id', id);
+            node.setAttribute('data-palvia-id', id);
             return id;
         }
         function isInteractive(node) {
@@ -556,7 +556,7 @@ final class BrowserService: NSObject {
             if (node.getAttribute && node.getAttribute('contenteditable') === 'true') return true;
             return false;
         }
-        document.querySelectorAll('[data-iclaw-id]').forEach(function(el) { el.removeAttribute('data-iclaw-id'); });
+        document.querySelectorAll('[data-palvia-id]').forEach(function(el) { el.removeAttribute('data-palvia-id'); });
         function walk(node, depth) {
             if (depth > 15) return '';
             var skip = new Set(['SCRIPT','STYLE','NOSCRIPT','SVG','PATH','META','LINK']);

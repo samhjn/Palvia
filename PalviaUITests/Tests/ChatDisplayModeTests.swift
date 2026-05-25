@@ -92,6 +92,12 @@ final class ChatDisplayModeTests: BaseTestCase {
         let chat = ChatPage(app: app)
         let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
         let capsule = app.buttons[AccessibilityID.Chat.displayModeCapsule]
+
+        // Wait for navigation to leave the session list before asserting chat controls.
+        let listGone = NSPredicate(format: "exists == false")
+        let listGoneExp = XCTNSPredicateExpectation(predicate: listGone, object: cellRow)
+        _ = XCTWaiter().wait(for: [listGoneExp], timeout: 5)
+
         let loaded = sendBtn.waitForExistence(timeout: 10) || capsule.waitForExistence(timeout: 5)
         XCTAssertTrue(loaded, "Chat view should be displayed (sendButton or displayModeCapsule)")
         return chat

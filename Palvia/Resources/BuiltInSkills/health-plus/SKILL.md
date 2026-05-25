@@ -1,7 +1,7 @@
 ---
 name: Health Plus
 description: "Advanced Apple Health metrics: blood pressure, glucose, oxygen, body temperature, macronutrients, workouts"
-iclaw:
+palvia:
   version: "1.0"
   tags: [health, fitness, wellness]
 ---

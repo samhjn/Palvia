@@ -1,7 +1,7 @@
 ---
 name: File Ops
 description: "Advanced file operations: copy, move, directory management, rich stat"
-iclaw:
+palvia:
   version: "1.0"
   tags: [files, filesystem, utilities]
 ---

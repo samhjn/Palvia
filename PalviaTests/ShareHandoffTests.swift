@@ -11,24 +11,30 @@ final class ShareHandoffTests: XCTestCase {
 
     // MARK: - isHandoffURL
 
-    func testAcceptsSessionNewURL() {
+
+    func testAcceptsLegacyIClawScheme() {
         let url = URL(string: "iclaw://session/new?agentId=\(UUID().uuidString)&handoffId=\(UUID().uuidString)")!
+        XCTAssertTrue(ShareHandoff.isHandoffURL(url))
+    }
+
+    func testAcceptsPalviaScheme() {
+        let url = URL(string: "palvia://session/new?agentId=\(UUID().uuidString)&handoffId=\(UUID().uuidString)")!
         XCTAssertTrue(ShareHandoff.isHandoffURL(url))
     }
 
     func testAcceptsSessionNewWithoutQuery() {
         // Query parsing happens later — URL shape itself is still a handoff.
-        let url = URL(string: "iclaw://session/new")!
+        let url = URL(string: "palvia://session/new")!
         XCTAssertTrue(ShareHandoff.isHandoffURL(url))
     }
 
     func testRejectsNonSessionHost() {
-        let url = URL(string: "iclaw://cron/run-due")!
+        let url = URL(string: "palvia://cron/run-due")!
         XCTAssertFalse(ShareHandoff.isHandoffURL(url))
     }
 
     func testRejectsDifferentPath() {
-        let url = URL(string: "iclaw://session/edit")!
+        let url = URL(string: "palvia://session/edit")!
         XCTAssertFalse(ShareHandoff.isHandoffURL(url))
     }
 

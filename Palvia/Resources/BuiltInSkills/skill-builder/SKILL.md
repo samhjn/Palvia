@@ -1,7 +1,7 @@
 ---
 name: Skill Builder
 description: Author and edit Palvia skills directly via the fs.* bridge. Includes scaffolding, tool/script generators, validation, and reference examples.
-iclaw:
+palvia:
   version: "1.0"
   tags: [meta, authoring, scaffolding]
 ---

@@ -215,7 +215,7 @@ enum SkillPackage {
         out.append("name: \(yamlScalar(snapshot.name))")
         out.append("description: \(yamlScalar(snapshot.summary))")
         if !snapshot.tags.isEmpty {
-            out.append("iclaw:")
+            out.append("palvia:")
             let inline = snapshot.tags.map { yamlScalar($0) }.joined(separator: ", ")
             out.append("  tags: [\(inline)]")
         }
@@ -437,7 +437,7 @@ enum SkillPackage {
         // skipped for callers that will rename the destination anyway (the
         // importer copies to `<Documents>/Skills/<derivedSlug>/` regardless
         // of what the source folder is called).
-        let derivedSlug = derivedSlug(forName: fm.name, override: fm.iclaw.slash)
+        let derivedSlug = derivedSlug(forName: fm.name, override: fm.palvia.slash)
         if enforceSlugMatch, !derivedSlug.isEmpty, derivedSlug != slug {
             errors.append(.init(
                 severity: .error, file: "SKILL.md", line: 0,
@@ -459,7 +459,7 @@ enum SkillPackage {
         }
 
         // Tags ASCII check
-        for tag in fm.iclaw.tags where tag.unicodeScalars.contains(where: { !$0.isASCII }) {
+        for tag in fm.palvia.tags where tag.unicodeScalars.contains(where: { !$0.isASCII }) {
             warnings.append(.init(
                 severity: .warning, file: "SKILL.md", line: 0,
                 code: .nonAsciiTag,
