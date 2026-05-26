@@ -177,6 +177,8 @@ final class ChatScrollState {
 }
 
 private struct ChatContentView: View {
+    private static let bottomAnchorId = "chat-bottom-anchor"
+
     @Bindable var vm: ChatViewModel
     @State private var scrollPosition: String?
     @State private var hasRestoredScroll = false
@@ -184,6 +186,7 @@ private struct ChatContentView: View {
     @State private var scrollState = ChatScrollState()
     @State private var displayMessages: [Message] = []
     @State private var lastKnownMessageCount = 0
+    @State private var isFollowingBottom = true
 
     /// Compute the filtered message list from current view-model state.
     /// The result is stored in `displayMessages` (`@State`) so that SwiftUI
@@ -212,6 +215,33 @@ private struct ChatContentView: View {
             if visibleIds.contains(all[i].id) { return all[i].id }
         }
         return displayed.first?.id
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        let action = {
+            proxy.scrollTo(Self.bottomAnchorId, anchor: .bottom)
+        }
+        if animated {
+            withAnimation { action() }
+        } else {
+            action()
+        }
+    }
+
+    private func scheduleBottomFollowCorrections(_ proxy: ScrollViewProxy, animated: Bool = false) {
+        let delays: [DispatchTimeInterval] = [
+            .milliseconds(0),
+            .milliseconds(80),
+            .milliseconds(220),
+            .milliseconds(500)
+        ]
+
+        for (index, delay) in delays.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard isFollowingBottom, !scrollState.userDidScrollAway else { return }
+                scrollToBottom(proxy, animated: animated && index == 0)
+            }
+        }
     }
 
     var body: some View {
@@ -264,6 +294,11 @@ private struct ChatContentView: View {
                             }
                             .id("compressing")
                         }
+
+                        Color.clear
+                            .frame(height: 1)
+                            .id(Self.bottomAnchorId)
+                            .accessibilityHidden(true)
                     }
                     .padding()
                     .background(ScrollViewOffsetObserver(scrollState: scrollState))
@@ -277,7 +312,6 @@ private struct ChatContentView: View {
                     // can race with an in-flight animation completion.
                     if updated.map(\.id) != displayMessages.map(\.id) {
                         displayMessages = updated
-                        lastKnownMessageCount = updated.count
                     }
                 }
                 .onChange(of: vm.isVerbose) {
@@ -299,13 +333,13 @@ private struct ChatContentView: View {
                         hasRestoredScroll = true
                         if let target = vm.initialScrollTarget,
                            let resolved = nearestVisibleId(to: target) {
+                            isFollowingBottom = resolved == displayMessages.last?.id
                             DispatchQueue.main.async {
                                 proxy.scrollTo(resolved.uuidString, anchor: .center)
                             }
-                        } else if let lastId = displayMessages.last?.id {
-                            DispatchQueue.main.async {
-                                proxy.scrollTo(lastId.uuidString, anchor: .bottom)
-                            }
+                        } else {
+                            isFollowingBottom = true
+                            scheduleBottomFollowCorrections(proxy)
                             // Subsequent corrections as markdown renders to full
                             // height are handled reactively by the contentSize
                             // KVO → bottomCorrectionTick → onChange pipeline.
@@ -324,29 +358,37 @@ private struct ChatContentView: View {
                     let shouldForce = forceScrollToBottom
                     forceScrollToBottom = false
                     guard shouldForce || !scrollState.userDidScrollAway else { return }
-                    withAnimation {
-                        proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
+                    if shouldForce {
+                        isFollowingBottom = true
                     }
+                    scheduleBottomFollowCorrections(proxy, animated: shouldForce)
                 }
                 .onChange(of: vm.streamingContent) {
-                    guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty else { return }
-                    withAnimation {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    }
+                    guard isFollowingBottom, !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty else { return }
+                    scrollToBottom(proxy)
                 }
                 .onChange(of: vm.streamingThinking) {
-                    guard !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
-                    withAnimation {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    }
+                    guard isFollowingBottom, !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
+                    scrollToBottom(proxy)
+                }
+                .onChange(of: vm.isLoading) { oldValue, newValue in
+                    guard oldValue, !newValue, isFollowingBottom, !scrollState.userDidScrollAway else { return }
+                    scheduleBottomFollowCorrections(proxy)
                 }
                 .onChange(of: scrollState.bottomCorrectionTick) {
-                    guard !scrollState.userDidScrollAway else { return }
-                    if vm.isLoading && !vm.streamingContent.isEmpty {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    } else if let lastId = displayMessages.last?.id {
-                        proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                    guard isFollowingBottom, !scrollState.userDidScrollAway else { return }
+                    scrollToBottom(proxy, animated: false)
+                }
+                .onChange(of: scrollState.userDidScrollAway) { _, didScrollAway in
+                    if didScrollAway {
+                        isFollowingBottom = false
+                    } else if scrollState.isNearBottom {
+                        isFollowingBottom = true
                     }
+                }
+                .onChange(of: scrollState.isNearBottom) { _, isNearBottom in
+                    guard isNearBottom, !scrollState.userDidScrollAway else { return }
+                    isFollowingBottom = true
                 }
                 
                 .onDisappear {
@@ -359,17 +401,13 @@ private struct ChatContentView: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Button {
+                        isFollowingBottom = true
                         scrollState.userDidScrollAway = false
                         if let sv = scrollState.scrollView, sv.isDecelerating {
                             sv.setContentOffset(sv.contentOffset, animated: false)
                         }
-                        withAnimation {
-                            if vm.isLoading && !vm.streamingContent.isEmpty {
-                                proxy.scrollTo("streaming", anchor: .bottom)
-                            } else if let lastId = displayMessages.last?.id {
-                                proxy.scrollTo(lastId.uuidString, anchor: .bottom)
-                            }
-                        }
+                        scrollToBottom(proxy)
+                        scheduleBottomFollowCorrections(proxy)
                         // Further corrections as content renders are handled
                         // by the contentSize KVO → bottomCorrectionTick pipeline.
                     } label: {
@@ -601,6 +639,7 @@ private struct ChatContentView: View {
                 isImageDisabled: vm.isImageInputDisabled,
                 isVideoDisabled: vm.isImageInputDisabled,
                 onSend: {
+                    isFollowingBottom = true
                     forceScrollToBottom = true
                     vm.sendMessage()
                 },
