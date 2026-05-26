@@ -63,6 +63,7 @@ struct PalviaApp: App {
         // these helpers invalidate observers, which can recurse back into
         // body evaluation and trip a Swift runtime trap on iOS 17.0.
         Self.runOneTimeLaunchTasksIfNeeded { [modelContainer] in
+            Self.resetStaleActiveSessions(in: modelContainer)
             #if DEBUG
             if PalviaModelContainer.shouldSeedMarkdown {
                 Self.seedMarkdownTestData(in: modelContainer)
@@ -74,7 +75,6 @@ struct PalviaApp: App {
                 Self.seedStreamingTestData(in: modelContainer)
             }
             #endif
-            Self.resetStaleActiveSessions(in: modelContainer)
             // Publish the root-agent snapshot for the Share Extension and sweep
             // any abandoned share-staging directories from earlier sessions.
             Self.refreshAgentSnapshot(in: modelContainer)
