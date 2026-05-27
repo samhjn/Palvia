@@ -1417,15 +1417,6 @@ final class ChatViewModel {
         startMonitoringIfNeeded()
         checkToolUseCapability()
         refreshPendingAttachmentsFromCache()
-        #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--uitesting-simulate-streaming") {
-            NotificationCenter.default.post(
-                name: .uiTestStreamingSessionDidAppear,
-                object: nil,
-                userInfo: ["sessionId": session.id]
-            )
-        }
-        #endif
     }
 
     private func recoverRetryState() {
