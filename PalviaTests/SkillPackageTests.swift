@@ -72,6 +72,61 @@ final class SkillPackageTests: XCTestCase {
         XCTAssertEqual(fm.palvia.tags, ["research", "analysis"])
     }
 
+    func testFrontmatterParsesLegacyIclawBlock() throws {
+        let src = """
+        ---
+        name: Foo
+        description: Bar
+        iclaw:
+          version: "1.0"
+          slash: foo
+          tags: [research, analysis]
+        ---
+        body
+        """
+        let (fm, _, _) = try SkillFrontmatterParser.parse(src)
+        XCTAssertEqual(fm.palvia.version, "1.0")
+        XCTAssertEqual(fm.palvia.slash, "foo")
+        XCTAssertEqual(fm.palvia.tags, ["research", "analysis"])
+    }
+
+    func testFrontmatterRejectsPalviaAndLegacyIclawBlocksTogether() {
+        let sources = [
+            """
+            ---
+            name: Foo
+            description: Bar
+            palvia:
+              slash: new-slug
+              tags: [new]
+            iclaw:
+              slash: old-slug
+              tags: [old]
+            ---
+            body
+            """,
+            """
+            ---
+            name: Foo
+            description: Bar
+            iclaw:
+              slash: old-slug
+              tags: [old]
+            palvia:
+              slash: new-slug
+              tags: [new]
+            ---
+            body
+            """
+        ]
+
+        for src in sources {
+            XCTAssertThrowsError(try SkillFrontmatterParser.parse(src)) { error in
+                XCTAssertTrue(String(describing: error).contains("cannot both be present"))
+            }
+        }
+    }
+
     func testFrontmatterParsesConfigList() throws {
         let src = """
         ---

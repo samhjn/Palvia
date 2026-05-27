@@ -1,6 +1,50 @@
 import XCTest
 @testable import Palvia
 
+final class APIRequestBuilderHeaderTests: XCTestCase {
+
+    func testAppVersionUsesBundleShortVersionString() throws {
+        let expectedVersion = try XCTUnwrap(
+            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        )
+
+        XCTAssertEqual(APIRequestBuilder.appVersion, expectedVersion)
+    }
+
+    func testCommonHeadersUsePalviaWebsiteURL() throws {
+        let expectedVersion = try XCTUnwrap(
+            Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        )
+        let url = try XCTUnwrap(URL(string: "https://api.example.com"))
+        var request = URLRequest(url: url)
+
+        APIRequestBuilder.applyCommonHeaders(to: &request)
+
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "User-Agent"),
+            "Palvia/\(expectedVersion) (https://palvia.net)"
+        )
+        XCTAssertEqual(request.value(forHTTPHeaderField: "HTTP-Referer"), "https://palvia.net")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Title"), "Palvia")
+    }
+
+    func testVideoRestPollingSubmitUserAgentUsesPalviaWebsiteURL() throws {
+        let provider = VideoGenProvider.restPollingProvider()
+
+        let request = try provider.buildSubmitRequest(
+            "https://api.example.com",
+            "test-key",
+            "sora",
+            "test prompt",
+            nil,
+            nil,
+            nil
+        )
+
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), APIRequestBuilder.userAgent)
+    }
+}
+
 /// Verifies that outgoing LLM request bodies are byte-stable across runs.
 ///
 /// Swift `Dictionary` iteration order is randomized per process, so without

@@ -442,7 +442,7 @@ enum SkillPackage {
             errors.append(.init(
                 severity: .error, file: "SKILL.md", line: 0,
                 code: .slugMismatch,
-                message: "Derived slug `\(derivedSlug)` does not match the directory name `\(slug)`. Rename the directory or set `iclaw.slash` to match."
+                message: "Derived slug `\(derivedSlug)` does not match the directory name `\(slug)`. Rename the directory or set `palvia.slash` (or legacy `iclaw.slash`) to match."
             ))
         }
 
@@ -668,11 +668,11 @@ enum SkillPackage {
     // MARK: - Slug derivation
 
     /// Convert a human-friendly `name` to a directory-safe slug. Preserves
-    /// an explicit override from `iclaw.slash` when provided.
+    /// an explicit override from `palvia.slash` or legacy `iclaw.slash`.
     ///
     /// Rule: lowercase, non-alphanumerics collapsed to single hyphens, leading
-    /// and trailing hyphens trimmed. `iclaw.slash` is sanitized the same way
-    /// so the override still has to be a valid slug.
+    /// and trailing hyphens trimmed. Explicit slash overrides are sanitized
+    /// the same way so they still have to be valid slugs.
     static func derivedSlug(forName name: String, override: String? = nil) -> String {
         if let raw = override, !raw.isEmpty {
             return sluggify(raw)

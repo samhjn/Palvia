@@ -122,6 +122,8 @@ enum SkillFrontmatterParser {
     private static func parseFrontmatterBlock(_ text: String) throws -> SkillFrontmatter {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         var fm = SkillFrontmatter(name: "", description: "", palvia: .init())
+        var hasPalviaBlock = false
+        var hasLegacyIclawBlock = false
 
         var i = 0
         while i < lines.count {
@@ -130,10 +132,9 @@ enum SkillFrontmatterParser {
             let trimmed = raw.trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty || trimmed.hasPrefix("#") { i += 1; continue }
 
-            // Indented lines belong to a preceding nested block — only the
-            // `palvia:` block is recognized, and its parsing is handled in
-            // `parsePalviaBlock`. At the top level we expect `key: value` or
-            // `key:` (followed by an indented block).
+            // Indented lines belong to a preceding nested block. Skill
+            // metadata is recognized as `palvia:`; `iclaw:` remains a legacy
+            // alias for packages written before the rename.
             guard !isIndented(raw) else {
                 throw FrontmatterError.malformed(line: lineNum, reason: "Unexpected indented line at top level")
             }
@@ -143,7 +144,20 @@ enum SkillFrontmatterParser {
             let key = String(trimmed[..<colonIdx]).trimmingCharacters(in: .whitespaces)
             let valuePart = String(trimmed[trimmed.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
 
-            if key == "palvia" {
+            if key == "palvia" || key == "iclaw" {
+                if key == "palvia", hasLegacyIclawBlock {
+                    throw FrontmatterError.malformed(
+                        line: lineNum,
+                        reason: "`palvia:` and legacy `iclaw:` metadata blocks cannot both be present"
+                    )
+                }
+                if key == "iclaw", hasPalviaBlock {
+                    throw FrontmatterError.malformed(
+                        line: lineNum,
+                        reason: "`palvia:` and legacy `iclaw:` metadata blocks cannot both be present"
+                    )
+                }
+
                 // Nested block: collect all following indented lines.
                 var blockLines: [String] = []
                 var j = i + 1
@@ -161,7 +175,15 @@ enum SkillFrontmatterParser {
                         break
                     }
                 }
-                fm.palvia = try parsePalviaBlock(blockLines, startLine: lineNum + 1)
+                let block = try parsePalviaBlock(blockLines, startLine: lineNum + 1)
+                if key == "palvia" || !hasPalviaBlock {
+                    fm.palvia = block
+                }
+                if key == "palvia" {
+                    hasPalviaBlock = true
+                } else {
+                    hasLegacyIclawBlock = true
+                }
                 i = j
                 continue
             }
@@ -186,7 +208,7 @@ enum SkillFrontmatterParser {
             if trimmed.isEmpty || trimmed.hasPrefix("#") { i += 1; continue }
 
             guard let colonIdx = trimmed.firstIndex(of: ":") else {
-                throw FrontmatterError.malformed(line: lineNum, reason: "Expected `key: value` in palvia block")
+                throw FrontmatterError.malformed(line: lineNum, reason: "Expected `key: value` in palvia/iclaw block")
             }
             let key = String(trimmed[..<colonIdx]).trimmingCharacters(in: .whitespaces)
             let value = String(trimmed[trimmed.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
@@ -221,8 +243,8 @@ enum SkillFrontmatterParser {
                 i = j
                 continue
             default:
-                // Unknown palvia-block key: ignore silently — keeps the format
-                // extensible without forcing an error on older parsers.
+                // Unknown metadata-block key: ignore silently — keeps the
+                // format extensible without forcing an error on older parsers.
                 break
             }
             i += 1

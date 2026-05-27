@@ -128,7 +128,7 @@ extension VideoGenProvider {
                 var request = URLRequest(url: url)
                 request.httpMethod = "POST"
                 request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.addValue("Palvia/1.0 (https://iclaw.shadow.mov)", forHTTPHeaderField: "User-Agent")
+                request.addValue(APIRequestBuilder.userAgent, forHTTPHeaderField: "User-Agent")
                 if !apiKey.isEmpty {
                     request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
                 }
@@ -892,4 +892,3 @@ final class VideoGenerationService: @unchecked Sendable {
         return (thumbnailData, width, height, duration)
     }
 }
-

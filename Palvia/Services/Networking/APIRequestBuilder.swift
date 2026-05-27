@@ -2,6 +2,14 @@ import Foundation
 
 /// Shared utilities for building API requests across all services.
 enum APIRequestBuilder {
+    static let appWebsiteURL = "https://palvia.net"
+    static var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+    }
+
+    static var userAgent: String {
+        "Palvia/\(appVersion) (\(appWebsiteURL))"
+    }
 
     /// JSONEncoder configured with `.sortedKeys` so request bodies are
     /// byte-identical across runs. Required for prompt-caching providers
@@ -32,8 +40,8 @@ enum APIRequestBuilder {
 
     /// Apply common Palvia headers (User-Agent, Referer, Title).
     static func applyCommonHeaders(to request: inout URLRequest) {
-        request.addValue("Palvia/1.0 (https://iclaw.shadow.mov)", forHTTPHeaderField: "User-Agent")
-        request.addValue("https://iclaw.shadow.mov", forHTTPHeaderField: "HTTP-Referer")
+        request.addValue(userAgent, forHTTPHeaderField: "User-Agent")
+        request.addValue(appWebsiteURL, forHTTPHeaderField: "HTTP-Referer")
         request.addValue("Palvia", forHTTPHeaderField: "X-Title")
     }
 
