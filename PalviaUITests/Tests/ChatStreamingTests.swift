@@ -39,22 +39,13 @@ final class ChatStreamingTests: BaseTestCase {
             }
         }
 
-        let chat = ChatPage(app: app)
-        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        let stopBtn = app.buttons[AccessibilityID.Chat.stopButton]
-        let appeared = sendBtn.waitForExistence(timeout: 5) || stopBtn.waitForExistence(timeout: 5)
-        XCTAssertTrue(appeared, "Chat view should be displayed (send or stop button visible)")
-        return chat
+        return ChatPage(app: app)
     }
 
-    /// Polls until streaming is active OR has already completed.
+    /// Polls until streaming is actually active.
     private func waitForStreamingActive(timeout: TimeInterval = 10) -> Bool {
         let bubble = app.descendants(matching: .any)[AccessibilityID.Chat.streamingBubble]
-        if bubble.waitForExistence(timeout: timeout) { return true }
-        let stopBtn = app.buttons[AccessibilityID.Chat.stopButton]
-        if stopBtn.exists { return true }
-        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        return sendBtn.exists
+        return bubble.waitForExistence(timeout: timeout)
     }
 
     /// Polls until streaming completes (bubble disappears OR send button returns).
@@ -442,5 +433,60 @@ final class ChatStreamingTests: BaseTestCase {
         let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
         XCTAssertTrue(sendBtn.waitForExistence(timeout: 5),
                       "Send button should return after streaming completes")
+    }
+
+    func test_streaming_completionDoesNotForceBottomWhenUserScrolledAway() {
+        let chat = enterStreamingSession()
+        guard waitForStreamingActive(timeout: 15) else {
+            XCTFail("Streaming did not start")
+            return
+        }
+
+        let scrollView = app.scrollViews.firstMatch
+        scrollView.swipeDown()
+        if !waitForScrollToBottomVisible(timeout: 3) {
+            scrollView.swipeDown()
+        }
+
+        XCTAssertTrue(waitForScrollToBottomVisible(timeout: 5),
+                      "Scroll-to-bottom should appear after the user scrolls away during streaming.")
+
+        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
+        XCTAssertTrue(sendBtn.waitForExistence(timeout: 20),
+                      "Streaming should complete and return the send button.")
+
+        XCTAssertTrue(isScrollToBottomVisible,
+                      "Streaming completion should not force-scroll to bottom when the user is reading earlier messages. "
+                      + "The scroll-to-bottom affordance should remain visible.")
+
+        _ = chat
+    }
+
+    func test_streaming_completionKeepsBottomWithKeyboardOpen() {
+        let chat = enterStreamingSession()
+        guard waitForStreamingActive(timeout: 15) else {
+            XCTFail("Streaming did not start")
+            return
+        }
+
+        let input = chat.inputField
+        XCTAssertTrue(input.waitForExistence(timeout: 5), "Input field should be visible")
+        input.tap()
+        input.typeText("draft")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5),
+                      "Keyboard should open while streaming")
+
+        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
+        XCTAssertTrue(sendBtn.waitForExistence(timeout: 20),
+                      "Streaming should complete and return the send button.")
+
+        XCTAssertTrue(waitForScrollToBottomHidden(timeout: 5),
+                      "With keyboard open and still following the tail, completion should remain at bottom without exposing blank scroll space.")
+
+        let finalKeywords = ["最终建议", "从简单开始", "核心要点回顾", "架构选择决策树"]
+        XCTAssertTrue(waitForAnyKeyword(finalKeywords, timeout: 5),
+                      "Final content should stay visible above the keyboard after streaming completes.")
+
+        _ = chat
     }
 }

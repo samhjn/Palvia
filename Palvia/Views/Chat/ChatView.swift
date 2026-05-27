@@ -184,6 +184,7 @@ private struct ChatContentView: View {
     @State private var scrollState = ChatScrollState()
     @State private var displayMessages: [Message] = []
     @State private var lastKnownMessageCount = 0
+    @State private var isFollowingTail = true
 
     /// Compute the filtered message list from current view-model state.
     /// The result is stored in `displayMessages` (`@State`) so that SwiftUI
@@ -212,6 +213,36 @@ private struct ChatContentView: View {
             if visibleIds.contains(all[i].id) { return all[i].id }
         }
         return displayed.first?.id
+    }
+
+    private var shouldAutoFollowTail: Bool {
+        isFollowingTail && !scrollState.userDidScrollAway
+    }
+
+    private func scroll(_ proxy: ScrollViewProxy, to target: String, animated: Bool = true) {
+        let action = {
+            proxy.scrollTo(target, anchor: .bottom)
+        }
+        if animated {
+            withAnimation { action() }
+        } else {
+            action()
+        }
+    }
+
+    private func scrollToLastMessage(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        guard let lastId = displayMessages.last?.id.uuidString else { return }
+        scroll(proxy, to: lastId, animated: animated)
+    }
+
+    private func scrollToCurrentTail(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        if vm.isLoading && (!vm.streamingContent.isEmpty || (vm.isVerbose && !vm.streamingThinking.isEmpty)) {
+            scroll(proxy, to: "streaming", animated: animated)
+        } else if vm.isLoading && !vm.isCompressing {
+            scroll(proxy, to: "loading", animated: animated)
+        } else {
+            scrollToLastMessage(proxy, animated: animated)
+        }
     }
 
     var body: some View {
@@ -276,8 +307,11 @@ private struct ChatContentView: View {
                     // UICollectionView batch update with a zero diff that
                     // can race with an in-flight animation completion.
                     if updated.map(\.id) != displayMessages.map(\.id) {
+                        let isInitialPopulation = displayMessages.isEmpty && lastKnownMessageCount == 0
                         displayMessages = updated
-                        lastKnownMessageCount = updated.count
+                        if isInitialPopulation {
+                            lastKnownMessageCount = updated.count
+                        }
                     }
                 }
                 .onChange(of: vm.isVerbose) {
@@ -299,10 +333,12 @@ private struct ChatContentView: View {
                         hasRestoredScroll = true
                         if let target = vm.initialScrollTarget,
                            let resolved = nearestVisibleId(to: target) {
+                            isFollowingTail = resolved == displayMessages.last?.id
                             DispatchQueue.main.async {
                                 proxy.scrollTo(resolved.uuidString, anchor: .center)
                             }
                         } else if let lastId = displayMessages.last?.id {
+                            isFollowingTail = true
                             DispatchQueue.main.async {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                             }
@@ -324,29 +360,39 @@ private struct ChatContentView: View {
                     let shouldForce = forceScrollToBottom
                     forceScrollToBottom = false
                     guard shouldForce || !scrollState.userDidScrollAway else { return }
-                    withAnimation {
-                        proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
+                    if shouldForce {
+                        isFollowingTail = true
                     }
+                    scrollToLastMessage(proxy)
                 }
                 .onChange(of: vm.streamingContent) {
-                    guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty else { return }
-                    withAnimation {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    }
+                    guard shouldAutoFollowTail, !vm.streamingContent.isEmpty else { return }
+                    scrollToCurrentTail(proxy)
                 }
                 .onChange(of: vm.streamingThinking) {
-                    guard !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
-                    withAnimation {
-                        proxy.scrollTo("streaming", anchor: .bottom)
+                    guard shouldAutoFollowTail, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
+                    scrollToCurrentTail(proxy)
+                }
+                .onChange(of: vm.isLoading) { oldValue, newValue in
+                    guard oldValue, !newValue, shouldAutoFollowTail else { return }
+                    DispatchQueue.main.async {
+                        scrollToLastMessage(proxy, animated: false)
                     }
                 }
                 .onChange(of: scrollState.bottomCorrectionTick) {
-                    guard !scrollState.userDidScrollAway else { return }
-                    if vm.isLoading && !vm.streamingContent.isEmpty {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    } else if let lastId = displayMessages.last?.id {
-                        proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                    guard shouldAutoFollowTail else { return }
+                    scrollToCurrentTail(proxy, animated: false)
+                }
+                .onChange(of: scrollState.userDidScrollAway) { _, didScrollAway in
+                    if didScrollAway {
+                        isFollowingTail = false
+                    } else if scrollState.isNearBottom {
+                        isFollowingTail = true
                     }
+                }
+                .onChange(of: scrollState.isNearBottom) { _, isNearBottom in
+                    guard isNearBottom, !scrollState.userDidScrollAway else { return }
+                    isFollowingTail = true
                 }
                 
                 .onDisappear {
@@ -359,17 +405,12 @@ private struct ChatContentView: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     Button {
+                        isFollowingTail = true
                         scrollState.userDidScrollAway = false
                         if let sv = scrollState.scrollView, sv.isDecelerating {
                             sv.setContentOffset(sv.contentOffset, animated: false)
                         }
-                        withAnimation {
-                            if vm.isLoading && !vm.streamingContent.isEmpty {
-                                proxy.scrollTo("streaming", anchor: .bottom)
-                            } else if let lastId = displayMessages.last?.id {
-                                proxy.scrollTo(lastId.uuidString, anchor: .bottom)
-                            }
-                        }
+                        scrollToCurrentTail(proxy)
                         // Further corrections as content renders are handled
                         // by the contentSize KVO → bottomCorrectionTick pipeline.
                     } label: {
@@ -601,6 +642,7 @@ private struct ChatContentView: View {
                 isImageDisabled: vm.isImageInputDisabled,
                 isVideoDisabled: vm.isImageInputDisabled,
                 onSend: {
+                    isFollowingTail = true
                     forceScrollToBottom = true
                     vm.sendMessage()
                 },

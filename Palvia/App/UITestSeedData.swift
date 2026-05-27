@@ -2,6 +2,10 @@
 import Foundation
 import SwiftData
 
+extension Notification.Name {
+    static let uiTestStreamingSessionDidAppear = Notification.Name("PalviaUITestStreamingSessionDidAppear")
+}
+
 /// UI test seed data — separated from PalviaApp to keep the main app file clean.
 /// Contains all markdown fixtures and streaming simulation logic.
 extension PalviaApp {
@@ -404,21 +408,33 @@ extension PalviaApp {
         context.insert(user5)
         allMessages.append(user5)
 
+        let steps = StreamingFixtures.streamingSteps
+        let initialContent = steps.first?.content ?? ""
+        let initialThinking = steps.first?.thinking ?? ""
+
         session.messages = allMessages
         session.isActive = true
+        session.pendingStreamingContent = initialContent
         try? context.save()
 
         ChatViewModel._simulateActiveGeneration(for: session.id)
         let relay = ChatViewModel._simulateStreamingRelay(for: session.id)
+        relay.send(content: initialContent, thinking: initialThinking)
 
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(3))
+            for await note in NotificationCenter.default.notifications(named: .uiTestStreamingSessionDidAppear) {
+                guard let sessionId = note.userInfo?["sessionId"] as? UUID,
+                      sessionId == session.id else { continue }
+                break
+            }
 
-            let steps = StreamingFixtures.streamingSteps
-            var accumulated = ""
-            var thinkingAccumulated = ""
+            try? await Task.sleep(for: .milliseconds(500))
 
-            for (i, step) in steps.enumerated() {
+            var accumulated = initialContent
+            var thinkingAccumulated = initialThinking
+
+            for (offset, step) in steps.dropFirst().enumerated() {
+                let i = offset + 1
                 try? await Task.sleep(for: .milliseconds(150))
 
                 if let thinking = step.thinking {
