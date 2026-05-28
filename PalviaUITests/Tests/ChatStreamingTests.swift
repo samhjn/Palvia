@@ -21,10 +21,10 @@ final class ChatStreamingTests: BaseTestCase {
         let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
         let anyRow = app.descendants(matching: .any).matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
 
-        if cellRow.waitForExistence(timeout: 8) {
-            cellRow.tap()
-        } else if buttonRow.waitForExistence(timeout: 3) {
+        if buttonRow.waitForExistence(timeout: 8) {
             buttonRow.tap()
+        } else if cellRow.waitForExistence(timeout: 3) {
+            cellRow.tap()
         } else if anyRow.waitForExistence(timeout: 3) {
             anyRow.tap()
         } else {
@@ -64,14 +64,14 @@ final class ChatStreamingTests: BaseTestCase {
 
     private var isScrollToBottomVisible: Bool {
         let btn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        return btn.exists && btn.isHittable
+        return btn.exists
     }
 
     /// Wait until the scroll-to-bottom button disappears (auto-scroll re-engaged).
     private func waitForScrollToBottomHidden(timeout: TimeInterval = 5) -> Bool {
         let btn = app.buttons[AccessibilityID.Chat.scrollToBottom]
         if !btn.exists { return true }
-        let gone = NSPredicate(format: "exists == false || isHittable == false")
+        let gone = NSPredicate(format: "exists == false")
         let exp = XCTNSPredicateExpectation(predicate: gone, object: btn)
         return XCTWaiter().wait(for: [exp], timeout: timeout) == .completed
     }
@@ -97,6 +97,15 @@ final class ChatStreamingTests: BaseTestCase {
         return false
     }
 
+    private func scrollUpUntilAnyKeyword(_ keywords: [String], maxSwipes: Int) -> Bool {
+        let scrollView = app.scrollViews.firstMatch
+        for _ in 0..<maxSwipes {
+            scrollView.swipeDown()
+            if waitForAnyKeyword(keywords, timeout: 0.8) { return true }
+        }
+        return waitForAnyKeyword(keywords, timeout: 3)
+    }
+
     // MARK: - Streaming Bubble Presence
 
     func test_streaming_bubbleAppearsWithContent() {
@@ -115,7 +124,7 @@ final class ChatStreamingTests: BaseTestCase {
 
         // Poll over a few seconds: scroll-to-bottom should never appear
         let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        let appeared = NSPredicate(format: "exists == true AND isHittable == true")
+        let appeared = NSPredicate(format: "exists == true")
         let exp = XCTNSPredicateExpectation(predicate: appeared, object: scrollBtn)
         let result = XCTWaiter().wait(for: [exp], timeout: 5)
 
@@ -206,7 +215,7 @@ final class ChatStreamingTests: BaseTestCase {
 
         // Over multiple seconds, scroll-to-bottom should never appear
         let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        let appeared = NSPredicate(format: "exists == true AND isHittable == true")
+        let appeared = NSPredicate(format: "exists == true")
         let exp = XCTNSPredicateExpectation(predicate: appeared, object: scrollBtn)
         let result = XCTWaiter().wait(for: [exp], timeout: 7)
 
@@ -354,13 +363,8 @@ final class ChatStreamingTests: BaseTestCase {
         let chat = enterStreamingSession()
         guard waitForStreamingActive() else { XCTFail("Streaming did not start"); return }
 
-        let scrollView = app.scrollViews.firstMatch
-        for _ in 0..<6 {
-            scrollView.swipeDown()
-        }
-
-        let historyKeywords = ["性能对比", "Actor", "WorkerPool", "Repository", "Coordinator"]
-        let found = waitForAnyKeyword(historyKeywords, timeout: 5)
+        let historyKeywords = ["性能对比", "WorkerPool", "Repository", "Coordinator", "面向协议编程", "类型擦除"]
+        let found = scrollUpUntilAnyKeyword(historyKeywords, maxSwipes: 14)
         XCTAssertTrue(found,
                       "History keywords should be rendered in markdown while streaming is active. " +
                       "If none found, LazyVStack may have discarded history views under memory pressure.")
@@ -391,7 +395,7 @@ final class ChatStreamingTests: BaseTestCase {
                       "App should remain responsive after rapid scrolling during fast streaming.")
 
         let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        if scrollBtn.exists && scrollBtn.isHittable {
+        if scrollBtn.exists {
             scrollBtn.tap()
             _ = waitForScrollToBottomHidden(timeout: 3)
         }

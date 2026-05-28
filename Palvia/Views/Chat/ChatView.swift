@@ -169,6 +169,9 @@ final class ChatScrollState {
     /// Set only by user gesture (drag/track), not by content growth.
     /// Prevents auto-scroll from stopping due to rendering-induced position shifts.
     var userDidScrollAway = false
+    /// True only while the scroll view is handling a real pan gesture or the
+    /// deceleration that follows it. Programmatic content growth should not set it.
+    var userScrollInFlight = false
     /// Incremented by the contentSize observer when the scroll view's content
     /// grows while the view should be at bottom. SwiftUI reacts via onChange
     /// to re-scroll, replacing fragile timer-based corrections.
@@ -216,7 +219,7 @@ private struct ChatContentView: View {
     }
 
     private var shouldAutoFollowTail: Bool {
-        isFollowingTail && !scrollState.userDidScrollAway
+        isFollowingTail && !scrollState.userDidScrollAway && !scrollState.userScrollInFlight
     }
 
     private func scroll(_ proxy: ScrollViewProxy, to target: String, animated: Bool = true) {
@@ -315,10 +318,17 @@ private struct ChatContentView: View {
                     }
                 }
                 .onChange(of: vm.isVerbose) {
+                    let wasFollowingTail = shouldAutoFollowTail
                     // Capture the currently visible message before the list changes.
                     let anchorId = scrollPosition
                     displayMessages = filteredMessages()
                     lastKnownMessageCount = displayMessages.count
+                    if wasFollowingTail {
+                        DispatchQueue.main.async {
+                            scrollToCurrentTail(proxy, animated: false)
+                        }
+                        return
+                    }
                     // After the filtered list updates, restore scroll to the same
                     // message. This replaces the old ratio-based setContentOffset
                     // which broke when rows were removed from the middle.
@@ -367,11 +377,11 @@ private struct ChatContentView: View {
                 }
                 .onChange(of: vm.streamingContent) {
                     guard shouldAutoFollowTail, !vm.streamingContent.isEmpty else { return }
-                    scrollToCurrentTail(proxy)
+                    scrollToCurrentTail(proxy, animated: false)
                 }
                 .onChange(of: vm.streamingThinking) {
                     guard shouldAutoFollowTail, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
-                    scrollToCurrentTail(proxy)
+                    scrollToCurrentTail(proxy, animated: false)
                 }
                 .onChange(of: vm.isLoading) { oldValue, newValue in
                     guard oldValue, !newValue, shouldAutoFollowTail else { return }
@@ -404,31 +414,31 @@ private struct ChatContentView: View {
                     }
                 }
                 .overlay(alignment: .bottomTrailing) {
-                    Button {
-                        isFollowingTail = true
-                        scrollState.userDidScrollAway = false
-                        if let sv = scrollState.scrollView, sv.isDecelerating {
-                            sv.setContentOffset(sv.contentOffset, animated: false)
+                    if scrollState.userDidScrollAway {
+                        Button {
+                            isFollowingTail = true
+                            scrollState.userDidScrollAway = false
+                            if let sv = scrollState.scrollView, sv.isDecelerating {
+                                sv.setContentOffset(sv.contentOffset, animated: false)
+                            }
+                            scrollToCurrentTail(proxy)
+                            // Further corrections as content renders are handled
+                            // by the contentSize KVO → bottomCorrectionTick pipeline.
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 34, height: 34)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
                         }
-                        scrollToCurrentTail(proxy)
-                        // Further corrections as content renders are handled
-                        // by the contentSize KVO → bottomCorrectionTick pipeline.
-                    } label: {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 34, height: 34)
-                            .background(.ultraThinMaterial, in: Circle())
-                            .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 8)
+                        .transition(.scale(scale: 0.5).combined(with: .opacity))
+                        .accessibilityIdentifier(AccessibilityID.Chat.scrollToBottom)
                     }
-                    .padding(.trailing, 16)
-                    .padding(.bottom, 8)
-                    .opacity(scrollState.userDidScrollAway ? 1 : 0)
-                    .scaleEffect(scrollState.userDidScrollAway ? 1 : 0.5)
-                    .animation(.easeInOut(duration: 0.2), value: scrollState.userDidScrollAway)
-                    .allowsHitTesting(scrollState.userDidScrollAway)
-                    .accessibilityIdentifier(AccessibilityID.Chat.scrollToBottom)
                 }
+                .animation(.easeInOut(duration: 0.2), value: scrollState.userDidScrollAway)
             }
 
             if let error = vm.errorMessage {
@@ -843,8 +853,11 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
         let scrollState: ChatScrollState
         private var offsetObservation: NSKeyValueObservation?
         private var contentSizeObservation: NSKeyValueObservation?
+        private var boundsObservation: NSKeyValueObservation?
+        private var contentInsetObservation: NSKeyValueObservation?
         private var displayLink: CADisplayLink?
         private var pendingNearBottom: Bool?
+        private var userScrollGestureInProgress = false
 
         init(scrollState: ChatScrollState) {
             self.scrollState = scrollState
@@ -863,9 +876,14 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
             offsetObservation = scrollView.observe(\.contentOffset, options: .new) { [weak self] sv, _ in
                 guard let self else { return }
                 let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
-                let isUserScrolling = sv.isTracking || sv.isDragging
+                let panIsScrolling = self.isUserScrollGestureActive(on: sv)
+                if panIsScrolling {
+                    self.userScrollGestureInProgress = true
+                }
+                let isUserScrolling = panIsScrolling || (sv.isDragging && self.userScrollGestureInProgress)
                 // Deceleration after a user flick is still user-driven.
-                let isUserDriven = isUserScrolling || sv.isDecelerating
+                let isUserDriven = isUserScrolling || (self.userScrollGestureInProgress && sv.isDecelerating)
+                self.setUserScrollInFlight(isUserDriven)
                 let threshold: CGFloat = isUserScrolling ? 50 : 200
                 let near = distance <= threshold
 
@@ -893,11 +911,18 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                 } else {
                     self.pendingNearBottom = nil
                 }
+
+                if !sv.isDragging, !sv.isDecelerating, !panIsScrolling {
+                    self.userScrollGestureInProgress = false
+                    self.setUserScrollInFlight(false)
+                }
             }
 
             contentSizeObservation = scrollView.observe(\.contentSize) { [weak self] sv, _ in
                 guard let self else { return }
-                let isUserDriven = sv.isTracking || sv.isDragging || sv.isDecelerating
+                let isUserDriven = self.isUserScrollGestureActive(on: sv) ||
+                    (sv.isDragging && self.userScrollGestureInProgress) ||
+                    (self.userScrollGestureInProgress && sv.isDecelerating)
                 guard !self.scrollState.userDidScrollAway, !isUserDriven else { return }
                 let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
                 if distance > 50 {
@@ -905,6 +930,14 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                         self.scrollState.bottomCorrectionTick &+= 1
                     }
                 }
+            }
+
+            boundsObservation = scrollView.observe(\.bounds, options: .new) { [weak self] _, _ in
+                self?.requestBottomCorrectionIfNeeded()
+            }
+
+            contentInsetObservation = scrollView.observe(\.contentInset, options: .new) { [weak self] _, _ in
+                self?.requestBottomCorrectionIfNeeded()
             }
         }
 
@@ -920,7 +953,44 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
         deinit {
             offsetObservation?.invalidate()
             contentSizeObservation?.invalidate()
+            boundsObservation?.invalidate()
+            contentInsetObservation?.invalidate()
             displayLink?.invalidate()
+        }
+
+        private func setUserScrollInFlight(_ inFlight: Bool) {
+            DispatchQueue.main.async {
+                let endedNearTail = self.scrollState.userScrollInFlight && !inFlight && !self.scrollState.userDidScrollAway
+                guard self.scrollState.userScrollInFlight != inFlight else { return }
+                self.scrollState.userScrollInFlight = inFlight
+                if endedNearTail {
+                    self.scrollState.bottomCorrectionTick += 1
+                }
+            }
+        }
+
+        private func requestBottomCorrectionIfNeeded() {
+            DispatchQueue.main.async {
+                guard !self.scrollState.userDidScrollAway else { return }
+                self.scrollState.bottomCorrectionTick &+= 1
+            }
+        }
+
+        private func isUserScrollGestureActive(on scrollView: UIScrollView) -> Bool {
+            guard scrollView.panGestureRecognizer.state.isUserScrollGesture else { return false }
+            let translation = scrollView.panGestureRecognizer.translation(in: scrollView)
+            return abs(translation.y) > 1
+        }
+    }
+}
+
+private extension UIGestureRecognizer.State {
+    var isUserScrollGesture: Bool {
+        switch self {
+        case .began, .changed:
+            return true
+        default:
+            return false
         }
     }
 }
