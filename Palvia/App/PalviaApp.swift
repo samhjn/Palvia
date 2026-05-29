@@ -2,11 +2,26 @@ import SwiftUI
 import SwiftData
 import BackgroundTasks
 
+private struct ProtectedDataUnavailableView: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("Waiting for protected data")
+                .font(.headline)
+            Text("Unlock this device once after restart to load Palvia data.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding()
+    }
+}
+
 @main
 struct PalviaApp: App {
-    let modelContainer: ModelContainer
+    @State private var modelContainer: ModelContainer?
     @State private var cronScheduler: CronScheduler?
-    @State private var launchTaskManager: LaunchTaskManager
+    @State private var launchTaskManager: LaunchTaskManager?
     @State private var showMigrationResetAlert: Bool
     @State private var sessionRouter = PendingSessionRouter()
     private let bgTaskCoordinator: CronBGTaskCoordinator
@@ -37,59 +52,19 @@ struct PalviaApp: App {
             print("[PalviaApp] Prior NSException recovered: \(prior.name) @ \(prior.source) — \(prior.reason) (\(prior.timestamp))")
         }
 
-        modelContainer = PalviaModelContainer.shared
+        let launchStore = PalviaModelContainer.resolveLaunchStore()
+        let initialContainer = launchStore.container
+        _modelContainer = State(initialValue: initialContainer)
+        _launchTaskManager = State(initialValue: initialContainer.map { LaunchTaskManager(container: $0) })
 
-        let migrationFailed: Bool
-        if let captured = Self.initialMigrationFailed {
-            migrationFailed = captured
-        } else {
-            migrationFailed = (PalviaModelContainer.migrationFailedStoreURL != nil)
-            Self.initialMigrationFailed = migrationFailed
-            if let failedURL = PalviaModelContainer.migrationFailedStoreURL {
-                print("[PalviaApp] ModelContainer migration failed. Awaiting user confirmation before reset.")
-                Self.pendingStoreURL = failedURL
-            }
-        }
+        let migrationFailed = Self.captureMigrationFailure(from: launchStore)
         _showMigrationResetAlert = State(initialValue: migrationFailed)
-
-        _launchTaskManager = State(initialValue: LaunchTaskManager(container: modelContainer))
 
         let coordinator = CronBGTaskCoordinator()
         coordinator.registerCronTask()
         bgTaskCoordinator = coordinator
 
-        // Heavy launch tasks: run exactly once per process. SwiftUI calls
-        // `init()` on every body re-evaluation, and SwiftData writes from
-        // these helpers invalidate observers, which can recurse back into
-        // body evaluation and trip a Swift runtime trap on iOS 17.0.
-        Self.runOneTimeLaunchTasksIfNeeded { [modelContainer] in
-            #if DEBUG
-            if PalviaModelContainer.shouldSeedMarkdown {
-                Self.seedMarkdownTestData(in: modelContainer)
-            }
-            if PalviaModelContainer.shouldSeedHeavyMarkdown {
-                Self.seedHeavyMarkdownTestData(in: modelContainer)
-            }
-            if PalviaModelContainer.shouldSimulateStreaming {
-                Self.seedStreamingTestData(in: modelContainer)
-            }
-            #endif
-            Self.resetStaleActiveSessions(in: modelContainer)
-            // Publish the root-agent snapshot for the Share Extension and sweep
-            // any abandoned share-staging directories from earlier sessions.
-            Self.refreshAgentSnapshot(in: modelContainer)
-            ShareHandoff.sweepOrphans()
-            // MetricKit catches Swift runtime traps and signal crashes that
-            // bypass the NSException handler. Log any payloads delivered
-            // since the previous launch, then register for future ones.
-            for rec in CrashDiagnostics.consumeMetrics() {
-                print("[PalviaApp] Prior MetricKit crash: signal=\(rec.signal ?? -1) "
-                      + "exceptionType=\(rec.exceptionType ?? -1) "
-                      + "termination=\(rec.terminationReason ?? "nil") "
-                      + "build=\(rec.appVersion) os=\(rec.osVersion) at=\(rec.timestamp)")
-            }
-            CrashMetricsSubscriber.shared.start()
-        }
+        Self.runStoreReadyLaunchTasksIfNeeded(container: initialContainer)
 
         Self.initCallCount += 1
         #if DEBUG
@@ -110,6 +85,67 @@ struct PalviaApp: App {
         guard !didRunOneTimeLaunchTasks else { return }
         didRunOneTimeLaunchTasks = true
         work()
+    }
+
+    static func runOneTimeLaunchTasksIfNeeded(
+        container: ModelContainer?,
+        _ work: (ModelContainer) -> Void
+    ) {
+        guard let container else { return }
+        runOneTimeLaunchTasksIfNeeded {
+            work(container)
+        }
+    }
+
+    private static func captureMigrationFailure(from launchStore: PalviaModelContainer.LaunchStoreState) -> Bool {
+        guard launchStore.container != nil else { return false }
+        if let captured = initialMigrationFailed {
+            return captured
+        }
+
+        let failedURL = launchStore.failedStoreURL
+        let migrationFailed = (failedURL != nil)
+        initialMigrationFailed = migrationFailed
+        if let failedURL {
+            print("[PalviaApp] ModelContainer migration failed. Awaiting user confirmation before reset.")
+            pendingStoreURL = failedURL
+        }
+        return migrationFailed
+    }
+
+    private static func runStoreReadyLaunchTasksIfNeeded(container: ModelContainer?) {
+        // Heavy launch tasks: run exactly once per process. SwiftUI calls
+        // `init()` on every body re-evaluation, and SwiftData writes from
+        // these helpers invalidate observers, which can recurse back into
+        // body evaluation and trip a Swift runtime trap on iOS 17.0.
+        runOneTimeLaunchTasksIfNeeded(container: container) { modelContainer in
+            #if DEBUG
+            if PalviaModelContainer.shouldSeedMarkdown {
+                seedMarkdownTestData(in: modelContainer)
+            }
+            if PalviaModelContainer.shouldSeedHeavyMarkdown {
+                seedHeavyMarkdownTestData(in: modelContainer)
+            }
+            if PalviaModelContainer.shouldSimulateStreaming {
+                seedStreamingTestData(in: modelContainer)
+            }
+            #endif
+            resetStaleActiveSessions(in: modelContainer)
+            // Publish the root-agent snapshot for the Share Extension and sweep
+            // any abandoned share-staging directories from earlier sessions.
+            refreshAgentSnapshot(in: modelContainer)
+            ShareHandoff.sweepOrphans()
+            // MetricKit catches Swift runtime traps and signal crashes that
+            // bypass the NSException handler. Log any payloads delivered
+            // since the previous launch, then register for future ones.
+            for rec in CrashDiagnostics.consumeMetrics() {
+                print("[PalviaApp] Prior MetricKit crash: signal=\(rec.signal ?? -1) "
+                      + "exceptionType=\(rec.exceptionType ?? -1) "
+                      + "termination=\(rec.terminationReason ?? "nil") "
+                      + "build=\(rec.appVersion) os=\(rec.osVersion) at=\(rec.timestamp)")
+            }
+            CrashMetricsSubscriber.shared.start()
+        }
     }
 
     #if DEBUG
@@ -133,12 +169,7 @@ struct PalviaApp: App {
     /// Delete the on-disk store files and terminate so the next launch starts fresh.
     private static func performStoreReset() {
         guard let storeURL = pendingStoreURL else { return }
-        let related = [
-            storeURL,
-            storeURL.appendingPathExtension("wal"),
-            storeURL.appendingPathExtension("shm"),
-        ]
-        for url in related {
+        for url in PalviaModelContainer.storeFileURLs(for: storeURL) {
             try? FileManager.default.removeItem(at: url)
         }
         print("[PalviaApp] Store files deleted by user. Restarting.")
@@ -184,17 +215,15 @@ struct PalviaApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .launchTaskOverlay(manager: launchTaskManager)
-                .onAppear {
-                    launchTaskManager.runAll()
-                    startCronScheduler()
-                    ShareHandoff.processPending(modelContainer: modelContainer, router: sessionRouter)
-                }
+            appContent
                 .onOpenURL { url in
                     handleDeepLink(url)
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.protectedDataDidBecomeAvailableNotification)) { _ in
+                    loadPersistentStoreIfPossible()
+                }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+                    loadPersistentStoreIfPossible()
                     cronScheduler?.rescheduleAll()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -211,7 +240,6 @@ struct PalviaApp: App {
                     Text(L10n.Migration.alertMessage)
                 }
         }
-        .modelContainer(modelContainer)
         .environment(sessionRouter)
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
@@ -219,20 +247,56 @@ struct PalviaApp: App {
                 cronScheduler?.pause()
                 keepAliveManager.activate()
             case .active:
+                loadPersistentStoreIfPossible()
                 cronScheduler?.resume()
                 keepAliveManager.onReturnToForeground()
                 // Pick up any share-extension handoffs that couldn't open
                 // the host app via deep link (iOS 18 disabled the legacy
                 // openURL: responder-chain trick).
-                ShareHandoff.processPending(modelContainer: modelContainer, router: sessionRouter)
+                if let modelContainer {
+                    ShareHandoff.processPending(modelContainer: modelContainer, router: sessionRouter)
+                }
             default:
                 break
             }
         }
     }
 
+    @ViewBuilder
+    private var appContent: some View {
+        if let modelContainer, let launchTaskManager {
+            ContentView()
+                .modelContainer(modelContainer)
+                .launchTaskOverlay(manager: launchTaskManager)
+                .onAppear {
+                    launchTaskManager.runAll()
+                    startCronScheduler()
+                    ShareHandoff.processPending(modelContainer: modelContainer, router: sessionRouter)
+                }
+        } else {
+            ProtectedDataUnavailableView()
+                .onAppear {
+                    loadPersistentStoreIfPossible()
+                }
+        }
+    }
+
+    @MainActor
+    private func loadPersistentStoreIfPossible() {
+        guard modelContainer == nil else { return }
+        let launchStore = PalviaModelContainer.resolveLaunchStore()
+        guard let container = launchStore.container else { return }
+
+        modelContainer = container
+        launchTaskManager = LaunchTaskManager(container: container)
+        showMigrationResetAlert = Self.captureMigrationFailure(from: launchStore)
+
+        Self.runStoreReadyLaunchTasksIfNeeded(container: container)
+    }
+
     private func startCronScheduler() {
         guard cronScheduler == nil else { return }
+        guard let modelContainer else { return }
         let scheduler = CronScheduler(modelContainer: modelContainer)
         scheduler.keepAliveManager = keepAliveManager
         scheduler.start()
@@ -257,6 +321,8 @@ struct PalviaApp: App {
 
         if ShareHandoff.isHandoffURL(url) {
             Task { @MainActor in
+                loadPersistentStoreIfPossible()
+                guard let modelContainer else { return }
                 ShareHandoff.apply(url: url, modelContainer: modelContainer, router: sessionRouter)
             }
             return

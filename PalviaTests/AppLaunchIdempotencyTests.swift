@@ -31,6 +31,20 @@ final class AppLaunchIdempotencyTests: XCTestCase {
         XCTAssertTrue(PalviaApp.didRunOneTimeLaunchTasks)
     }
 
+    /// A locked-after-reboot background launch must not mark the one-time
+    /// launch work as complete. Otherwise the real SwiftData cleanup/snapshot
+    /// work would be skipped after protected data becomes available.
+    func testMissingContainerDoesNotArmLaunchLatch() {
+        var count = 0
+        PalviaApp.runOneTimeLaunchTasksIfNeeded(container: nil) { _ in count += 1 }
+        XCTAssertEqual(count, 0)
+        XCTAssertFalse(PalviaApp.didRunOneTimeLaunchTasks)
+
+        PalviaApp.runOneTimeLaunchTasksIfNeeded { count += 1 }
+        XCTAssertEqual(count, 1)
+        XCTAssertTrue(PalviaApp.didRunOneTimeLaunchTasks)
+    }
+
     /// SwiftUI may instantiate `PalviaApp` many times per process. The
     /// gated work must run on the first call only.
     func testWorkDoesNotRepeatAcrossManyInits() {

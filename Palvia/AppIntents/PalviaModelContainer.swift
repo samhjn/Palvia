@@ -11,6 +11,31 @@ import SwiftData
 /// `static let` is initialized exactly once with `dispatch_once` semantics,
 /// so concurrent readers see a consistent instance.
 enum PalviaModelContainer {
+    enum LaunchStoreState {
+        case persistent(ModelContainer)
+        case migrationFallback(ModelContainer, failedStoreURL: URL)
+        case protectedDataUnavailable
+
+        var container: ModelContainer? {
+            switch self {
+            case .persistent(let container),
+                 .migrationFallback(let container, _):
+                return container
+            case .protectedDataUnavailable:
+                return nil
+            }
+        }
+
+        var failedStoreURL: URL? {
+            switch self {
+            case .migrationFallback(_, let url):
+                return url
+            case .persistent, .protectedDataUnavailable:
+                return nil
+            }
+        }
+    }
+
     static let schema = Schema([
         Agent.self,
         AgentConfig.self,
@@ -47,12 +72,48 @@ enum PalviaModelContainer {
 
     static let shared: ModelContainer = {
         if isUITesting {
-            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             do {
-                return try ModelContainer(for: schema, configurations: [memoryConfig])
+                return try makeInMemoryContainer()
             } catch {
                 fatalError("Failed to create in-memory ModelContainer for UI testing: \(error)")
             }
+        }
+
+        switch resolveStore(protectedDataAvailable: true) {
+        case .persistent(let container):
+            return container
+        case .migrationFallback(let container, let failedURL):
+            migrationFailedStoreURL = failedURL
+            return container
+        case .protectedDataUnavailable:
+            fatalError("PalviaModelContainer.shared requested while protected data is unavailable")
+        }
+    }()
+
+    @MainActor
+    static func resolveLaunchStore() -> LaunchStoreState {
+        if isUITesting {
+            return .persistent(shared)
+        }
+        guard ProtectedDataAvailability.isAvailable else {
+            return .protectedDataUnavailable
+        }
+
+        let container = shared
+        if let failedURL = migrationFailedStoreURL {
+            return .migrationFallback(container, failedStoreURL: failedURL)
+        }
+        return .persistent(container)
+    }
+
+    static func resolveStore(
+        protectedDataAvailable: Bool,
+        openPersistentStore: (ModelConfiguration) throws -> ModelContainer = openPersistentStore(configuration:),
+        openInMemoryStore: () throws -> ModelContainer = makeInMemoryContainer,
+        applyProtection: (URL) -> Void = applyStoreProtection(at:)
+    ) -> LaunchStoreState {
+        guard protectedDataAvailable else {
+            return .protectedDataUnavailable
         }
 
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
@@ -60,26 +121,34 @@ enum PalviaModelContainer {
         // Lower protection on the store directory before opening, so any
         // sidecar files SwiftData creates (.sqlite-wal, .sqlite-shm) inherit
         // the relaxed level.
-        applyStoreProtection(at: config.url)
+        applyProtection(config.url)
 
         do {
-            let container = try ModelContainer(for: schema, configurations: [config])
+            let container = try openPersistentStore(config)
             // Re-apply after open: if the store / WAL / SHM were created
             // during `ModelContainer.init`, they took the directory's level
             // at that instant — set it explicitly per-file to be sure.
-            applyStoreProtection(at: config.url)
-            return container
+            applyProtection(config.url)
+            return .persistent(container)
         } catch {
             print("[PalviaModelContainer] Primary container construction failed: \(error). Falling back to in-memory.")
-            migrationFailedStoreURL = config.url
-            let fallback = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             do {
-                return try ModelContainer(for: schema, configurations: [fallback])
+                let container = try openInMemoryStore()
+                return .migrationFallback(container, failedStoreURL: config.url)
             } catch {
                 fatalError("Failed to create in-memory ModelContainer: \(error)")
             }
         }
-    }()
+    }
+
+    private static func openPersistentStore(configuration: ModelConfiguration) throws -> ModelContainer {
+        try ModelContainer(for: schema, configurations: [configuration])
+    }
+
+    private static func makeInMemoryContainer() throws -> ModelContainer {
+        let fallback = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        return try ModelContainer(for: schema, configurations: [fallback])
+    }
 
     /// Apply the chosen protection class to the store directory and to the
     /// `.sqlite` / `.sqlite-wal` / `.sqlite-shm` files if they exist. Missing
@@ -92,12 +161,7 @@ enum PalviaModelContainer {
     /// setter for the protection class.
     static func applyStoreProtection(at storeURL: URL) {
         let level = storeProtectionLevel
-        let candidates: [URL] = [
-            storeURL.deletingLastPathComponent(),
-            storeURL,
-            URL(fileURLWithPath: storeURL.path + "-wal"),
-            URL(fileURLWithPath: storeURL.path + "-shm"),
-        ]
+        let candidates = [storeURL.deletingLastPathComponent()] + storeFileURLs(for: storeURL)
         for url in candidates {
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             do {
@@ -109,5 +173,13 @@ enum PalviaModelContainer {
                 print("[PalviaModelContainer] Failed to set protection on \(url.lastPathComponent): \(error)")
             }
         }
+    }
+
+    static func storeFileURLs(for storeURL: URL) -> [URL] {
+        [
+            storeURL,
+            URL(fileURLWithPath: storeURL.path + "-wal"),
+            URL(fileURLWithPath: storeURL.path + "-shm"),
+        ]
     }
 }
