@@ -144,7 +144,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
                 "health_read_body_mass",
             ]
         case .browser:
-            return ["browser_get_page_info", "browser_extract"]
+            return ["browser_get_page_info", "browser_extract", "browser_screenshot"]
         case .codeExecution:
             return ["list_code", "load_code"]
         case .subAgents:
