@@ -586,7 +586,7 @@
 "toolCard.browserJS" = "브라우저 JS";
 "toolCard.waitElement" = "요소 대기";
 "toolCard.scroll" = "스크롤";
-"toolCard.screenshot" = "스크린샷";
+"toolCard.screenshot" = "페이지 스크린샷";
 "toolCard.runSnippet" = "스니펫 실행";
 "toolCard.deleteCode" = "코드 삭제";
 "toolCard.calendarListCalendars" = "캘린더 목록";

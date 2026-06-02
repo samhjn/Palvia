@@ -589,7 +589,7 @@
 "toolCard.browserJS" = "Browser JS";
 "toolCard.waitElement" = "Wait Element";
 "toolCard.scroll" = "Scroll";
-"toolCard.screenshot" = "Screenshot";
+"toolCard.screenshot" = "Page Screenshot";
 "toolCard.runSnippet" = "Run Snippet";
 "toolCard.deleteCode" = "Delete Code";
 "toolCard.calendarListCalendars" = "List Calendars";
