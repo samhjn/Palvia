@@ -587,6 +587,7 @@
 "toolCard.browserJS" = "瀏覽器 JS";
 "toolCard.waitElement" = "等待元素";
 "toolCard.scroll" = "捲動";
+"toolCard.screenshot" = "截圖";
 "toolCard.runSnippet" = "執行程式碼片段";
 "toolCard.deleteCode" = "刪除程式碼";
 "toolCard.calendarListCalendars" = "行事曆列表";
