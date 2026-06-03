@@ -726,6 +726,7 @@ enum L10n {
         static var browserJS: String { tr("toolCard.browserJS") }
         static var waitElement: String { tr("toolCard.waitElement") }
         static var scroll: String { tr("toolCard.scroll") }
+        static var screenshot: String { tr("toolCard.screenshot") }
         static var runSnippet: String { tr("toolCard.runSnippet") }
         static var deleteCode: String { tr("toolCard.deleteCode") }
         static var calendarListCalendars: String { tr("toolCard.calendarListCalendars") }

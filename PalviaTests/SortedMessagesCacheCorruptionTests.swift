@@ -418,7 +418,7 @@ final class ParallelTaskGroupModelContextCrashTests: XCTestCase {
                 }
 
                 // Reader: concurrently reads all sessions' relationships
-                group.addTask { @MainActor [context = self.context!, sessions] in
+                group.addTask { @MainActor [sessions] in
                     for session in sessions {
                         _ = session.messages.count
                         _ = session.messages.map { $0.content }
@@ -649,7 +649,9 @@ final class ConcurrentAccessCrashDemoTests: XCTestCase {
         try! context.save()
 
         let capturedContext = context!
-        let capturedSession = session
+        // Intentionally captured into a @Sendable closure to reproduce the data
+        // race this disabled test documents; opt out of Sendable checking.
+        nonisolated(unsafe) let capturedSession = session
         let iterations = 500
         let readerDone = XCTestExpectation(description: "reader done")
 

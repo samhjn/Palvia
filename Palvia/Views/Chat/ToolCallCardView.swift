@@ -571,6 +571,8 @@ struct ToolMeta {
             return ToolMeta(displayName: L10n.ToolCard.waitElement, icon: "clock.arrow.circlepath", color: .cyan)
         case "browser_scroll":
             return ToolMeta(displayName: L10n.ToolCard.scroll, icon: "scroll", color: .cyan)
+        case "browser_screenshot":
+            return ToolMeta(displayName: L10n.ToolCard.screenshot, icon: "camera.viewfinder", color: .cyan)
         case "calendar_list_calendars":
             return ToolMeta(displayName: L10n.ToolCard.calendarListCalendars, icon: "calendar", color: .mint)
         case "calendar_create_event":

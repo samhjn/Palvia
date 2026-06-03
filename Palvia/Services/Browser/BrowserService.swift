@@ -1,5 +1,6 @@
 import Foundation
 import WebKit
+import UIKit
 import Observation
 
 @MainActor
@@ -21,7 +22,7 @@ final class BrowserService: NSObject {
 
     /// Notification posted when a local Agent file is loaded and the UI should
     /// switch to the Browser tab.
-    static let switchToBrowserTabNotification = Notification.Name("BrowserService.switchToBrowserTab")
+    nonisolated static let switchToBrowserTabNotification = Notification.Name("BrowserService.switchToBrowserTab")
 
     // MARK: - Mutex Lock
 
@@ -417,6 +418,31 @@ final class BrowserService: NSObject {
         }
     }
 
+    // MARK: - Screenshot
+
+    /// Capture the current browser viewport as an image.
+    func takeScreenshot() async -> Result<UIImage, BrowserError> {
+        // The shared webView may be off-screen (frame .zero) when the agent runs
+        // headless; takeSnapshot returns an empty image in that case. Give it a
+        // sane layout size before capturing.
+        if webView.bounds.size == .zero {
+            webView.frame = CGRect(x: 0, y: 0, width: 390, height: 844)
+            webView.layoutIfNeeded()
+        }
+        let config = WKSnapshotConfiguration()
+        config.rect = webView.bounds
+        return await withCheckedContinuation { continuation in
+            webView.takeSnapshot(with: config) { image, error in
+                if let image = image {
+                    continuation.resume(returning: .success(image))
+                } else {
+                    continuation.resume(returning: .failure(
+                        .screenshotFailed(error?.localizedDescription ?? "snapshot failed")))
+                }
+            }
+        }
+    }
+
     // MARK: - Private Helpers
 
     private func waitForNavigation(timeout: TimeInterval) async -> Bool {
@@ -677,6 +703,7 @@ enum BrowserError: LocalizedError {
     case javaScriptError(String)
     case elementNotFound(String)
     case waitTimeout(String, TimeInterval)
+    case screenshotFailed(String)
 
     var errorDescription: String? {
         switch self {
@@ -687,6 +714,7 @@ enum BrowserError: LocalizedError {
         case .javaScriptError(let msg): return "JavaScript error: \(msg)"
         case .elementNotFound(let msg): return msg
         case .waitTimeout(let sel, let t): return "Timed out waiting for '\(sel)' after \(Int(t))s"
+        case .screenshotFailed(let msg): return "Screenshot failed: \(msg)"
         }
     }
 }

@@ -221,6 +221,7 @@ final class PromptBuilder {
             - `browser_execute_js`: Execute JavaScript in the browser page context
             - `browser_wait`: Wait for an element to appear
             - `browser_scroll`: Scroll the page
+            - `browser_screenshot` (vision-capable models only): Capture the page as an image. Use only when the text tools above can't answer — e.g. visual layout or canvas/chart content.
             """)
         }
 

@@ -72,6 +72,7 @@ final class ToolDefinitionsTests: XCTestCase {
         XCTAssertTrue(names.contains("browser_execute_js"))
         XCTAssertTrue(names.contains("browser_wait"))
         XCTAssertTrue(names.contains("browser_scroll"))
+        XCTAssertTrue(names.contains("browser_screenshot"))
 
         // Sub-Agents
         XCTAssertTrue(names.contains("create_sub_agent"))
@@ -259,6 +260,33 @@ final class ToolDefinitionsTests: XCTestCase {
         )
         XCTAssertNil(tool.function.parameters.properties)
         XCTAssertNil(tool.function.parameters.required)
+    }
+
+    // MARK: - Vision-Gated Browser Screenshot
+
+    func testBrowserScreenshotOfferedOnlyToVisionModels() {
+        let agent = Agent(name: "VisionTest") // browser defaults to .readWrite
+
+        let withVision = Set(ToolDefinitions.tools(for: agent, supportsVision: true).map(\.function.name))
+        XCTAssertTrue(withVision.contains("browser_screenshot"),
+                      "Vision-capable models should be offered browser_screenshot")
+
+        let withoutVision = Set(ToolDefinitions.tools(for: agent, supportsVision: false).map(\.function.name))
+        XCTAssertFalse(withoutVision.contains("browser_screenshot"),
+                       "Non-vision models should not be offered browser_screenshot")
+
+        // The default (no supportsVision argument) must also withhold it.
+        let defaultTools = Set(ToolDefinitions.tools(for: agent).map(\.function.name))
+        XCTAssertFalse(defaultTools.contains("browser_screenshot"))
+    }
+
+    func testBrowserScreenshotRespectsBrowserPermission() {
+        let agent = Agent(name: "NoBrowserTest")
+        agent.setPermissionLevel(.disabled, for: .browser)
+
+        let tools = Set(ToolDefinitions.tools(for: agent, supportsVision: true).map(\.function.name))
+        XCTAssertFalse(tools.contains("browser_screenshot"),
+                       "browser_screenshot must stay gated by the Browser permission even for vision models")
     }
 
     // MARK: - Tool Count Consistency

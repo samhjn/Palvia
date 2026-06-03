@@ -4,9 +4,12 @@ enum ToolDefinitions {
 
     /// Returns tools filtered by the agent's Apple tool permission settings,
     /// plus any custom tools defined by the agent's active skills.
-    static func tools(for agent: Agent) -> [LLMToolDefinition] {
+    static func tools(for agent: Agent, supportsVision: Bool = false) -> [LLMToolDefinition] {
         var tools = allTools.filter { tool in
-            agent.isToolAllowed(tool.function.name)
+            guard agent.isToolAllowed(tool.function.name) else { return false }
+            // browser_screenshot is only useful to models that can see images.
+            if tool.function.name == "browser_screenshot" && !supportsVision { return false }
+            return true
         }
 
         // Append custom tools from active skills
@@ -60,6 +63,7 @@ enum ToolDefinitions {
             browserExecuteJSTool,
             browserWaitTool,
             browserScrollTool,
+            browserScreenshotTool,
 
             // File Management
             fileListTool,
@@ -560,6 +564,13 @@ enum ToolDefinitions {
             "direction": ToolDefinitionBuilder.enumParam("Scroll direction", values: ["down", "up"]),
             "pixels": ToolDefinitionBuilder.intParam("Number of pixels to scroll (default: 500)")
         ],
+        required: []
+    )
+
+    static let browserScreenshotTool = ToolDefinitionBuilder.build(
+        name: "browser_screenshot",
+        description: "Capture a screenshot of the current browser viewport and attach it to the conversation for visual analysis. Use this sparingly — only when the textual page representation from browser_get_page_info is insufficient (e.g. visual layout, canvas/chart rendering, maps, or image-only content). Prefer the text-based browser tools whenever they can answer the question.",
+        properties: [:],
         required: []
     )
 

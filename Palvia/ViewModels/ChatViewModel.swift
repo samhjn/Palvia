@@ -928,9 +928,11 @@ final class ChatViewModel {
             )
 
             let chain = router.resolveProviderChainWithModels(for: agent)
+            var supportsVision = false
             if let primary = chain.first {
                 let effectiveModel = primary.modelName ?? primary.provider.modelName
                 let caps = primary.provider.capabilities(for: effectiveModel)
+                supportsVision = caps.supportsVision
                 let stripped = Self.stripUnsupportedModalities(from: &contextMessages, capabilities: caps)
                 if stripped.total > 0 {
                     if stripped.videos > 0 && stripped.images == 0 {
@@ -950,7 +952,7 @@ final class ChatViewModel {
                 }
             }
 
-            let toolDefs = ToolDefinitions.tools(for: agent)
+            let toolDefs = ToolDefinitions.tools(for: agent, supportsVision: supportsVision)
 
             var fullContent = ""
             var fullThinking = ""

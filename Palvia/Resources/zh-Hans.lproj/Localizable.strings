@@ -587,6 +587,7 @@
 "toolCard.browserJS" = "浏览器 JS";
 "toolCard.waitElement" = "等待元素";
 "toolCard.scroll" = "滚动";
+"toolCard.screenshot" = "页面截图";
 "toolCard.runSnippet" = "运行代码片段";
 "toolCard.deleteCode" = "删除代码";
 "toolCard.calendarListCalendars" = "日历列表";

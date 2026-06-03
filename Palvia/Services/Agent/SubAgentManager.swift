@@ -162,7 +162,7 @@ final class SubAgentManager {
             let (response, _) = try await router.chatCompletionWithFailover(
                 agent: subAgent,
                 messages: messages,
-                tools: ToolDefinitions.tools(for: subAgent)
+                tools: ToolDefinitions.tools(for: subAgent, supportsVision: caps.supportsVision)
             )
 
             guard !Task.isCancelled else { throw CancellationError() }

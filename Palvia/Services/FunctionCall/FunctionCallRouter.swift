@@ -254,6 +254,10 @@ final class FunctionCallRouter {
             return try await runAsync { await self.browserTools.waitForElement(arguments: arguments) }
         case "browser_scroll":
             return try await runAsync { await self.browserTools.scroll(arguments: arguments) }
+        case "browser_screenshot":
+            let result = await browserScreenshot()
+            try Task.checkCancellation()
+            return result
 
         // --- Apple Calendar ---
         case "calendar_list_calendars":
@@ -414,6 +418,31 @@ final class FunctionCallRouter {
         let text = try await work()
         try Task.checkCancellation()
         return ToolCallResult(text)
+    }
+
+    // MARK: - Browser Screenshot
+
+    /// Capture the current browser viewport and attach it to the conversation as an
+    /// image. Only offered to vision-capable models (see ToolDefinitions.tools).
+    private func browserScreenshot() async -> ToolCallResult {
+        let sid = sessionId ?? agent.id
+        if let err = BrowserService.shared.acquireLock(sessionId: sid, agentName: agent.name) {
+            return ToolCallResult(err)
+        }
+        let shot = await BrowserService.shared.takeScreenshot()
+        BrowserService.shared.refreshLock(sessionId: sid)
+        switch shot {
+        case .success(let image):
+            let agentId = AgentFileManager.shared.resolveAgentId(for: agent)
+            guard let attachment = ImageAttachment.from(image: image, agentId: agentId) else {
+                return ToolCallResult("[Error] Failed to encode screenshot")
+            }
+            return ToolCallResult(
+                "Screenshot of the current page captured (\(attachment.width)x\(attachment.height)).",
+                imageAttachments: [attachment])
+        case .failure(let err):
+            return ToolCallResult("[Error] \(err.localizedDescription)")
+        }
     }
 
     // MARK: - Image Generation
