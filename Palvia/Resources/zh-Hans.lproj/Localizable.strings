@@ -708,3 +708,55 @@
 // File Ops
 
 // Health Plus
+
+// MARK: - Apple 健康功能页
+
+"appleHealth.title" = "Apple 健康";
+"appleHealth.intro" = "Palvia 已接入 Apple 健康，你的 AI 智能体可以读取健康趋势（步数、心率、睡眠、身体指标），并代你记录新的数据（饮水、体重等）。";
+"appleHealth.privacyNote" = "你的健康数据始终保存在设备本地。Palvia 仅访问你授权的数据类型，你可随时在「设置 › 健康 › 数据访问与设备」中撤销授权。";
+"appleHealth.available" = "本设备支持健康数据。";
+"appleHealth.unavailable" = "本设备不支持健康数据。";
+"appleHealth.connectionHeader" = "连接";
+"appleHealth.connectButton" = "连接 Apple 健康";
+"appleHealth.connecting" = "正在请求授权…";
+"appleHealth.connected" = "已连接 Apple 健康。";
+"appleHealth.connectFooter" = "授予 Palvia 读取与写入下列健康数据类型的权限。";
+"appleHealth.readHeader" = "读取你的数据";
+"appleHealth.readRefresh" = "刷新";
+"appleHealth.readEmpty" = "点击「刷新」以加载最新的健康数据。";
+"appleHealth.readSteps" = "步数";
+"appleHealth.readHeartRate" = "心率";
+"appleHealth.readBodyMass" = "体重";
+"appleHealth.writeHeader" = "写入健康";
+"appleHealth.writeWaterLabel" = "饮水";
+"appleHealth.writeWaterPlaceholder" = "毫升数（ml）";
+"appleHealth.writeWaterButton" = "记录饮水";
+"appleHealth.writeBodyMassLabel" = "体重";
+"appleHealth.writeBodyMassPlaceholder" = "体重（kg）";
+"appleHealth.writeBodyMassButton" = "记录体重";
+"appleHealth.dataTypesHeader" = "Palvia 使用的数据";
+"appleHealth.dataTypesRead" = "读取：步数、心率、睡眠、体重、体脂、身高、血压、血糖、血氧、体温、营养、运动。";
+"appleHealth.dataTypesWrite" = "写入：体重、体脂、身高、心率、血压、血糖、血氧、体温、膳食能量、饮水、宏量营养素、运动。";
+"appleHealth.dataTypesFooter" = "这些是 App 声明的 HealthKit 数据类型，实际访问取决于你授予的权限。";
+
+// MARK: - 首次启动引导
+
+"onboarding.welcomeTitle" = "欢迎使用 Palvia";
+"onboarding.welcomeSubtitle" = "用几步完成必要的设置。";
+"onboarding.healthStepTitle" = "Apple 健康集成";
+"onboarding.healthStepBody" = "Palvia 可以通过你的 AI 智能体读取健康趋势并记录新数据。连接 Apple 健康即可启用。";
+"onboarding.healthLearnMore" = "了解更多";
+"onboarding.providerStepTitle" = "连接模型";
+"onboarding.providerStepBody" = "添加你的默认大模型服务端点，让智能体可以工作。你添加的第一个服务商将作为默认。";
+"onboarding.configureProvider" = "配置模型服务";
+"onboarding.providerConfigured" = "默认模型：%@";
+"onboarding.agentStepTitle" = "创建你的智能体";
+"onboarding.agentStepBody" = "创建一个智能体即可开始对话。它将使用你刚配置的默认模型。";
+"onboarding.agentNamePlaceholder" = "智能体名称";
+"onboarding.agentNameDefault" = "助手";
+"onboarding.createAgent" = "创建智能体";
+"onboarding.agentCreated" = "已创建智能体「%@」。";
+"onboarding.skip" = "稍后";
+"onboarding.next" = "下一步";
+"onboarding.back" = "上一步";
+"onboarding.getStarted" = "开始使用";

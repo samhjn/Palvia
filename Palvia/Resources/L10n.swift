@@ -787,6 +787,70 @@ enum L10n {
         static var stderr: String { tr("toolResult.stderr") }
     }
 
+    // MARK: - Apple Health (dedicated feature screen)
+
+    enum AppleHealth {
+        static var title: String { tr("appleHealth.title") }
+        static var intro: String { tr("appleHealth.intro") }
+        static var privacyNote: String { tr("appleHealth.privacyNote") }
+
+        static var available: String { tr("appleHealth.available") }
+        static var unavailable: String { tr("appleHealth.unavailable") }
+        static var connectionHeader: String { tr("appleHealth.connectionHeader") }
+        static var connectButton: String { tr("appleHealth.connectButton") }
+        static var connecting: String { tr("appleHealth.connecting") }
+        static var connected: String { tr("appleHealth.connected") }
+        static var connectFooter: String { tr("appleHealth.connectFooter") }
+
+        static var readHeader: String { tr("appleHealth.readHeader") }
+        static var readRefresh: String { tr("appleHealth.readRefresh") }
+        static var readEmpty: String { tr("appleHealth.readEmpty") }
+        static var readSteps: String { tr("appleHealth.readSteps") }
+        static var readHeartRate: String { tr("appleHealth.readHeartRate") }
+        static var readBodyMass: String { tr("appleHealth.readBodyMass") }
+
+        static var writeHeader: String { tr("appleHealth.writeHeader") }
+        static var writeWaterLabel: String { tr("appleHealth.writeWaterLabel") }
+        static var writeWaterPlaceholder: String { tr("appleHealth.writeWaterPlaceholder") }
+        static var writeWaterButton: String { tr("appleHealth.writeWaterButton") }
+        static var writeBodyMassLabel: String { tr("appleHealth.writeBodyMassLabel") }
+        static var writeBodyMassPlaceholder: String { tr("appleHealth.writeBodyMassPlaceholder") }
+        static var writeBodyMassButton: String { tr("appleHealth.writeBodyMassButton") }
+
+        static var dataTypesHeader: String { tr("appleHealth.dataTypesHeader") }
+        static var dataTypesRead: String { tr("appleHealth.dataTypesRead") }
+        static var dataTypesWrite: String { tr("appleHealth.dataTypesWrite") }
+        static var dataTypesFooter: String { tr("appleHealth.dataTypesFooter") }
+    }
+
+    // MARK: - Onboarding (first-launch landing)
+
+    enum Onboarding {
+        static var welcomeTitle: String { tr("onboarding.welcomeTitle") }
+        static var welcomeSubtitle: String { tr("onboarding.welcomeSubtitle") }
+
+        static var healthStepTitle: String { tr("onboarding.healthStepTitle") }
+        static var healthStepBody: String { tr("onboarding.healthStepBody") }
+        static var healthLearnMore: String { tr("onboarding.healthLearnMore") }
+
+        static var providerStepTitle: String { tr("onboarding.providerStepTitle") }
+        static var providerStepBody: String { tr("onboarding.providerStepBody") }
+        static var configureProvider: String { tr("onboarding.configureProvider") }
+        static func providerConfigured(_ name: String) -> String { tr("onboarding.providerConfigured", name) }
+
+        static var agentStepTitle: String { tr("onboarding.agentStepTitle") }
+        static var agentStepBody: String { tr("onboarding.agentStepBody") }
+        static var agentNamePlaceholder: String { tr("onboarding.agentNamePlaceholder") }
+        static var agentNameDefault: String { tr("onboarding.agentNameDefault") }
+        static var createAgent: String { tr("onboarding.createAgent") }
+        static func agentCreated(_ name: String) -> String { tr("onboarding.agentCreated", name) }
+
+        static var skip: String { tr("onboarding.skip") }
+        static var next: String { tr("onboarding.next") }
+        static var back: String { tr("onboarding.back") }
+        static var getStarted: String { tr("onboarding.getStarted") }
+    }
+
     // MARK: - Export
 
     enum Export {

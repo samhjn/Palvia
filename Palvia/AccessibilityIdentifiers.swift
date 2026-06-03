@@ -64,5 +64,22 @@ enum AccessibilityID {
         static let aboutRow = "settings.about"
         static let backgroundToggle = "settings.backgroundToggle"
         static let skillDisclosureToggle = "settings.skillDisclosure"
+        static let appleHealthRow = "settings.appleHealth"
+    }
+
+    enum AppleHealth {
+        static let connectButton = "appleHealth.connect"
+        static let readRefreshButton = "appleHealth.readRefresh"
+        static let writeWaterButton = "appleHealth.writeWater"
+        static let writeBodyMassButton = "appleHealth.writeBodyMass"
+    }
+
+    enum Onboarding {
+        static let configureProviderButton = "onboarding.configureProvider"
+        static let connectHealthButton = "onboarding.connectHealth"
+        static let createAgentButton = "onboarding.createAgent"
+        static let nextButton = "onboarding.next"
+        static let skipButton = "onboarding.skip"
+        static let getStartedButton = "onboarding.getStarted"
     }
 }

@@ -40,6 +40,20 @@ struct SettingsView: View {
         let videoProviders = vm.providers.filter { (vm.providerRowCache[$0.id]?.providerType ?? .llm) == .videoOnly }
 
         return List {
+            Section {
+                NavigationLink {
+                    AppleHealthView()
+                } label: {
+                    Label {
+                        Text(L10n.AppleHealth.title)
+                    } icon: {
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(.pink)
+                    }
+                }
+                .accessibilityIdentifier(AccessibilityID.Settings.appleHealthRow)
+            }
+
             providerSection(vm, providers: llmProviders, header: L10n.Settings.llmProviders, showDefault: true)
 
             if !imageProviders.isEmpty {

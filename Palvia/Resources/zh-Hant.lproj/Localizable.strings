@@ -708,3 +708,55 @@
 // File Ops
 
 // Health Plus
+
+// MARK: - Apple 健康功能頁
+
+"appleHealth.title" = "Apple 健康";
+"appleHealth.intro" = "Palvia 已接入 Apple 健康，你的 AI 智慧體可以讀取健康趨勢（步數、心率、睡眠、身體指標），並代你記錄新的資料（飲水、體重等）。";
+"appleHealth.privacyNote" = "你的健康資料始終保存在裝置本機。Palvia 僅存取你授權的資料類型，你可隨時在「設定 › 健康 › 資料存取與裝置」中撤銷授權。";
+"appleHealth.available" = "本裝置支援健康資料。";
+"appleHealth.unavailable" = "本裝置不支援健康資料。";
+"appleHealth.connectionHeader" = "連接";
+"appleHealth.connectButton" = "連接 Apple 健康";
+"appleHealth.connecting" = "正在請求授權…";
+"appleHealth.connected" = "已連接 Apple 健康。";
+"appleHealth.connectFooter" = "授予 Palvia 讀取與寫入下列健康資料類型的權限。";
+"appleHealth.readHeader" = "讀取你的資料";
+"appleHealth.readRefresh" = "重新整理";
+"appleHealth.readEmpty" = "點擊「重新整理」以載入最新的健康資料。";
+"appleHealth.readSteps" = "步數";
+"appleHealth.readHeartRate" = "心率";
+"appleHealth.readBodyMass" = "體重";
+"appleHealth.writeHeader" = "寫入健康";
+"appleHealth.writeWaterLabel" = "飲水";
+"appleHealth.writeWaterPlaceholder" = "毫升數（ml）";
+"appleHealth.writeWaterButton" = "記錄飲水";
+"appleHealth.writeBodyMassLabel" = "體重";
+"appleHealth.writeBodyMassPlaceholder" = "體重（kg）";
+"appleHealth.writeBodyMassButton" = "記錄體重";
+"appleHealth.dataTypesHeader" = "Palvia 使用的資料";
+"appleHealth.dataTypesRead" = "讀取：步數、心率、睡眠、體重、體脂、身高、血壓、血糖、血氧、體溫、營養、運動。";
+"appleHealth.dataTypesWrite" = "寫入：體重、體脂、身高、心率、血壓、血糖、血氧、體溫、膳食能量、飲水、巨量營養素、運動。";
+"appleHealth.dataTypesFooter" = "這些是 App 宣告的 HealthKit 資料類型，實際存取取決於你授予的權限。";
+
+// MARK: - 首次啟動引導
+
+"onboarding.welcomeTitle" = "歡迎使用 Palvia";
+"onboarding.welcomeSubtitle" = "用幾個步驟完成必要的設定。";
+"onboarding.healthStepTitle" = "Apple 健康整合";
+"onboarding.healthStepBody" = "Palvia 可以透過你的 AI 智慧體讀取健康趨勢並記錄新資料。連接 Apple 健康即可啟用。";
+"onboarding.healthLearnMore" = "了解更多";
+"onboarding.providerStepTitle" = "連接模型";
+"onboarding.providerStepBody" = "新增你的預設大模型服務端點，讓智慧體可以運作。你新增的第一個服務商將作為預設。";
+"onboarding.configureProvider" = "設定模型服務";
+"onboarding.providerConfigured" = "預設模型：%@";
+"onboarding.agentStepTitle" = "建立你的智慧體";
+"onboarding.agentStepBody" = "建立一個智慧體即可開始對話。它將使用你剛設定的預設模型。";
+"onboarding.agentNamePlaceholder" = "智慧體名稱";
+"onboarding.agentNameDefault" = "助手";
+"onboarding.createAgent" = "建立智慧體";
+"onboarding.agentCreated" = "已建立智慧體「%@」。";
+"onboarding.skip" = "稍後";
+"onboarding.next" = "下一步";
+"onboarding.back" = "上一步";
+"onboarding.getStarted" = "開始使用";

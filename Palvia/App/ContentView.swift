@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var selectedTab: Tab = .sessions
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     enum Tab: String {
         case sessions
@@ -52,6 +53,12 @@ struct ContentView: View {
         .textFilePreviewOverlay()
         .onReceive(NotificationCenter.default.publisher(for: BrowserService.switchToBrowserTabNotification)) { _ in
             selectedTab = .browser
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { !hasSeenOnboarding },
+            set: { if !$0 { hasSeenOnboarding = true } }
+        )) {
+            OnboardingView { hasSeenOnboarding = true }
         }
     }
 }
