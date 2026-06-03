@@ -22,7 +22,7 @@ final class BrowserService: NSObject {
 
     /// Notification posted when a local Agent file is loaded and the UI should
     /// switch to the Browser tab.
-    static let switchToBrowserTabNotification = Notification.Name("BrowserService.switchToBrowserTab")
+    nonisolated static let switchToBrowserTabNotification = Notification.Name("BrowserService.switchToBrowserTab")
 
     // MARK: - Mutex Lock
 
