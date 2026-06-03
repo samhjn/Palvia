@@ -678,8 +678,14 @@ final class ToolFilteringTests: XCTestCase {
         context.insert(agent)
         try! context.save()
 
+        // A vision-capable model gets every defined tool.
+        let visionTools = ToolDefinitions.tools(for: agent, supportsVision: true)
+        XCTAssertEqual(visionTools.count, ToolDefinitions.allTools.count)
+
+        // Without vision the only withheld tool is the vision-gated browser_screenshot.
         let tools = ToolDefinitions.tools(for: agent)
-        XCTAssertEqual(tools.count, ToolDefinitions.allTools.count)
+        XCTAssertEqual(tools.count, ToolDefinitions.allTools.count - 1)
+        XCTAssertFalse(tools.map(\.function.name).contains("browser_screenshot"))
     }
 
     @MainActor
