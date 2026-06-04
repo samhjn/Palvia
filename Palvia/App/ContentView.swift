@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var selectedTab: Tab = .sessions
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
+    @State private var showOnboarding = false
 
     enum Tab: String {
         case sessions
@@ -54,11 +55,18 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: BrowserService.switchToBrowserTabNotification)) { _ in
             selectedTab = .browser
         }
-        .fullScreenCover(isPresented: Binding(
-            get: { !hasSeenOnboarding },
-            set: { if !$0 { hasSeenOnboarding = true } }
-        )) {
-            OnboardingView { hasSeenOnboarding = true }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView {
+                hasSeenOnboarding = true
+                showOnboarding = false
+            }
+        }
+        .onAppear {
+            // Show the first-launch landing once, but never during UI tests
+            // (it would block every other UI test flow).
+            if !hasSeenOnboarding && !PalviaModelContainer.isUITesting {
+                showOnboarding = true
+            }
         }
     }
 }
