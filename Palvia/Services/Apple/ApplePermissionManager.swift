@@ -224,27 +224,27 @@ final class ApplePermissionManager {
     }()
 
     /// Request all HealthKit permissions once. Subsequent calls are no-ops.
+    ///
+    /// Marked `@MainActor` so the request is initiated on the main thread:
+    /// otherwise this non-isolated method runs on a background cooperative
+    /// thread when awaited, and HealthKit cannot present its consent sheet
+    /// from there — the request would never complete ("times out").
+    @MainActor
     func ensureHealthAccess() async -> String? {
         guard HKHealthStore.isHealthDataAvailable() else {
             return L10n.PermissionError.healthUnavailable
         }
         if healthAuthRequested { return nil }
 
-        // The authorization request must be dispatched on the main thread:
-        // this method is non-isolated, so when awaited it runs on a background
-        // cooperative thread, and HealthKit cannot present its consent sheet
-        // from there — the request would never complete ("times out").
         let error: String? = await withCheckedContinuation { continuation in
-            DispatchQueue.main.async {
-                self.healthStore.requestAuthorization(
-                    toShare: Self.allHealthWriteTypes,
-                    read: Self.allHealthReadTypes
-                ) { _, error in
-                    if let error {
-                        continuation.resume(returning: L10n.PermissionError.healthFailed(error.localizedDescription))
-                    } else {
-                        continuation.resume(returning: nil)
-                    }
+            healthStore.requestAuthorization(
+                toShare: Self.allHealthWriteTypes,
+                read: Self.allHealthReadTypes
+            ) { _, error in
+                if let error {
+                    continuation.resume(returning: L10n.PermissionError.healthFailed(error.localizedDescription))
+                } else {
+                    continuation.resume(returning: nil)
                 }
             }
         }
