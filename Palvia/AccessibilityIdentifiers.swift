@@ -69,9 +69,6 @@ enum AccessibilityID {
 
     enum AppleHealth {
         static let connectButton = "appleHealth.connect"
-        static let readRefreshButton = "appleHealth.readRefresh"
-        static let writeWaterButton = "appleHealth.writeWater"
-        static let writeBodyMassButton = "appleHealth.writeBodyMass"
     }
 
     enum Onboarding {

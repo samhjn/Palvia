@@ -802,21 +802,6 @@ enum L10n {
         static var connected: String { tr("appleHealth.connected") }
         static var connectFooter: String { tr("appleHealth.connectFooter") }
 
-        static var readHeader: String { tr("appleHealth.readHeader") }
-        static var readRefresh: String { tr("appleHealth.readRefresh") }
-        static var readEmpty: String { tr("appleHealth.readEmpty") }
-        static var readSteps: String { tr("appleHealth.readSteps") }
-        static var readHeartRate: String { tr("appleHealth.readHeartRate") }
-        static var readBodyMass: String { tr("appleHealth.readBodyMass") }
-
-        static var writeHeader: String { tr("appleHealth.writeHeader") }
-        static var writeWaterLabel: String { tr("appleHealth.writeWaterLabel") }
-        static var writeWaterPlaceholder: String { tr("appleHealth.writeWaterPlaceholder") }
-        static var writeWaterButton: String { tr("appleHealth.writeWaterButton") }
-        static var writeBodyMassLabel: String { tr("appleHealth.writeBodyMassLabel") }
-        static var writeBodyMassPlaceholder: String { tr("appleHealth.writeBodyMassPlaceholder") }
-        static var writeBodyMassButton: String { tr("appleHealth.writeBodyMassButton") }
-
         static var dataTypesHeader: String { tr("appleHealth.dataTypesHeader") }
         static var dataTypesRead: String { tr("appleHealth.dataTypesRead") }
         static var dataTypesWrite: String { tr("appleHealth.dataTypesWrite") }
