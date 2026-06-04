@@ -229,16 +229,27 @@ final class ApplePermissionManager {
             return L10n.PermissionError.healthUnavailable
         }
         if healthAuthRequested { return nil }
-        do {
-            try await healthStore.requestAuthorization(
-                toShare: Self.allHealthWriteTypes,
-                read: Self.allHealthReadTypes
-            )
-            healthAuthRequested = true
-            return nil
-        } catch {
-            return L10n.PermissionError.healthFailed(error.localizedDescription)
+
+        // The authorization request must be dispatched on the main thread:
+        // this method is non-isolated, so when awaited it runs on a background
+        // cooperative thread, and HealthKit cannot present its consent sheet
+        // from there — the request would never complete ("times out").
+        let error: String? = await withCheckedContinuation { continuation in
+            DispatchQueue.main.async {
+                self.healthStore.requestAuthorization(
+                    toShare: Self.allHealthWriteTypes,
+                    read: Self.allHealthReadTypes
+                ) { _, error in
+                    if let error {
+                        continuation.resume(returning: L10n.PermissionError.healthFailed(error.localizedDescription))
+                    } else {
+                        continuation.resume(returning: nil)
+                    }
+                }
+            }
         }
+        if error == nil { healthAuthRequested = true }
+        return error
     }
 
     /// Legacy per-type entry point – still requests everything in batch.
