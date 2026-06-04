@@ -224,21 +224,32 @@ final class ApplePermissionManager {
     }()
 
     /// Request all HealthKit permissions once. Subsequent calls are no-ops.
+    ///
+    /// Marked `@MainActor` so the request is initiated on the main thread:
+    /// otherwise this non-isolated method runs on a background cooperative
+    /// thread when awaited, and HealthKit cannot present its consent sheet
+    /// from there — the request would never complete ("times out").
+    @MainActor
     func ensureHealthAccess() async -> String? {
         guard HKHealthStore.isHealthDataAvailable() else {
             return L10n.PermissionError.healthUnavailable
         }
         if healthAuthRequested { return nil }
-        do {
-            try await healthStore.requestAuthorization(
+
+        let error: String? = await withCheckedContinuation { continuation in
+            healthStore.requestAuthorization(
                 toShare: Self.allHealthWriteTypes,
                 read: Self.allHealthReadTypes
-            )
-            healthAuthRequested = true
-            return nil
-        } catch {
-            return L10n.PermissionError.healthFailed(error.localizedDescription)
+            ) { _, error in
+                if let error {
+                    continuation.resume(returning: L10n.PermissionError.healthFailed(error.localizedDescription))
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
         }
+        if error == nil { healthAuthRequested = true }
+        return error
     }
 
     /// Legacy per-type entry point – still requests everything in batch.

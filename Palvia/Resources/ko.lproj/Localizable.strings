@@ -708,3 +708,42 @@
 // File Ops
 
 // Health Plus
+
+// MARK: - Apple 건강 기능 화면
+
+"appleHealth.title" = "Apple 건강";
+"appleHealth.intro" = "Palvia는 Apple 건강과 연동되어 AI 에이전트가 추세(걸음 수, 심박수, 수면, 신체 지표)를 읽고 새 데이터(수분, 체중 등)를 대신 기록할 수 있습니다.";
+"appleHealth.privacyNote" = "건강 데이터는 항상 기기에 저장됩니다. Palvia는 허용한 데이터 유형에만 접근하며, 언제든지 '설정 › 건강 › 데이터 접근 및 기기'에서 권한을 해제할 수 있습니다.";
+"appleHealth.available" = "이 기기에서 건강 데이터를 사용할 수 있습니다.";
+"appleHealth.unavailable" = "이 기기에서는 건강 데이터를 사용할 수 없습니다.";
+"appleHealth.connectionHeader" = "연결";
+"appleHealth.connectButton" = "Apple 건강 연결";
+"appleHealth.connecting" = "접근 권한 요청 중…";
+"appleHealth.connected" = "Apple 건강에 연결되었습니다.";
+"appleHealth.connectFooter" = "아래 건강 데이터 유형에 대한 읽기 및 쓰기 권한을 Palvia에 부여합니다.";
+"appleHealth.dataTypesHeader" = "Palvia가 사용하는 데이터";
+"appleHealth.dataTypesRead" = "읽기: 걸음 수, 심박수, 수면, 체중, 체지방, 키, 혈압, 혈당, 혈중 산소, 체온, 영양, 운동.";
+"appleHealth.dataTypesWrite" = "쓰기: 체중, 체지방, 키, 심박수, 혈압, 혈당, 혈중 산소, 체온, 식이 에너지, 수분, 다량영양소, 운동.";
+"appleHealth.dataTypesFooter" = "앱이 선언한 HealthKit 유형입니다. 실제 접근은 부여한 권한에 따릅니다.";
+
+// MARK: - 온보딩(첫 실행)
+
+"onboarding.welcomeTitle" = "Palvia에 오신 것을 환영합니다";
+"onboarding.welcomeSubtitle" = "몇 단계로 필수 설정을 진행해 보세요.";
+"onboarding.healthStepTitle" = "Apple 건강 연동";
+"onboarding.healthStepBody" = "Palvia는 AI 에이전트를 통해 건강 추세를 읽고 새 데이터를 기록할 수 있습니다. Apple 건강을 연결해 활성화하세요.";
+"onboarding.healthLearnMore" = "자세히 보기";
+"onboarding.providerStepTitle" = "모델 연결";
+"onboarding.providerStepBody" = "에이전트가 작동하도록 기본 LLM 엔드포인트를 추가하세요. 처음 추가한 제공자가 기본값이 됩니다.";
+"onboarding.configureProvider" = "모델 서비스 설정";
+"onboarding.providerConfigured" = "기본 모델: %@";
+"onboarding.agentStepTitle" = "에이전트 만들기";
+"onboarding.agentStepBody" = "에이전트를 만들면 대화를 시작할 수 있습니다. 방금 설정한 기본 모델을 사용합니다.";
+"onboarding.agentNamePlaceholder" = "에이전트 이름";
+"onboarding.agentNameDefault" = "어시스턴트";
+"onboarding.createAgent" = "에이전트 만들기";
+"onboarding.agentCreated" = "에이전트 \"%@\"을(를) 만들었습니다.";
+"onboarding.skip" = "나중에";
+"onboarding.next" = "다음";
+"onboarding.back" = "뒤로";
+"onboarding.getStarted" = "시작하기";

@@ -711,3 +711,42 @@
 // File Ops
 
 // Health Plus
+
+// MARK: - Apple Health feature screen
+
+"appleHealth.title" = "Apple Health";
+"appleHealth.intro" = "Palvia integrates with Apple Health so your AI agent can read trends (steps, heart rate, sleep, body metrics) and log new entries (water, body mass, and more) on your behalf.";
+"appleHealth.privacyNote" = "Your health data stays on your device. Palvia only accesses the data types you authorize, and you can revoke access anytime in Settings › Health › Data Access & Devices.";
+"appleHealth.available" = "Health data is available on this device.";
+"appleHealth.unavailable" = "Health data is not available on this device.";
+"appleHealth.connectionHeader" = "Connection";
+"appleHealth.connectButton" = "Connect Apple Health";
+"appleHealth.connecting" = "Requesting access…";
+"appleHealth.connected" = "Apple Health connected.";
+"appleHealth.connectFooter" = "Grants Palvia permission to read and write the health data types listed below.";
+"appleHealth.dataTypesHeader" = "Data Palvia uses";
+"appleHealth.dataTypesRead" = "Read: steps, heart rate, sleep, body mass, body fat, height, blood pressure, blood glucose, blood oxygen, body temperature, nutrition, workouts.";
+"appleHealth.dataTypesWrite" = "Write: body mass, body fat, height, heart rate, blood pressure, blood glucose, blood oxygen, body temperature, dietary energy, water, macronutrients, workouts.";
+"appleHealth.dataTypesFooter" = "These are the HealthKit types declared by the app. Actual access depends on the permissions you grant.";
+
+// MARK: - Onboarding (first-launch landing)
+
+"onboarding.welcomeTitle" = "Welcome to Palvia";
+"onboarding.welcomeSubtitle" = "Let's set up the essentials in a few steps.";
+"onboarding.healthStepTitle" = "Apple Health Integration";
+"onboarding.healthStepBody" = "Palvia can read your health trends and log new entries through your AI agent. Connect Apple Health to enable it.";
+"onboarding.healthLearnMore" = "Learn more";
+"onboarding.providerStepTitle" = "Connect a Model";
+"onboarding.providerStepBody" = "Add your default LLM endpoint so your agent can think. The first provider you add becomes the default.";
+"onboarding.configureProvider" = "Configure Model Service";
+"onboarding.providerConfigured" = "Default model: %@";
+"onboarding.agentStepTitle" = "Create Your Agent";
+"onboarding.agentStepBody" = "Create an agent to start chatting. It will use the default model you just configured.";
+"onboarding.agentNamePlaceholder" = "Agent name";
+"onboarding.agentNameDefault" = "Assistant";
+"onboarding.createAgent" = "Create Agent";
+"onboarding.agentCreated" = "Created agent “%@”.";
+"onboarding.skip" = "Later";
+"onboarding.next" = "Next";
+"onboarding.back" = "Back";
+"onboarding.getStarted" = "Get Started";
