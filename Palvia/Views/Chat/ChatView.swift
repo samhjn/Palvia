@@ -348,7 +348,19 @@ private struct ChatContentView: View {
                         proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                     }
                 }
-                
+                .onChange(of: vm.isLoading) { oldValue, newValue in
+                    // Streaming end: the expanded streaming bubble is removed and
+                    // replaced by a persisted message whose thinking block starts
+                    // collapsed, so the content height collapses sharply. None of
+                    // the other triggers fire after that shrink, so re-anchor to
+                    // the last message once the structural update has landed.
+                    guard oldValue, !newValue, !scrollState.userDidScrollAway else { return }
+                    guard let lastId = displayMessages.last?.id else { return }
+                    DispatchQueue.main.async {
+                        proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                    }
+                }
+
                 .onDisappear {
                     if let visibleId = scrollPosition,
                        let uuid = UUID(uuidString: visibleId) {
@@ -803,12 +815,29 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
         private var contentSizeObservation: NSKeyValueObservation?
         private var displayLink: CADisplayLink?
         private var pendingNearBottom: Bool?
+        private var pendingOverScrollClamp = false
+        private weak var observedScrollView: UIScrollView?
 
         init(scrollState: ChatScrollState) {
             self.scrollState = scrollState
         }
 
+        /// Highest legal contentOffset.y; anything beyond shows blank space
+        /// below the content.
+        private static func maxOffsetY(_ sv: UIScrollView) -> CGFloat {
+            max(-sv.adjustedContentInset.top,
+                sv.contentSize.height + sv.adjustedContentInset.bottom - sv.bounds.height)
+        }
+
+        /// Signed distance from the current offset to the bottom of the
+        /// content. Negative means over-scrolled past the end: blank space
+        /// is visible and no user content remains below the viewport.
+        private static func distanceToBottom(_ sv: UIScrollView) -> CGFloat {
+            maxOffsetY(sv) - sv.contentOffset.y
+        }
+
         func observe(_ scrollView: UIScrollView) {
+            observedScrollView = scrollView
             // Use a CADisplayLink to coalesce contentOffset KVO updates into
             // at most one state change per frame. This prevents a layout
             // feedback loop where KVO → state change → view invalidation →
@@ -820,12 +849,17 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
 
             offsetObservation = scrollView.observe(\.contentOffset, options: .new) { [weak self] sv, _ in
                 guard let self else { return }
-                let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
+                let distance = Self.distanceToBottom(sv)
                 let isUserScrolling = sv.isTracking || sv.isDragging
                 // Deceleration after a user flick is still user-driven.
                 let isUserDriven = isUserScrolling || sv.isDecelerating
                 let threshold: CGFloat = isUserScrolling ? 50 : 200
                 let near = distance <= threshold
+
+                if !isUserDriven && distance < -1 {
+                    self.pendingOverScrollClamp = true
+                    self.displayLink?.isPaused = false
+                }
 
                 // userDidScrollAway uses a fixed tight threshold (50pt) for
                 // both setting and clearing — independent of the wider
@@ -856,9 +890,15 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
             contentSizeObservation = scrollView.observe(\.contentSize) { [weak self] sv, _ in
                 guard let self else { return }
                 let isUserDriven = sv.isTracking || sv.isDragging || sv.isDecelerating
+                let distance = Self.distanceToBottom(sv)
+                if !isUserDriven && distance < -1 {
+                    self.pendingOverScrollClamp = true
+                    self.displayLink?.isPaused = false
+                }
                 guard !self.scrollState.userDidScrollAway, !isUserDriven else { return }
-                let distance = max(0, sv.contentSize.height - sv.contentOffset.y - sv.bounds.height)
-                if distance > 50 {
+                // distance < -1: content shrank under the current offset
+                // (e.g. streaming bubble removed); re-anchor just like growth.
+                if distance > 50 || distance < -1 {
                     DispatchQueue.main.async {
                         self.scrollState.bottomCorrectionTick &+= 1
                     }
@@ -868,6 +908,19 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
 
         @objc private func displayLinkFired() {
             displayLink?.isPaused = true
+            if pendingOverScrollClamp {
+                pendingOverScrollClamp = false
+                // Re-validate against the live layout: the offset may have
+                // been corrected (or the user may have grabbed the view)
+                // since the KVO fire that scheduled this clamp.
+                if let sv = observedScrollView,
+                   !(sv.isTracking || sv.isDragging || sv.isDecelerating) {
+                    let maxY = Self.maxOffsetY(sv)
+                    if sv.contentOffset.y > maxY + 1 {
+                        sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: maxY), animated: false)
+                    }
+                }
+            }
             guard let near = pendingNearBottom else { return }
             pendingNearBottom = nil
             if near != scrollState.isNearBottom {
