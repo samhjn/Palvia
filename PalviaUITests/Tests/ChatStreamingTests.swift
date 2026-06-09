@@ -443,4 +443,40 @@ final class ChatStreamingTests: BaseTestCase {
         XCTAssertTrue(sendBtn.waitForExistence(timeout: 5),
                       "Send button should return after streaming completes")
     }
+
+    // MARK: - No Blank Screen After Completion (Over-Scroll Regression)
+
+    /// Bug: at streaming end the expanded thinking bubble collapses and the
+    /// streaming bubble is removed, shrinking the content height while the
+    /// scroll offset stays put — stranding the viewport in blank space past
+    /// the end of the content with no auto-recovery. Keyword `exists` checks
+    /// don't catch this (off-screen elements still exist), so this test
+    /// asserts the last bubble's frame actually intersects the window.
+    func test_streaming_noBlankScreenAfterCompletion() {
+        _ = enterStreamingSession()
+        guard waitForStreamingActive(timeout: 15) else {
+            XCTFail("Streaming did not start")
+            return
+        }
+        guard waitForStreamingComplete(timeout: 20) else {
+            XCTFail("Streaming did not complete in time")
+            return
+        }
+
+        let bubbles = app.descendants(matching: .any).matching(identifier: AccessibilityID.Chat.messageBubble)
+        XCTAssertTrue(bubbles.firstMatch.waitForExistence(timeout: 5),
+                      "Persisted message bubbles should exist after streaming completes")
+
+        let window = app.windows.firstMatch
+        let lastBubbleOnScreen = NSPredicate { _, _ in
+            let count = bubbles.count
+            guard count > 0 else { return false }
+            let lastBubble = bubbles.element(boundBy: count - 1)
+            return lastBubble.exists && lastBubble.frame.intersects(window.frame)
+        }
+        let exp = XCTNSPredicateExpectation(predicate: lastBubbleOnScreen, object: nil)
+        XCTAssertEqual(XCTWaiter().wait(for: [exp], timeout: 5), .completed,
+                       "After streaming ends, the last message must be on screen. " +
+                       "A miss means the view is over-scrolled into blank space past the content end.")
+    }
 }
