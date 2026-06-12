@@ -230,13 +230,24 @@ final class ModelRouter {
     // MARK: - Provider queries
 
     func fetchAllProviders() -> [LLMProvider] {
+        assertMainThread()
         let descriptor = FetchDescriptor<LLMProvider>(sortBy: [SortDescriptor(\.name)])
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     // MARK: - Private
 
+    /// Debug guard for every `modelContext.fetch` in this class: the context
+    /// is the main-thread ModelContext, so any fetch off the main thread is a
+    /// data race with concurrent main-thread SwiftData use. Tripping here in
+    /// a debug build or unit test catches the race deterministically instead
+    /// of crashing intermittently in production.
+    private func assertMainThread() {
+        assert(Thread.isMainThread, "ModelRouter must access its ModelContext on the main thread")
+    }
+
     private func fetchProvider(id: UUID) -> LLMProvider? {
+        assertMainThread()
         let descriptor = FetchDescriptor<LLMProvider>(
             predicate: #Predicate { $0.id == id }
         )
@@ -244,6 +255,7 @@ final class ModelRouter {
     }
 
     private func fetchGlobalDefault() -> LLMProvider? {
+        assertMainThread()
         var descriptor = FetchDescriptor<LLMProvider>(
             predicate: #Predicate { $0.isDefault == true }
         )
