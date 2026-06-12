@@ -122,6 +122,14 @@ final class ModelRouter {
 
     // MARK: - Streaming with failover
 
+    // The async entry points below are isolated to the main actor: in the
+    // Swift 5 language mode a nonisolated async function hops to the global
+    // concurrent executor, which would run `modelContext.fetch` (via
+    // `resolveProviderChainWithModels`) on a background thread while the
+    // main thread concurrently uses the same ModelContext — a data race
+    // that crashes inside SwiftData's snapshot update during fetch.
+
+    @MainActor
     func chatCompletionStreamWithFailover(
         agent: Agent,
         messages: [LLMChatMessage],
@@ -160,6 +168,7 @@ final class ModelRouter {
 
     // MARK: - Non-streaming with failover
 
+    @MainActor
     func chatCompletionWithFailover(
         agent: Agent,
         messages: [LLMChatMessage],
@@ -198,6 +207,7 @@ final class ModelRouter {
 
     // MARK: - Specific provider (no failover)
 
+    @MainActor
     func chatCompletionStreamWith(
         provider: LLMProvider,
         messages: [LLMChatMessage],
@@ -207,6 +217,7 @@ final class ModelRouter {
         return try await service.chatCompletionStream(messages: messages, tools: tools)
     }
 
+    @MainActor
     func chatCompletionWith(
         provider: LLMProvider,
         messages: [LLMChatMessage],
