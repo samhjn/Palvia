@@ -15,6 +15,22 @@ struct AboutView: View {
     var body: some View {
         List {
             Section {
+                VStack(spacing: 12) {
+                    Image("AppIconImage")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 96, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
+                    Text(version)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .listRowBackground(Color.clear)
+            }
+
+            Section {
                 Text(L10n.Settings.aboutDescription)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
