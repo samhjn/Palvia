@@ -19,27 +19,27 @@ final class TabBarPage {
 
     @discardableResult
     func switchToSessions() -> SessionListPage {
-        sessionsTab.tap()
+        sessionsTab.tapWhenReady()
         return SessionListPage(app: app)
     }
 
     @discardableResult
     func switchToAgents() -> AgentListPage {
-        agentsTab.tap()
+        agentsTab.tapWhenReady()
         return AgentListPage(app: app)
     }
 
     func switchToBrowser() {
-        browserTab.tap()
+        browserTab.tapWhenReady()
     }
 
     func switchToSkills() {
-        skillsTab.tap()
+        skillsTab.tapWhenReady()
     }
 
     @discardableResult
     func switchToSettings() -> SettingsPage {
-        settingsTab.tap()
+        settingsTab.tapWhenReady()
         return SettingsPage(app: app)
     }
 

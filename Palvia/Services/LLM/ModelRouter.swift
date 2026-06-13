@@ -122,6 +122,14 @@ final class ModelRouter {
 
     // MARK: - Streaming with failover
 
+    // The async entry points below are isolated to the main actor: in the
+    // Swift 5 language mode a nonisolated async function hops to the global
+    // concurrent executor, which would run `modelContext.fetch` (via
+    // `resolveProviderChainWithModels`) on a background thread while the
+    // main thread concurrently uses the same ModelContext — a data race
+    // that crashes inside SwiftData's snapshot update during fetch.
+
+    @MainActor
     func chatCompletionStreamWithFailover(
         agent: Agent,
         messages: [LLMChatMessage],
@@ -160,6 +168,7 @@ final class ModelRouter {
 
     // MARK: - Non-streaming with failover
 
+    @MainActor
     func chatCompletionWithFailover(
         agent: Agent,
         messages: [LLMChatMessage],
@@ -198,6 +207,7 @@ final class ModelRouter {
 
     // MARK: - Specific provider (no failover)
 
+    @MainActor
     func chatCompletionStreamWith(
         provider: LLMProvider,
         messages: [LLMChatMessage],
@@ -207,6 +217,7 @@ final class ModelRouter {
         return try await service.chatCompletionStream(messages: messages, tools: tools)
     }
 
+    @MainActor
     func chatCompletionWith(
         provider: LLMProvider,
         messages: [LLMChatMessage],
@@ -219,13 +230,24 @@ final class ModelRouter {
     // MARK: - Provider queries
 
     func fetchAllProviders() -> [LLMProvider] {
+        assertMainThread()
         let descriptor = FetchDescriptor<LLMProvider>(sortBy: [SortDescriptor(\.name)])
         return (try? modelContext.fetch(descriptor)) ?? []
     }
 
     // MARK: - Private
 
+    /// Debug guard for every `modelContext.fetch` in this class: the context
+    /// is the main-thread ModelContext, so any fetch off the main thread is a
+    /// data race with concurrent main-thread SwiftData use. Tripping here in
+    /// a debug build or unit test catches the race deterministically instead
+    /// of crashing intermittently in production.
+    private func assertMainThread() {
+        assert(Thread.isMainThread, "ModelRouter must access its ModelContext on the main thread")
+    }
+
     private func fetchProvider(id: UUID) -> LLMProvider? {
+        assertMainThread()
         let descriptor = FetchDescriptor<LLMProvider>(
             predicate: #Predicate { $0.id == id }
         )
@@ -233,6 +255,7 @@ final class ModelRouter {
     }
 
     private func fetchGlobalDefault() -> LLMProvider? {
+        assertMainThread()
         var descriptor = FetchDescriptor<LLMProvider>(
             predicate: #Predicate { $0.isDefault == true }
         )

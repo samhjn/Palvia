@@ -2,10 +2,19 @@ import XCTest
 
 extension XCUIElement {
     /// Tap the element once it becomes available, failing the test if it doesn't appear.
-    func tapWhenReady(timeout: TimeInterval = 5, file: StaticString = #file, line: UInt = #line) {
+    ///
+    /// Waits for both existence and hittability before tapping. SwiftUI tab-bar
+    /// and toolbar buttons frequently report `exists == true` while still
+    /// animating in, during which a `tap()` is silently dropped — the source of
+    /// flaky "element not found" / "alert never appeared" failures downstream
+    /// when the tap that should have triggered navigation or a sheet is lost.
+    func tapWhenReady(timeout: TimeInterval = 10, file: StaticString = #file, line: UInt = #line) {
         guard waitForExistence(timeout: timeout) else {
             XCTFail("Element \(identifier) did not appear within \(timeout)s", file: file, line: line)
             return
+        }
+        if !isHittable {
+            _ = waitUntilHittable(timeout: timeout)
         }
         tap()
     }

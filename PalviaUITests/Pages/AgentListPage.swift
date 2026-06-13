@@ -41,14 +41,24 @@ final class AgentListPage {
     func createAgent(name: String) -> Self {
         tapCreate()
         let alert = app.alerts.firstMatch
-        XCTAssertTrue(alert.waitForExistence(timeout: 5), "Agent creation alert should appear")
+        XCTAssertTrue(alert.waitForExistence(timeout: 10), "Agent creation alert should appear")
+        // Tap the field before typing: typing into an alert text field that
+        // doesn't yet hold keyboard focus drops characters intermittently.
         let textField = alert.textFields.firstMatch
+        XCTAssertTrue(textField.waitForExistence(timeout: 5), "Alert text field should appear")
+        textField.tap()
         textField.typeText(name)
-        // Tap the non-cancel action button (last button in the alert)
-        let buttons = alert.buttons
-        buttons.element(boundBy: buttons.count - 1).tap()
-        // Wait for the list to update
-        sleep(2)
+        // Tap the non-cancel action button (last button in the alert), waiting
+        // for it to be hittable so the tap isn't dropped mid-presentation.
+        let confirmButton = alert.buttons.element(boundBy: alert.buttons.count - 1)
+        _ = confirmButton.waitUntilHittable(timeout: 5)
+        confirmButton.tap()
+        // Wait for the alert to dismiss rather than sleeping a fixed interval.
+        let dismissed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: alert
+        )
+        _ = XCTWaiter().wait(for: [dismissed], timeout: 5)
         return self
     }
 
