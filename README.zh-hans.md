@@ -17,6 +17,12 @@
   <a href="README.md">English</a>
 </p>
 
+<p align="center">
+  <a href="https://apps.apple.com/us/app/palvia-ai-agents-in-your-palm/id6761302827">
+    <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="App Store 下载" height="40" />
+  </a>
+</p>
+
 ---
 
 ## 为什么选择 Palvia？

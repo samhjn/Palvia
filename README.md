@@ -23,6 +23,12 @@
   <a href="README.zh-hans.md">中文文档</a>
 </p>
 
+<p align="center">
+  <a href="https://apps.apple.com/us/app/palvia-ai-agents-in-your-palm/id6761302827">
+    <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="40" />
+  </a>
+</p>
+
 ---
 
 ## Why Palvia?
