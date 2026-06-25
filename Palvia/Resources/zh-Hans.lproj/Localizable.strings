@@ -424,6 +424,18 @@
 "provider.apiStyleFooter" = "指定请求使用的 API 协议。OpenAI 兼容使用 /chat/completions，适用于大多数三方兼容提供商（DeepSeek、OpenRouter、Ollama 等）。OpenAI Responses 使用 /responses，仅应在 OpenAI 或明确支持该协议的提供商上选择。Anthropic 用于 Anthropic 原生 Messages API。";
 "provider.modelCapabilities" = "模型能力";
 "provider.presets" = "预设";
+"provider.modelsDev.browse" = "Models.dev";
+"provider.modelsDev.title" = "Models.dev 目录";
+"provider.modelsDev.loading" = "正在加载目录…";
+"provider.modelsDev.failed" = "无法加载目录";
+"provider.modelsDev.search" = "搜索提供商或模型";
+"provider.modelsDev.searchModels" = "搜索模型";
+"provider.modelsDev.models" = "模型";
+"provider.modelsDev.modelCount" = "%d 个模型";
+"provider.modelsDev.selectAll" = "全选";
+"provider.modelsDev.deselectAll" = "取消全选";
+"provider.modelsDev.noEndpoint" = "手动设置";
+"provider.modelsDev.importFooter" = "接入点与协议将根据 Models.dev 自动填写。导入后请补充你的 API 密钥。";
 
 // MARK: - Skills
 "skills.title" = "技能";

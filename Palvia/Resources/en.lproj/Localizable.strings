@@ -426,6 +426,18 @@
 "provider.apiStyleFooter" = "Specifies the API protocol for requests. OpenAI Compatible uses /chat/completions for most third-party providers (OpenAI-compatible gateways, DeepSeek, OpenRouter, Ollama, etc.). OpenAI Responses uses /responses and should be selected only for OpenAI or providers that explicitly support it. Anthropic is for Anthropic's native Messages API.";
 "provider.modelCapabilities" = "Model Capabilities";
 "provider.presets" = "Presets";
+"provider.modelsDev.browse" = "Models.dev";
+"provider.modelsDev.title" = "Models.dev Catalog";
+"provider.modelsDev.loading" = "Loading catalog…";
+"provider.modelsDev.failed" = "Couldn't load catalog";
+"provider.modelsDev.search" = "Search providers or models";
+"provider.modelsDev.searchModels" = "Search models";
+"provider.modelsDev.models" = "Models";
+"provider.modelsDev.modelCount" = "%d models";
+"provider.modelsDev.selectAll" = "Select All";
+"provider.modelsDev.deselectAll" = "Deselect All";
+"provider.modelsDev.noEndpoint" = "Set manually";
+"provider.modelsDev.importFooter" = "Endpoint and protocol are filled in from Models.dev. Add your API key after importing.";
 
 // MARK: - Skills
 "skills.title" = "Skills";

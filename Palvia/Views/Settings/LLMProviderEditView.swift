@@ -26,6 +26,8 @@ struct LLMProviderEditView: View {
     @State private var showAddModel = false
     @State private var newModelName: String = ""
 
+    @State private var showModelsDevCatalog = false
+
     // Connection test state
     @State private var isTestingConnection = false
     @State private var connectionTestResult: ConnectionTestResult?
@@ -83,6 +85,9 @@ struct LLMProviderEditView: View {
                     newModelName = ""
                 }
                 Button(L10n.Common.cancel, role: .cancel) { newModelName = "" }
+            }
+            .sheet(isPresented: $showModelsDevCatalog) {
+                ModelsDevCatalogView(onImport: applyModelsDevImport)
             }
         }
         .onAppear {
@@ -721,6 +726,9 @@ struct LLMProviderEditView: View {
 
     @ViewBuilder
     private var llmPresetChips: some View {
+        presetChip(L10n.Provider.modelsDevBrowse, icon: "square.grid.2x2") {
+            showModelsDevCatalog = true
+        }
         presetChip("OpenAI") {
             name = name.isEmpty ? "OpenAI" : name
             endpoint = "https://api.openai.com/v1"
@@ -880,6 +888,29 @@ struct LLMProviderEditView: View {
         enabledModels.insert(model)
         if modelCapabilities[model] == nil {
             modelCapabilities[model] = ModelCapabilities.inferred(from: model)
+        }
+    }
+
+    /// Apply a provider imported from the Models.dev catalog. Fills in name
+    /// (only when blank, to respect a name the user already typed), endpoint,
+    /// and API protocol, then enables each selected model with its catalog-
+    /// inferred capabilities and promotes the first selection to default.
+    private func applyModelsDevImport(_ result: ModelsDevImport) {
+        if name.trimmingCharacters(in: .whitespaces).isEmpty {
+            name = result.providerName
+        }
+        if !result.endpoint.isEmpty {
+            endpoint = result.endpoint
+        }
+        apiStyle = result.apiStyle
+
+        for (model, caps) in result.models {
+            enabledModels.insert(model)
+            modelCapabilities[model] = caps
+        }
+        if !result.defaultModel.isEmpty {
+            modelName = result.defaultModel
+            enableModel(result.defaultModel)
         }
     }
 
