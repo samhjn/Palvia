@@ -49,6 +49,9 @@ struct LLMProviderEditView: View {
             Form {
                 providerTypeSection
                 presetsSection
+                if providerType == .llm {
+                    modelsDevSection
+                }
                 providerSection
                 apiStyleSection
                 authSection
@@ -689,6 +692,27 @@ struct LLMProviderEditView: View {
         }
     }
 
+    /// Dedicated entry point for the Models.dev catalog browser. Kept separate
+    /// from the preset chips because tapping a preset fills the form inline,
+    /// while this opens a searchable picker — two different interactions.
+    private var modelsDevSection: some View {
+        Section {
+            Button {
+                showModelsDevCatalog = true
+            } label: {
+                HStack {
+                    Label(L10n.Provider.modelsDevBrowse, systemImage: "square.grid.2x2")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+        } footer: {
+            Text(L10n.Provider.modelsDevSectionFooter)
+        }
+    }
+
     private var presetsSection: some View {
         Section {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -726,9 +750,6 @@ struct LLMProviderEditView: View {
 
     @ViewBuilder
     private var llmPresetChips: some View {
-        presetChip(L10n.Provider.modelsDevBrowse, icon: "square.grid.2x2") {
-            showModelsDevCatalog = true
-        }
         presetChip("OpenAI") {
             name = name.isEmpty ? "OpenAI" : name
             endpoint = "https://api.openai.com/v1"

@@ -541,6 +541,7 @@ enum L10n {
         static var presets: String { tr("provider.presets") }
         // MARK: Models.dev catalog
         static var modelsDevBrowse: String { tr("provider.modelsDev.browse") }
+        static var modelsDevSectionFooter: String { tr("provider.modelsDev.sectionFooter") }
         static var modelsDevTitle: String { tr("provider.modelsDev.title") }
         static var modelsDevLoading: String { tr("provider.modelsDev.loading") }
         static var modelsDevFailed: String { tr("provider.modelsDev.failed") }

@@ -424,7 +424,8 @@
 "provider.apiStyleFooter" = "指定請求使用的 API 協議。OpenAI 相容使用 /chat/completions，適用於大多數第三方相容提供商（DeepSeek、OpenRouter、Ollama 等）。OpenAI Responses 使用 /responses，僅應在 OpenAI 或明確支援該協議的提供商上選擇。Anthropic 用於 Anthropic 原生 Messages API。";
 "provider.modelCapabilities" = "模型能力";
 "provider.presets" = "預設";
-"provider.modelsDev.browse" = "Models.dev";
+"provider.modelsDev.browse" = "瀏覽 Models.dev 目錄";
+"provider.modelsDev.sectionFooter" = "從 Models.dev 目錄中選擇供應商與模型，接入點與協定將自動填入。";
 "provider.modelsDev.title" = "Models.dev 目錄";
 "provider.modelsDev.loading" = "正在載入目錄…";
 "provider.modelsDev.failed" = "無法載入目錄";

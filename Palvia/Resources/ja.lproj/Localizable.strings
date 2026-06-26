@@ -423,7 +423,8 @@
 "provider.apiStyleFooter" = "リクエストに使用するAPIプロトコルを指定します。OpenAI互換は /chat/completions を使用し、多くのサードパーティ互換プロバイダー（DeepSeek、OpenRouter、Ollamaなど）向けです。OpenAI Responses は /responses を使用し、OpenAIまたは明示的に対応するプロバイダーでのみ選択してください。AnthropicはAnthropic独自のMessages APIです。";
 "provider.modelCapabilities" = "モデル機能";
 "provider.presets" = "プリセット";
-"provider.modelsDev.browse" = "Models.dev";
+"provider.modelsDev.browse" = "Models.dev カタログを見る";
+"provider.modelsDev.sectionFooter" = "Models.dev カタログからプロバイダーとモデルを選択します。エンドポイントとプロトコルは自動入力されます。";
 "provider.modelsDev.title" = "Models.dev カタログ";
 "provider.modelsDev.loading" = "カタログを読み込み中…";
 "provider.modelsDev.failed" = "カタログを読み込めませんでした";
