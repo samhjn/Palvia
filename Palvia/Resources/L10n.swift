@@ -539,6 +539,20 @@ enum L10n {
         static var testConnectionOK: String { tr("provider.testConnectionOK") }
         static var modelCapabilities: String { tr("provider.modelCapabilities") }
         static var presets: String { tr("provider.presets") }
+        // MARK: Models.dev catalog
+        static var modelsDevBrowse: String { tr("provider.modelsDev.browse") }
+        static var modelsDevSectionFooter: String { tr("provider.modelsDev.sectionFooter") }
+        static var modelsDevTitle: String { tr("provider.modelsDev.title") }
+        static var modelsDevLoading: String { tr("provider.modelsDev.loading") }
+        static var modelsDevFailed: String { tr("provider.modelsDev.failed") }
+        static var modelsDevSearch: String { tr("provider.modelsDev.search") }
+        static var modelsDevSearchModels: String { tr("provider.modelsDev.searchModels") }
+        static var modelsDevModels: String { tr("provider.modelsDev.models") }
+        static func modelsDevModelCount(_ count: Int) -> String { tr("provider.modelsDev.modelCount", count) }
+        static var modelsDevSelectAll: String { tr("provider.modelsDev.selectAll") }
+        static var modelsDevDeselectAll: String { tr("provider.modelsDev.deselectAll") }
+        static var modelsDevNoEndpoint: String { tr("provider.modelsDev.noEndpoint") }
+        static var modelsDevImportFooter: String { tr("provider.modelsDev.importFooter") }
         static var imageGenModeNone: String { tr("provider.imageGenMode.none") }
         static var imageGenModeChatInline: String { tr("provider.imageGenMode.chatInline") }
         static var imageGenModeDedicatedAPI: String { tr("provider.imageGenMode.dedicatedAPI") }

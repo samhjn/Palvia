@@ -423,6 +423,19 @@
 "provider.apiStyleFooter" = "リクエストに使用するAPIプロトコルを指定します。OpenAI互換は /chat/completions を使用し、多くのサードパーティ互換プロバイダー（DeepSeek、OpenRouter、Ollamaなど）向けです。OpenAI Responses は /responses を使用し、OpenAIまたは明示的に対応するプロバイダーでのみ選択してください。AnthropicはAnthropic独自のMessages APIです。";
 "provider.modelCapabilities" = "モデル機能";
 "provider.presets" = "プリセット";
+"provider.modelsDev.browse" = "Models.dev カタログを見る";
+"provider.modelsDev.sectionFooter" = "Models.dev カタログからプロバイダーとモデルを選択します。エンドポイントとプロトコルは自動入力されます。";
+"provider.modelsDev.title" = "Models.dev カタログ";
+"provider.modelsDev.loading" = "カタログを読み込み中…";
+"provider.modelsDev.failed" = "カタログを読み込めませんでした";
+"provider.modelsDev.search" = "プロバイダーまたはモデルを検索";
+"provider.modelsDev.searchModels" = "モデルを検索";
+"provider.modelsDev.models" = "モデル";
+"provider.modelsDev.modelCount" = "%d 個のモデル";
+"provider.modelsDev.selectAll" = "すべて選択";
+"provider.modelsDev.deselectAll" = "選択を解除";
+"provider.modelsDev.noEndpoint" = "手動で設定";
+"provider.modelsDev.importFooter" = "エンドポイントとプロトコルは Models.dev から自動入力されます。インポート後に API キーを追加してください。";
 
 // MARK: - Skills
 "skills.title" = "スキル";

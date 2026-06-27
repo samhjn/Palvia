@@ -423,6 +423,19 @@
 "provider.apiStyleFooter" = "요청에 사용할 API 프로토콜을 지정합니다. OpenAI 호환은 /chat/completions를 사용하며 대부분의 타사 호환 제공업체(DeepSeek, OpenRouter, Ollama 등)에 적합합니다. OpenAI Responses는 /responses를 사용하며 OpenAI 또는 명시적으로 지원하는 제공업체에서만 선택하세요. Anthropic은 Anthropic 네이티브 Messages API입니다.";
 "provider.modelCapabilities" = "모델 기능";
 "provider.presets" = "프리셋";
+"provider.modelsDev.browse" = "Models.dev 카탈로그 둘러보기";
+"provider.modelsDev.sectionFooter" = "Models.dev 카탈로그에서 공급자와 모델을 선택하세요. 엔드포인트와 프로토콜이 자동으로 입력됩니다.";
+"provider.modelsDev.title" = "Models.dev 카탈로그";
+"provider.modelsDev.loading" = "카탈로그 불러오는 중…";
+"provider.modelsDev.failed" = "카탈로그를 불러올 수 없습니다";
+"provider.modelsDev.search" = "공급자 또는 모델 검색";
+"provider.modelsDev.searchModels" = "모델 검색";
+"provider.modelsDev.models" = "모델";
+"provider.modelsDev.modelCount" = "%d개 모델";
+"provider.modelsDev.selectAll" = "모두 선택";
+"provider.modelsDev.deselectAll" = "선택 해제";
+"provider.modelsDev.noEndpoint" = "수동 설정";
+"provider.modelsDev.importFooter" = "엔드포인트와 프로토콜은 Models.dev에서 자동으로 채워집니다. 가져온 후 API 키를 추가하세요.";
 
 // MARK: - Skills
 "skills.title" = "스킬";
