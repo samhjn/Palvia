@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import Palvia
 
 final class TokenStatisticsTests: XCTestCase {
@@ -144,5 +145,42 @@ final class TokenStatisticsTests: XCTestCase {
 
         stats.contextThreshold = 0
         XCTAssertEqual(stats.contextUsageRatio, 0)
+    }
+
+    // MARK: - System prompt accounting
+
+    // The message-only path knows nothing about the system prompt.
+    func testSystemPromptTokensZeroWithoutAgent() {
+        let stats = TokenStatistics.compute(from: [message(.user, estimate: 10)])
+        XCTAssertEqual(stats.systemPromptTokens, 0)
+    }
+
+    // The session path must fold the dynamically-built system prompt (SOUL /
+    // USER / MEMORY / capabilities) into the system bucket, since it is billed
+    // every turn but never stored as a Message.
+    @MainActor
+    func testSystemPromptFoldedIntoComposition() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+
+        let agent = Agent(name: "Test", soulMarkdown: "You are a meticulous research assistant with a warm tone.")
+        let session = Session(title: "S")
+        session.agent = agent
+        let userMsg = Message(role: .user, content: "Hi", tokenEstimate: 10)
+        session.messages = [userMsg]
+        context.insert(agent)
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertGreaterThan(stats.systemPromptTokens, 0, "system prompt should be estimated")
+        XCTAssertGreaterThanOrEqual(stats.systemTokens, stats.systemPromptTokens,
+                                    "system bucket must include the system prompt")
+        XCTAssertEqual(stats.userTokens, 10)
     }
 }
