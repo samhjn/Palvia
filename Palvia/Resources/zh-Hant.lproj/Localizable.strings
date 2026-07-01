@@ -103,6 +103,31 @@
 "chat.videoCompleted" = "影片完成";
 "chat.videoFailed" = "失敗：%@";
 
+// MARK: - Token Analytics
+"tokenStats.menuLabel" = "Token 統計分析";
+"tokenStats.title" = "Token 統計分析";
+"tokenStats.sectionBilled" = "計費用量";
+"tokenStats.sectionComposition" = "上下文組成";
+"tokenStats.sectionContext" = "上下文視窗";
+"tokenStats.input" = "輸入";
+"tokenStats.output" = "輸出";
+"tokenStats.total" = "合計";
+"tokenStats.cacheRead" = "快取讀取";
+"tokenStats.cacheWrite" = "快取寫入";
+"tokenStats.cacheHitRate" = "快取命中率";
+"tokenStats.avgOutputPerTurn" = "每輪平均輸出";
+"tokenStats.turnsWithUsage" = "%d 輪含用量";
+"tokenStats.roleSystem" = "系統";
+"tokenStats.roleUser" = "你";
+"tokenStats.roleAssistant" = "助手";
+"tokenStats.roleTool" = "工具";
+"tokenStats.estimatedTotal" = "估算合計";
+"tokenStats.activeContext" = "活躍上下文";
+"tokenStats.messages" = "%d 則訊息";
+"tokenStats.billedNote" = "由模型服務商回報。";
+"tokenStats.estimatedNote" = "由本機分詞器估算。";
+"tokenStats.noUsage" = "尚無計費 Token 用量。傳送一則訊息後即可查看服務商回報的統計。";
+
 // MARK: - Agents
 "agents.title" = "智能體";
 "agents.newAgent" = "新建智能體";

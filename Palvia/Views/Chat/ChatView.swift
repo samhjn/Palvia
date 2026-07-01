@@ -7,6 +7,8 @@ struct ChatView: View {
     @State private var viewModel: ChatViewModel?
     @State private var showTitleEditor = false
     @State private var editingTitle = ""
+    @State private var showTokenStats = false
+    @State private var tokenStats = TokenStatistics()
 
     var body: some View {
         ZStack {
@@ -64,6 +66,13 @@ struct ChatView: View {
                             Label(L10n.Chat.compressContext, systemImage: "arrow.down.right.and.arrow.up.left")
                         }
                         .disabled(vm.isCompressing || vm.isLoading)
+
+                        Button {
+                            tokenStats = TokenStatistics.compute(for: session)
+                            showTokenStats = true
+                        } label: {
+                            Label(L10n.TokenStats.menuLabel, systemImage: "chart.bar.xaxis")
+                        }
                     }
 
                     Section {
@@ -100,6 +109,9 @@ struct ChatView: View {
                 }
             }
             Button(L10n.Common.cancel, role: .cancel) {}
+        }
+        .sheet(isPresented: $showTokenStats) {
+            TokenAnalyticsView(stats: tokenStats)
         }
     }
 }

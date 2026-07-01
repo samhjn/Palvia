@@ -33,6 +33,12 @@ final class Message {
     var apiPromptTokens: Int?
     /// API-reported completion token count (nil if not available from vendor).
     var apiCompletionTokens: Int?
+    /// API-reported tokens read from the prompt cache (Anthropic
+    /// `cache_read_input_tokens` / OpenAI `prompt_tokens_details.cached_tokens`).
+    var apiCacheReadTokens: Int?
+    /// API-reported tokens written to the prompt cache (Anthropic
+    /// `cache_creation_input_tokens`).
+    var apiCacheWriteTokens: Int?
 
     var role: MessageRole {
         get { MessageRole(rawValue: roleRaw) ?? .user }
