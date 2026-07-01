@@ -146,6 +146,34 @@ enum L10n {
         static func videoFailed(_ reason: String) -> String { tr("chat.videoFailed", reason) }
     }
 
+    // MARK: - Token Analytics
+
+    enum TokenStats {
+        static var menuLabel: String { tr("tokenStats.menuLabel") }
+        static var title: String { tr("tokenStats.title") }
+        static var sectionBilled: String { tr("tokenStats.sectionBilled") }
+        static var sectionComposition: String { tr("tokenStats.sectionComposition") }
+        static var sectionContext: String { tr("tokenStats.sectionContext") }
+        static var input: String { tr("tokenStats.input") }
+        static var output: String { tr("tokenStats.output") }
+        static var total: String { tr("tokenStats.total") }
+        static var cacheRead: String { tr("tokenStats.cacheRead") }
+        static var cacheWrite: String { tr("tokenStats.cacheWrite") }
+        static var cacheHitRate: String { tr("tokenStats.cacheHitRate") }
+        static var avgOutputPerTurn: String { tr("tokenStats.avgOutputPerTurn") }
+        static func turnsWithUsage(_ count: Int) -> String { tr("tokenStats.turnsWithUsage", count) }
+        static var roleSystem: String { tr("tokenStats.roleSystem") }
+        static var roleUser: String { tr("tokenStats.roleUser") }
+        static var roleAssistant: String { tr("tokenStats.roleAssistant") }
+        static var roleTool: String { tr("tokenStats.roleTool") }
+        static var estimatedTotal: String { tr("tokenStats.estimatedTotal") }
+        static var activeContext: String { tr("tokenStats.activeContext") }
+        static func messages(_ count: Int) -> String { tr("tokenStats.messages", count) }
+        static var billedNote: String { tr("tokenStats.billedNote") }
+        static var estimatedNote: String { tr("tokenStats.estimatedNote") }
+        static var noUsage: String { tr("tokenStats.noUsage") }
+    }
+
     // MARK: - Agents
 
     enum Agents {

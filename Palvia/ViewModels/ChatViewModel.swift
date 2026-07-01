@@ -1828,6 +1828,8 @@ final class ChatViewModel {
         guard let usage else { return }
         message.apiPromptTokens = usage.promptTokens
         message.apiCompletionTokens = usage.completionTokens
+        message.apiCacheReadTokens = usage.cacheReadInputTokens
+        message.apiCacheWriteTokens = usage.cacheCreationInputTokens
         if let completionTokens = usage.completionTokens, completionTokens > 0 {
             message.tokenEstimate = completionTokens
         }

@@ -103,6 +103,31 @@
 "chat.videoCompleted" = "동영상 완료";
 "chat.videoFailed" = "실패: %@";
 
+// MARK: - Token Analytics
+"tokenStats.menuLabel" = "토큰 분석";
+"tokenStats.title" = "토큰 분석";
+"tokenStats.sectionBilled" = "청구 사용량";
+"tokenStats.sectionComposition" = "컨텍스트 구성";
+"tokenStats.sectionContext" = "컨텍스트 창";
+"tokenStats.input" = "입력";
+"tokenStats.output" = "출력";
+"tokenStats.total" = "합계";
+"tokenStats.cacheRead" = "캐시 읽기";
+"tokenStats.cacheWrite" = "캐시 쓰기";
+"tokenStats.cacheHitRate" = "캐시 적중률";
+"tokenStats.avgOutputPerTurn" = "턴당 평균 출력";
+"tokenStats.turnsWithUsage" = "사용량 포함 %d턴";
+"tokenStats.roleSystem" = "시스템";
+"tokenStats.roleUser" = "나";
+"tokenStats.roleAssistant" = "어시스턴트";
+"tokenStats.roleTool" = "도구";
+"tokenStats.estimatedTotal" = "추정 합계";
+"tokenStats.activeContext" = "활성 컨텍스트";
+"tokenStats.messages" = "메시지 %d개";
+"tokenStats.billedNote" = "모델 제공업체가 보고한 값입니다.";
+"tokenStats.estimatedNote" = "로컬 토크나이저로 추정한 값입니다.";
+"tokenStats.noUsage" = "아직 청구된 토큰 사용량이 없습니다. 메시지를 보내면 제공업체가 보고한 분석을 볼 수 있습니다.";
+
 // MARK: - Agents
 "agents.title" = "에이전트";
 "agents.newAgent" = "새 에이전트";

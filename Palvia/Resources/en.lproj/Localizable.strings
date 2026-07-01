@@ -103,6 +103,31 @@
 "chat.videoCompleted" = "Video complete";
 "chat.videoFailed" = "Failed: %@";
 
+// MARK: - Token Analytics
+"tokenStats.menuLabel" = "Token Analytics";
+"tokenStats.title" = "Token Analytics";
+"tokenStats.sectionBilled" = "Billed Usage";
+"tokenStats.sectionComposition" = "Context Composition";
+"tokenStats.sectionContext" = "Context Window";
+"tokenStats.input" = "Input";
+"tokenStats.output" = "Output";
+"tokenStats.total" = "Total";
+"tokenStats.cacheRead" = "Cache Read";
+"tokenStats.cacheWrite" = "Cache Write";
+"tokenStats.cacheHitRate" = "Cache Hit Rate";
+"tokenStats.avgOutputPerTurn" = "Avg Output / Turn";
+"tokenStats.turnsWithUsage" = "%d turns with usage";
+"tokenStats.roleSystem" = "System";
+"tokenStats.roleUser" = "You";
+"tokenStats.roleAssistant" = "Assistant";
+"tokenStats.roleTool" = "Tools";
+"tokenStats.estimatedTotal" = "Estimated Total";
+"tokenStats.activeContext" = "Active Context";
+"tokenStats.messages" = "%d messages";
+"tokenStats.billedNote" = "Reported by the model provider.";
+"tokenStats.estimatedNote" = "Estimated from the local tokenizer.";
+"tokenStats.noUsage" = "No billed token usage yet. Send a message to see provider-reported analytics.";
+
 // MARK: - Agents
 "agents.title" = "Agents";
 "agents.newAgent" = "New Agent";
