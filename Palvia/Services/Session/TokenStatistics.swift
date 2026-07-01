@@ -36,12 +36,6 @@ struct TokenStatistics: Equatable {
     var assistantTokens: Int = 0
     var toolTokens: Int = 0
 
-    /// Estimated size of the dynamically-assembled system prompt (SOUL / USER /
-    /// MEMORY / capabilities / skills). It is never stored as a `Message`, so it
-    /// is captured separately and folded into `systemTokens`. Zero when computed
-    /// from messages alone (no agent context available).
-    var systemPromptTokens: Int = 0
-
     // MARK: Counts
 
     var messageCount: Int = 0
@@ -128,30 +122,11 @@ struct TokenStatistics: Equatable {
         return stats
     }
 
-    /// Convenience that also fills in the active-context figures from a session
-    /// and the system prompt, which is assembled per request and never stored
-    /// as a `Message`.
-    static func compute(
-        for session: Session,
-        contextManager: ContextManager = ContextManager(),
-        promptBuilder: PromptBuilder = PromptBuilder()
-    ) -> TokenStatistics {
+    /// Convenience that also fills in the active-context figures from a session.
+    static func compute(for session: Session, contextManager: ContextManager = ContextManager()) -> TokenStatistics {
         var stats = compute(from: session.messages)
         stats.activeContextTokens = contextManager.activeContextTokens(session: session)
         stats.contextThreshold = session.agent?.effectiveCompressionThreshold ?? ContextManager.compressionThreshold
-
-        // The system prompt is billed on every turn but lives outside
-        // `session.messages`, so estimate it for the session's current
-        // configuration and fold it into the system bucket. Otherwise the
-        // composition understates the largest fixed cost of the conversation.
-        if let agent = session.agent {
-            let systemPrompt = promptBuilder.buildSystemPrompt(
-                for: agent,
-                activatedSkillSlugs: session.activatedSkillSlugs
-            )
-            stats.systemPromptTokens = TokenEstimator.estimate(systemPrompt)
-            stats.systemTokens += stats.systemPromptTokens
-        }
         return stats
     }
 

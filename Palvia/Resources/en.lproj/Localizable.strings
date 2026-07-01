@@ -116,7 +116,7 @@
 "tokenStats.cacheWrite" = "Cache Write";
 "tokenStats.avgOutputPerTurn" = "Avg Output / Turn";
 "tokenStats.turnsWithUsage" = "%d turns with usage";
-"tokenStats.roleSystem" = "System Prompt";
+"tokenStats.roleSystem" = "System";
 "tokenStats.roleUser" = "You";
 "tokenStats.roleAssistant" = "Assistant";
 "tokenStats.roleTool" = "Tools";
@@ -124,7 +124,7 @@
 "tokenStats.activeContext" = "Active Context";
 "tokenStats.messages" = "%d messages";
 "tokenStats.billedNote" = "Provider-reported, summed across every API call in a turn (including tool rounds).";
-"tokenStats.estimatedNote" = "Estimated locally; includes the system prompt for the current setup.";
+"tokenStats.estimatedNote" = "Estimated from the local tokenizer.";
 "tokenStats.noUsage" = "No billed token usage yet. Send a message to see provider-reported analytics.";
 
 // MARK: - Agents

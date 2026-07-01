@@ -116,7 +116,7 @@
 "tokenStats.cacheWrite" = "缓存写入";
 "tokenStats.avgOutputPerTurn" = "平均每轮输出";
 "tokenStats.turnsWithUsage" = "%d 轮有用量数据";
-"tokenStats.roleSystem" = "系统提示词";
+"tokenStats.roleSystem" = "系统";
 "tokenStats.roleUser" = "你";
 "tokenStats.roleAssistant" = "助手";
 "tokenStats.roleTool" = "工具";
@@ -124,7 +124,7 @@
 "tokenStats.activeContext" = "当前上下文";
 "tokenStats.messages" = "%d 条消息";
 "tokenStats.billedNote" = "服务商上报的实际用量，已累计该回合的每次 API 调用（含工具轮次）。";
-"tokenStats.estimatedNote" = "由本地分词器估算，已计入当前配置的系统提示词，仅供参考。";
+"tokenStats.estimatedNote" = "由本地分词器估算，仅供参考。";
 "tokenStats.noUsage" = "暂无用量数据。发送消息后，这里会显示服务商返回的 Token 统计。";
 
 // MARK: - Agents

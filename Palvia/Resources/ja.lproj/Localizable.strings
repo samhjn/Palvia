@@ -116,7 +116,7 @@
 "tokenStats.cacheWrite" = "キャッシュ書き込み";
 "tokenStats.avgOutputPerTurn" = "1ターンあたりの平均出力";
 "tokenStats.turnsWithUsage" = "使用量あり %d ターン";
-"tokenStats.roleSystem" = "システムプロンプト";
+"tokenStats.roleSystem" = "システム";
 "tokenStats.roleUser" = "あなた";
 "tokenStats.roleAssistant" = "アシスタント";
 "tokenStats.roleTool" = "ツール";
@@ -124,7 +124,7 @@
 "tokenStats.activeContext" = "アクティブなコンテキスト";
 "tokenStats.messages" = "%d 件のメッセージ";
 "tokenStats.billedNote" = "プロバイダー報告値。1ターン内の全 API 呼び出し（ツール呼び出しのラウンドを含む）を合算しています。";
-"tokenStats.estimatedNote" = "ローカルで推定した値です。現在の設定のシステムプロンプトを含みます。";
+"tokenStats.estimatedNote" = "ローカルのトークナイザーによる推定値です。";
 "tokenStats.noUsage" = "課金対象のトークン使用量はまだありません。メッセージを送信すると、プロバイダー報告の分析が表示されます。";
 
 // MARK: - Agents
