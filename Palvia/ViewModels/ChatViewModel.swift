@@ -1013,7 +1013,11 @@ final class ChatViewModel {
                 case .toolCall(let toolCall):
                     pendingToolCalls.append(toolCall)
                 case .usage(let usage):
-                    lastUsage = usage
+                    // Merge rather than overwrite: providers such as Anthropic
+                    // split one turn's usage across `message_start` (input +
+                    // cache) and `message_delta` (final output), so the last
+                    // chunk alone loses the prompt and cache counts.
+                    lastUsage = lastUsage?.merging(usage) ?? usage
                 case .done:
                     break
                 case .error(let error):

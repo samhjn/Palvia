@@ -114,7 +114,6 @@
 "tokenStats.total" = "Total";
 "tokenStats.cacheRead" = "Cache Read";
 "tokenStats.cacheWrite" = "Cache Write";
-"tokenStats.cacheHitRate" = "Cache Hit Rate";
 "tokenStats.avgOutputPerTurn" = "Avg Output / Turn";
 "tokenStats.turnsWithUsage" = "%d turns with usage";
 "tokenStats.roleSystem" = "System";
@@ -124,7 +123,7 @@
 "tokenStats.estimatedTotal" = "Estimated Total";
 "tokenStats.activeContext" = "Active Context";
 "tokenStats.messages" = "%d messages";
-"tokenStats.billedNote" = "Reported by the model provider.";
+"tokenStats.billedNote" = "Provider-reported, summed across every API call in a turn (including tool rounds).";
 "tokenStats.estimatedNote" = "Estimated from the local tokenizer.";
 "tokenStats.noUsage" = "No billed token usage yet. Send a message to see provider-reported analytics.";
 

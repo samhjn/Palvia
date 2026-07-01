@@ -47,7 +47,7 @@ struct TokenAnalyticsView: View {
                     tint: .primary,
                     emphasized: true)
 
-            if stats.cacheReadTokens > 0 || stats.cacheWriteTokens > 0 {
+            if stats.hasCacheActivity {
                 statRow(label: L10n.TokenStats.cacheRead,
                         value: stats.cacheReadTokens,
                         systemImage: "bolt.horizontal.circle",
@@ -56,8 +56,6 @@ struct TokenAnalyticsView: View {
                         value: stats.cacheWriteTokens,
                         systemImage: "square.and.arrow.down",
                         tint: .orange)
-                plainRow(label: L10n.TokenStats.cacheHitRate,
-                         value: Self.percentFormatter.string(from: NSNumber(value: stats.cacheHitRate)) ?? "0%")
             }
 
             plainRow(label: L10n.TokenStats.avgOutputPerTurn,
@@ -186,13 +184,6 @@ struct TokenAnalyticsView: View {
         default: return .red
         }
     }
-
-    private static let percentFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .percent
-        f.maximumFractionDigits = 0
-        return f
-    }()
 }
 
 /// A single horizontal stacked bar showing the relative token weight of each role.

@@ -61,22 +61,54 @@ final class TokenStatisticsTests: XCTestCase {
         XCTAssertEqual(stats.averageOutputPerTurn, 65)
     }
 
-    func testCacheHitRate() {
-        let messages = [
-            message(.assistant, estimate: 20, prompt: 200, completion: 50, cacheRead: 50),
-        ]
-        let stats = TokenStatistics.compute(from: messages)
-        XCTAssertEqual(stats.cacheHitRate, 0.25, accuracy: 0.0001)
+    func testHasCacheActivity() {
+        let none = TokenStatistics.compute(from: [message(.assistant, estimate: 20, prompt: 100, completion: 50)])
+        XCTAssertFalse(none.hasCacheActivity)
+
+        let readOnly = TokenStatistics.compute(from: [message(.assistant, estimate: 20, prompt: 100, completion: 50, cacheRead: 40)])
+        XCTAssertTrue(readOnly.hasCacheActivity)
+
+        let writeOnly = TokenStatistics.compute(from: [message(.assistant, estimate: 20, prompt: 100, completion: 50, cacheWrite: 10)])
+        XCTAssertTrue(writeOnly.hasCacheActivity)
     }
 
-    func testCacheHitRateClampedAndZeroSafe() {
-        // No input tokens -> no divide-by-zero.
-        let empty = TokenStatistics.compute(from: [])
-        XCTAssertEqual(empty.cacheHitRate, 0)
+    // Regression: a multi-round tool-call turn (several assistant messages, each
+    // carrying its own usage) must sum input/output/cache across every round,
+    // not just reflect the last one.
+    func testMultiRoundToolCallAggregation() {
+        let messages = [
+            message(.user, estimate: 10),
+            message(.assistant, estimate: 15, prompt: 500, completion: 30, cacheRead: 450),   // round 1: tool call
+            message(.tool, estimate: 800),
+            message(.assistant, estimate: 12, prompt: 900, completion: 25, cacheRead: 850),   // round 2: tool call
+            message(.tool, estimate: 300),
+            message(.assistant, estimate: 40, prompt: 1300, completion: 60, cacheRead: 1200), // round 3: final text
+        ]
+        let stats = TokenStatistics.compute(from: messages)
 
-        // Cache read exceeding billed input clamps to 1.0.
-        let messages = [message(.assistant, estimate: 5, prompt: 10, completion: 5, cacheRead: 999)]
-        XCTAssertEqual(TokenStatistics.compute(from: messages).cacheHitRate, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(stats.turnsWithUsage, 3)
+        XCTAssertEqual(stats.billedInputTokens, 2700)   // 500 + 900 + 1300
+        XCTAssertEqual(stats.billedOutputTokens, 115)   // 30 + 25 + 60
+        XCTAssertEqual(stats.cacheReadTokens, 2500)     // 450 + 850 + 1200
+        XCTAssertEqual(stats.toolTokens, 1100)          // 800 + 300
+        XCTAssertTrue(stats.hasCacheActivity)
+    }
+
+    // Regression for the split-usage bug: Anthropic reports input + cache in
+    // `message_start` and the final output only in `message_delta`. Merging must
+    // preserve the earlier fields instead of overwriting them with nils.
+    func testUsageMergePreservesSplitFields() {
+        let start = LLMUsage(promptTokens: 1200, completionTokens: 1, totalTokens: nil,
+                             cacheCreationInputTokens: 200, cacheReadInputTokens: 1000)
+        let delta = LLMUsage(promptTokens: nil, completionTokens: 350, totalTokens: nil,
+                             cacheCreationInputTokens: nil, cacheReadInputTokens: nil)
+
+        let merged = start.merging(delta)
+
+        XCTAssertEqual(merged.promptTokens, 1200)
+        XCTAssertEqual(merged.completionTokens, 350)
+        XCTAssertEqual(merged.cacheCreationInputTokens, 200)
+        XCTAssertEqual(merged.cacheReadInputTokens, 1000)
     }
 
     func testNoAPIUsage() {

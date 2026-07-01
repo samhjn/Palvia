@@ -159,7 +159,6 @@ enum L10n {
         static var total: String { tr("tokenStats.total") }
         static var cacheRead: String { tr("tokenStats.cacheRead") }
         static var cacheWrite: String { tr("tokenStats.cacheWrite") }
-        static var cacheHitRate: String { tr("tokenStats.cacheHitRate") }
         static var avgOutputPerTurn: String { tr("tokenStats.avgOutputPerTurn") }
         static func turnsWithUsage(_ count: Int) -> String { tr("tokenStats.turnsWithUsage", count) }
         static var roleSystem: String { tr("tokenStats.roleSystem") }

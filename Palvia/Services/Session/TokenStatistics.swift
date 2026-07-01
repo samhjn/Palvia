@@ -65,11 +65,8 @@ struct TokenStatistics: Equatable {
         turnsWithUsage > 0 ? billedOutputTokens / turnsWithUsage : 0
     }
 
-    /// Fraction of billed input tokens served from cache (0...1).
-    var cacheHitRate: Double {
-        guard billedInputTokens > 0 else { return 0 }
-        return min(Double(cacheReadTokens) / Double(billedInputTokens), 1.0)
-    }
+    /// True when the provider reported any prompt-cache activity.
+    var hasCacheActivity: Bool { cacheReadTokens > 0 || cacheWriteTokens > 0 }
 
     /// Active context usage as a fraction of the compression threshold (0...1+).
     var contextUsageRatio: Double {

@@ -537,6 +537,24 @@ struct LLMUsage: Codable {
         self.cacheReadInputTokens = cacheReadInputTokens
     }
 
+    /// Combine a newer usage payload onto this one, preferring the newer value
+    /// per field when present and otherwise keeping the existing one.
+    ///
+    /// Necessary because some providers spread a single turn's usage across
+    /// multiple stream events. Anthropic reports `input_tokens` and the cache
+    /// counts in `message_start`, but the final `output_tokens` only in
+    /// `message_delta` (where input/cache are absent). Overwriting with the last
+    /// chunk alone would drop the prompt and cache figures entirely, so we merge.
+    func merging(_ newer: LLMUsage) -> LLMUsage {
+        LLMUsage(
+            promptTokens: newer.promptTokens ?? promptTokens,
+            completionTokens: newer.completionTokens ?? completionTokens,
+            totalTokens: newer.totalTokens ?? totalTokens,
+            cacheCreationInputTokens: newer.cacheCreationInputTokens ?? cacheCreationInputTokens,
+            cacheReadInputTokens: newer.cacheReadInputTokens ?? cacheReadInputTokens
+        )
+    }
+
     /// OpenAI `prompt_tokens_details` nested object.
     private struct PromptTokensDetails: Decodable {
         let cachedTokens: Int?
