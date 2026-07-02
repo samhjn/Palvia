@@ -437,24 +437,16 @@ final class DisplayMessageFilteringTests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Replicate the silent-mode filter from ChatContentView.filteredMessages().
-    /// This mirrors the exact logic so tests verify the same behavior.
+    /// The exact production filter used by ChatContentView.filteredMessages().
+    /// Previously these helpers replicated the logic; they now delegate to
+    /// `ChatMessageFilter` so the tests can never drift from the view.
     private func silentFilteredMessages(from messages: [Message]) -> [Message] {
-        messages.filter { msg in
-            if msg.role == .tool { return false }
-            if msg.role == .assistant,
-               let data = msg.toolCallsData,
-               data.count > 2,
-               (msg.content ?? "").isEmpty {
-                return false
-            }
-            return true
-        }
+        ChatMessageFilter.visibleMessages(messages, isVerbose: false)
     }
 
     /// Verbose mode returns all messages unfiltered.
     private func verboseFilteredMessages(from messages: [Message]) -> [Message] {
-        messages
+        ChatMessageFilter.visibleMessages(messages, isVerbose: true)
     }
 
     /// Create a session with a representative mix of message types.

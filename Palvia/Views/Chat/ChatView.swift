@@ -181,11 +181,78 @@ final class ChatScrollState {
     /// Set only by user gesture (drag/track), not by content growth.
     /// Prevents auto-scroll from stopping due to rendering-induced position shifts.
     var userDidScrollAway = false
-    /// Incremented by the contentSize observer when the scroll view's content
-    /// grows while the view should be at bottom. SwiftUI reacts via onChange
-    /// to re-scroll, replacing fragile timer-based corrections.
+    /// Incremented whenever the pipeline decides the view should be re-anchored
+    /// to the bottom: by the contentSize observer when content grows during a
+    /// generation or shrinks under the current offset, and by the settle loop
+    /// below when an explicit scroll-to-bottom landed short. SwiftUI reacts via
+    /// onChange with a non-animated scrollTo, replacing fragile timer-based
+    /// corrections.
     var bottomCorrectionTick = 0
+    /// Mirrors `vm.isLoading` so the contentSize observer can distinguish
+    /// streaming-induced growth (follow it) from user-initiated growth such as
+    /// expanding a tool-call or thinking card (leave the viewport alone).
+    var isGenerationActive = false
     weak var scrollView: UIScrollView?
+
+    /// Monotonic token that invalidates in-flight settle passes when a newer
+    /// request supersedes them.
+    @ObservationIgnored private var settleGeneration = 0
+
+    /// True while the user's finger is on the scroll view or a flick is still
+    /// decelerating. Auto-follow must never fight a live gesture.
+    var isUserInteracting: Bool {
+        guard let sv = scrollView else { return false }
+        return ChatScrollGeometry.isUserDriven(sv)
+    }
+
+    /// Drive the scroll view all the way to the bottom even when the content
+    /// height keeps changing after the initial `scrollTo` (async markdown
+    /// layout, table measurement, syntax highlighting, images). A single
+    /// animated `scrollTo` computes its target from the current layout and can
+    /// land short once lazy rows materialize; each settle pass that still finds
+    /// a residual gap bumps `bottomCorrectionTick`, which the SwiftUI layer
+    /// answers with a non-animated `scrollTo`. The loop stops as soon as the
+    /// view is settled at the bottom, the user grabs the scroll view, or the
+    /// attempts are exhausted. The first pass is delayed past the default
+    /// scroll animation so it verifies the landing spot instead of cutting the
+    /// animation off.
+    func requestBottomSettle(attempts: Int = 8,
+                             initialDelay: TimeInterval = 0.45,
+                             interval: TimeInterval = 0.15) {
+        settleGeneration &+= 1
+        scheduleSettlePass(generation: settleGeneration,
+                           remaining: attempts,
+                           delay: initialDelay,
+                           interval: interval)
+    }
+
+    private func scheduleSettlePass(generation: Int,
+                                    remaining: Int,
+                                    delay: TimeInterval,
+                                    interval: TimeInterval) {
+        guard remaining > 0 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, generation == self.settleGeneration else { return }
+            guard !self.userDidScrollAway else { return }
+            guard let sv = self.scrollView else {
+                // Observer not attached yet (first appearance) — retry.
+                self.scheduleSettlePass(generation: generation,
+                                        remaining: remaining - 1,
+                                        delay: interval,
+                                        interval: interval)
+                return
+            }
+            // The user grabbed the view mid-settle; their position wins.
+            guard !ChatScrollGeometry.isUserDriven(sv) else { return }
+            if ChatScrollGeometry.distanceToBottom(sv) > ChatScrollGeometry.bottomTolerance {
+                self.bottomCorrectionTick &+= 1
+                self.scheduleSettlePass(generation: generation,
+                                        remaining: remaining - 1,
+                                        delay: interval,
+                                        interval: interval)
+            }
+        }
+    }
 }
 
 private struct ChatContentView: View {
@@ -200,30 +267,14 @@ private struct ChatContentView: View {
     /// Compute the filtered message list from current view-model state.
     /// The result is stored in `displayMessages` (`@State`) so that SwiftUI
     /// always has a stable snapshot during collection-view batch updates.
+    /// The filtering itself lives in `ChatMessageFilter` so tests exercise
+    /// the exact production logic.
     private func filteredMessages() -> [Message] {
-        if vm.isVerbose { return vm.messages }
-        return vm.messages.filter { msg in
-            if msg.role == .tool { return false }
-            if msg.role == .assistant,
-               let data = msg.toolCallsData,
-               data.count > 2,
-               (msg.content ?? "").isEmpty {
-                return false
-            }
-            return true
-        }
+        ChatMessageFilter.visibleMessages(vm.messages, isVerbose: vm.isVerbose)
     }
 
     private func nearestVisibleId(to target: UUID) -> UUID? {
-        let displayed = displayMessages
-        if displayed.contains(where: { $0.id == target }) { return target }
-        let all = vm.messages
-        guard let idx = all.firstIndex(where: { $0.id == target }) else { return displayed.last?.id }
-        let visibleIds = Set(displayed.map(\.id))
-        for i in stride(from: idx, through: 0, by: -1) {
-            if visibleIds.contains(all[i].id) { return all[i].id }
-        }
-        return displayed.first?.id
+        ChatMessageFilter.nearestVisibleId(to: target, all: vm.messages, displayed: displayMessages)
     }
 
     var body: some View {
@@ -297,30 +348,60 @@ private struct ChatContentView: View {
                     let anchorId = scrollPosition
                     displayMessages = filteredMessages()
                     lastKnownMessageCount = displayMessages.count
-                    // After the filtered list updates, restore scroll to the same
-                    // message. This replaces the old ratio-based setContentOffset
-                    // which broke when rows were removed from the middle.
-                    if let anchorId {
+                    if !scrollState.userDidScrollAway {
+                        // Pinned to the bottom: keep it pinned through the
+                        // structural change instead of restoring a mid-list
+                        // anchor that may resolve slightly off-bottom.
+                        let target: String? = (vm.isLoading && !vm.streamingContent.isEmpty)
+                            ? "streaming"
+                            : displayMessages.last?.id.uuidString
+                        if let target {
+                            DispatchQueue.main.async {
+                                proxy.scrollTo(target, anchor: .bottom)
+                            }
+                            scrollState.requestBottomSettle()
+                        }
+                    } else if let anchorId {
+                        // Restore scroll to the same message. The anchor row may
+                        // have been filtered out (e.g. a tool message when
+                        // switching to silent), which would make scrollTo a
+                        // silent no-op and leave the viewport on unrelated —
+                        // possibly blank — space; resolve to the nearest
+                        // surviving row instead.
+                        var resolved = anchorId
+                        if let uuid = UUID(uuidString: anchorId),
+                           let nearest = nearestVisibleId(to: uuid) {
+                            resolved = nearest.uuidString
+                        }
                         DispatchQueue.main.async {
-                            proxy.scrollTo(anchorId, anchor: .center)
+                            proxy.scrollTo(resolved, anchor: .center)
                         }
                     }
                 }
                 .onAppear {
+                    scrollState.isGenerationActive = vm.isLoading
                     if !hasRestoredScroll {
                         hasRestoredScroll = true
-                        if let target = vm.initialScrollTarget,
-                           let resolved = nearestVisibleId(to: target) {
+                        let lastId = displayMessages.last?.id
+                        let restoreTarget = vm.initialScrollTarget.flatMap { nearestVisibleId(to: $0) }
+                        if let restoreTarget, restoreTarget != lastId {
+                            // Mid-list restore: treat it like a user position so
+                            // async content growth (tables, images, highlighting)
+                            // can't trigger a bottom correction that yanks the
+                            // view away from the restored message.
+                            scrollState.userDidScrollAway = true
                             DispatchQueue.main.async {
-                                proxy.scrollTo(resolved.uuidString, anchor: .center)
+                                proxy.scrollTo(restoreTarget.uuidString, anchor: .center)
                             }
-                        } else if let lastId = displayMessages.last?.id {
+                        } else if let lastId {
                             DispatchQueue.main.async {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                             }
-                            // Subsequent corrections as markdown renders to full
-                            // height are handled reactively by the contentSize
-                            // KVO → bottomCorrectionTick → onChange pipeline.
+                            // The initial scrollTo lands on estimated row heights;
+                            // the settle loop plus the contentSize KVO →
+                            // bottomCorrectionTick pipeline finish the job as
+                            // markdown renders to full height.
+                            scrollState.requestBottomSettle()
                         }
                     }
                 }
@@ -336,21 +417,29 @@ private struct ChatContentView: View {
                     let shouldForce = forceScrollToBottom
                     forceScrollToBottom = false
                     guard shouldForce || !scrollState.userDidScrollAway else { return }
+                    if shouldForce {
+                        // Sending a message re-engages bottom-follow even if the
+                        // user had scrolled away; otherwise the reply streams in
+                        // below the fold with no auto-scroll.
+                        scrollState.userDidScrollAway = false
+                    }
                     withAnimation {
                         proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
                     }
+                    scrollState.requestBottomSettle()
                 }
                 .onChange(of: vm.streamingContent) {
-                    guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty else { return }
-                    withAnimation {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    }
+                    guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty,
+                          !scrollState.isUserInteracting else { return }
+                    // Non-animated: deltas arrive faster than the default scroll
+                    // animation, and restarting an in-flight animation on every
+                    // delta makes the follow stutter and lag.
+                    proxy.scrollTo("streaming", anchor: .bottom)
                 }
                 .onChange(of: vm.streamingThinking) {
-                    guard !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty else { return }
-                    withAnimation {
-                        proxy.scrollTo("streaming", anchor: .bottom)
-                    }
+                    guard !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty,
+                          !scrollState.isUserInteracting else { return }
+                    proxy.scrollTo("streaming", anchor: .bottom)
                 }
                 .onChange(of: scrollState.bottomCorrectionTick) {
                     guard !scrollState.userDidScrollAway else { return }
@@ -361,6 +450,7 @@ private struct ChatContentView: View {
                     }
                 }
                 .onChange(of: vm.isLoading) { oldValue, newValue in
+                    scrollState.isGenerationActive = newValue
                     // Streaming end: the expanded streaming bubble is removed and
                     // replaced by a persisted message whose thinking block starts
                     // collapsed, so the content height collapses sharply. None of
@@ -371,10 +461,17 @@ private struct ChatContentView: View {
                     DispatchQueue.main.async {
                         proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                     }
+                    scrollState.requestBottomSettle()
                 }
 
                 .onDisappear {
-                    if let visibleId = scrollPosition,
+                    if !scrollState.userDidScrollAway {
+                        // Pinned at the bottom: restore to the bottom next time.
+                        // scrollPosition tracks the row at the viewport *center*
+                        // (anchor: .center), so saving it here would restore a
+                        // bottom-pinned session to a message above the last one.
+                        vm.saveScrollPosition(displayMessages.last?.id)
+                    } else if let visibleId = scrollPosition,
                        let uuid = UUID(uuidString: visibleId) {
                         vm.saveScrollPosition(uuid)
                     } else if let lastId = displayMessages.last?.id {
@@ -394,8 +491,11 @@ private struct ChatContentView: View {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                             }
                         }
-                        // Further corrections as content renders are handled
-                        // by the contentSize KVO → bottomCorrectionTick pipeline.
+                        // The animated scrollTo aims at the layout as it is now;
+                        // lazy rows materializing during the scroll can leave it
+                        // short. The settle loop verifies the landing spot and
+                        // re-anchors until the view is truly at the bottom.
+                        scrollState.requestBottomSettle()
                     } label: {
                         Image(systemName: "chevron.down")
                             .font(.system(size: 13, weight: .semibold))
@@ -834,20 +934,6 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
             self.scrollState = scrollState
         }
 
-        /// Highest legal contentOffset.y; anything beyond shows blank space
-        /// below the content.
-        private static func maxOffsetY(_ sv: UIScrollView) -> CGFloat {
-            max(-sv.adjustedContentInset.top,
-                sv.contentSize.height + sv.adjustedContentInset.bottom - sv.bounds.height)
-        }
-
-        /// Signed distance from the current offset to the bottom of the
-        /// content. Negative means over-scrolled past the end: blank space
-        /// is visible and no user content remains below the viewport.
-        private static func distanceToBottom(_ sv: UIScrollView) -> CGFloat {
-            maxOffsetY(sv) - sv.contentOffset.y
-        }
-
         func observe(_ scrollView: UIScrollView) {
             observedScrollView = scrollView
             // Use a CADisplayLink to coalesce contentOffset KVO updates into
@@ -861,12 +947,12 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
 
             offsetObservation = scrollView.observe(\.contentOffset, options: .new) { [weak self] sv, _ in
                 guard let self else { return }
-                let distance = Self.distanceToBottom(sv)
+                let distance = ChatScrollGeometry.distanceToBottom(sv)
                 let isUserScrolling = sv.isTracking || sv.isDragging
                 // Deceleration after a user flick is still user-driven.
                 let isUserDriven = isUserScrolling || sv.isDecelerating
-                let threshold: CGFloat = isUserScrolling ? 50 : 200
-                let near = distance <= threshold
+                let near = ChatScrollGeometry.isNearBottom(distance: distance,
+                                                           isUserScrolling: isUserScrolling)
 
                 if !isUserDriven && distance < -1 {
                     self.pendingOverScrollClamp = true
@@ -878,7 +964,7 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                 // isNearBottom threshold that varies by interaction mode.
                 // This prevents the deceleration-phase 200pt threshold from
                 // immediately resetting userDidScrollAway after it was just set.
-                let awayFromBottom = distance > 50
+                let awayFromBottom = distance > ChatScrollGeometry.userScrollThreshold
                 if isUserDriven && awayFromBottom {
                     if !self.scrollState.userDidScrollAway {
                         DispatchQueue.main.async {
@@ -901,16 +987,24 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
 
             contentSizeObservation = scrollView.observe(\.contentSize) { [weak self] sv, _ in
                 guard let self else { return }
-                let isUserDriven = sv.isTracking || sv.isDragging || sv.isDecelerating
-                let distance = Self.distanceToBottom(sv)
+                let isUserDriven = ChatScrollGeometry.isUserDriven(sv)
+                let distance = ChatScrollGeometry.distanceToBottom(sv)
                 if !isUserDriven && distance < -1 {
                     self.pendingOverScrollClamp = true
                     self.displayLink?.isPaused = false
                 }
                 guard !self.scrollState.userDidScrollAway, !isUserDriven else { return }
                 // distance < -1: content shrank under the current offset
-                // (e.g. streaming bubble removed); re-anchor just like growth.
-                if distance > 50 || distance < -1 {
+                // (e.g. streaming bubble removed); re-anchor unconditionally —
+                // blank space would show otherwise.
+                // Growth only re-anchors while a generation is rendering.
+                // Outside a generation, growth above the viewport is user
+                // action (expanding a tool-call or CoT card) and re-anchoring
+                // would scroll the just-expanded content out of view; explicit
+                // bottom intents cover their own corrections via the settle loop.
+                let followGrowth = self.scrollState.isGenerationActive
+                    && distance > ChatScrollGeometry.userScrollThreshold
+                if followGrowth || distance < -1 {
                     DispatchQueue.main.async {
                         self.scrollState.bottomCorrectionTick &+= 1
                     }
@@ -926,8 +1020,8 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                 // been corrected (or the user may have grabbed the view)
                 // since the KVO fire that scheduled this clamp.
                 if let sv = observedScrollView,
-                   !(sv.isTracking || sv.isDragging || sv.isDecelerating) {
-                    let maxY = Self.maxOffsetY(sv)
+                   !ChatScrollGeometry.isUserDriven(sv) {
+                    let maxY = ChatScrollGeometry.maxOffsetY(sv)
                     if sv.contentOffset.y > maxY + 1 {
                         sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: maxY), animated: false)
                     }

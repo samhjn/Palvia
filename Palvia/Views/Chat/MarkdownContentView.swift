@@ -29,24 +29,54 @@ struct MarkdownContentView: View {
         .accessibilityIdentifier(AccessibilityID.Chat.markdownContent)
         .onAppear { refreshBlocksIfNeeded() }
         .onChange(of: content) { _, _ in refreshBlocksIfNeeded() }
+        .onDisappear { refreshTask?.cancel() }
+    }
+
+    /// Cross-instance parse cache. Rows are re-created whenever the message
+    /// list is rebuilt (verbose/silent toggle, re-entering a session) and
+    /// during fast scrolling through history; without this, every
+    /// re-materialization re-parses the full message on the main thread,
+    /// which shows up as hitching and momentarily blank rows.
+    private final class BlockCacheEntry {
+        let blocks: [MarkdownBlock]
+        init(_ blocks: [MarkdownBlock]) { self.blocks = blocks }
+    }
+
+    private static let blockCache: NSCache<NSString, BlockCacheEntry> = {
+        let cache = NSCache<NSString, BlockCacheEntry>()
+        cache.countLimit = 256
+        return cache
+    }()
+
+    private func cachedOrParsedBlocks() -> [MarkdownBlock] {
+        let key = content as NSString
+        if let entry = Self.blockCache.object(forKey: key) { return entry.blocks }
+        let blocks = parseBlocks()
+        Self.blockCache.setObject(BlockCacheEntry(blocks), forKey: key)
+        return blocks
     }
 
     private func refreshBlocksIfNeeded() {
         guard content != cachedContent else { return }
 
-        if cachedBlocks.isEmpty {
+        // Instant path: first render of this instance, or content another
+        // instance already parsed (cache hit) — no debounce needed.
+        if cachedBlocks.isEmpty || Self.blockCache.object(forKey: content as NSString) != nil {
+            refreshTask?.cancel()
             cachedContent = content
-            cachedBlocks = parseBlocks()
+            cachedBlocks = cachedOrParsedBlocks()
             rebuildInlineCache()
             return
         }
 
+        // Streaming path: content mutates on every delta; debounce the
+        // re-parse so at most ~12 parses/second happen per bubble.
         refreshTask?.cancel()
         refreshTask = Task {
             try? await Task.sleep(for: .milliseconds(80))
             guard !Task.isCancelled else { return }
             cachedContent = content
-            cachedBlocks = parseBlocks()
+            cachedBlocks = cachedOrParsedBlocks()
             rebuildInlineCache()
         }
     }
