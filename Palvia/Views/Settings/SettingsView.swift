@@ -3,6 +3,7 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.keepAliveManager) private var keepAliveManager
     @State private var viewModel: SettingsViewModel?
     @State private var showAddProvider = false
     @State private var showDeleteConfirmation = false
@@ -76,6 +77,13 @@ struct SettingsView: View {
             Section {
                 Toggle(L10n.Settings.backgroundKeepAlive, isOn: $keepAliveEnabled)
                     .accessibilityIdentifier(AccessibilityID.Settings.backgroundToggle)
+                    .onChange(of: keepAliveEnabled) { _, newValue in
+                        // @AppStorage already persisted the flag; route the
+                        // change through the manager so disabling tears down a
+                        // visible Live Activity and enabling starts one for
+                        // sessions that are already running.
+                        keepAliveManager?.isEnabled = newValue
+                    }
             } header: {
                 Text(L10n.Settings.backgroundExecution)
             } footer: {

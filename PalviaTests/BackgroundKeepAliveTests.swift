@@ -115,6 +115,33 @@ final class BackgroundKeepAliveManagerTests: XCTestCase {
         XCTAssertFalse(manager.isEnabled)
     }
 
+    @MainActor
+    func testDisablingMidRunThenCompletingIsSafe() {
+        let manager = BackgroundKeepAliveManager()
+        manager.isEnabled = true
+        let id = UUID()
+        manager.onSessionStarted(sessionId: id, sessionName: "Task")
+        // User flips the Settings toggle off while the task is running —
+        // must tear down without crashing, and the late completion must
+        // remain a no-op for the (already stopped) Live Activity.
+        manager.isEnabled = false
+        manager.onSessionCompleted(sessionId: id, sessionName: "Task", isError: false)
+        XCTAssertFalse(manager.hasActiveSessions)
+    }
+
+    @MainActor
+    func testEnablingMidRunIsSafe() {
+        let manager = BackgroundKeepAliveManager()
+        let id = UUID()
+        manager.onSessionStarted(sessionId: id, sessionName: "Task")
+        // Enabling while work is already running should immediately try to
+        // start the Live Activity for the tracked sessions.
+        manager.isEnabled = true
+        XCTAssertTrue(manager.shouldPreserveStreams)
+        manager.onSessionCompleted(sessionId: id, sessionName: "Task", isError: false)
+        XCTAssertFalse(manager.shouldPreserveStreams)
+    }
+
     // MARK: Smart Foreground Lifecycle
 
     @MainActor
@@ -220,17 +247,33 @@ final class BackgroundKeepAliveManagerTests: XCTestCase {
     }
 
     @MainActor
-    func testNewSessionDuringBackgroundSetsFlag() {
+    func testNewSessionDuringBackgroundSurvivesForegroundReturn() {
         let manager = BackgroundKeepAliveManager()
         manager.isEnabled = true
         manager.activate()
         XCTAssertTrue(manager.isInBackground)
         let id = UUID()
         manager.onSessionStarted(sessionId: id, sessionName: "BG Task")
-        // Return to foreground — should keep activity since task started during background
+        // Return to foreground — the still-running session keeps the activity
         manager.onReturnToForeground()
+        XCTAssertTrue(manager.hasActiveSessions)
         // Clean up
         manager.onSessionCompleted(sessionId: id, sessionName: "BG Task", isError: false)
+    }
+
+    @MainActor
+    func testSessionCompletingDuringBackgroundThenForegroundReturnIsSafe() {
+        let manager = BackgroundKeepAliveManager()
+        manager.isEnabled = true
+        manager.activate()
+        let id = UUID()
+        manager.onSessionStarted(sessionId: id, sessionName: "BG Task")
+        // Completes while still in background — shows a self-dismissing pill
+        manager.onSessionCompleted(sessionId: id, sessionName: "BG Task", isError: false)
+        // Returning to foreground with nothing active must not crash and must
+        // leave no tracked sessions behind.
+        manager.onReturnToForeground()
+        XCTAssertFalse(manager.hasActiveSessions)
     }
 
     // MARK: shouldPreserveStreams
@@ -654,6 +697,35 @@ final class CronLiveActivityManagerStateTests: XCTestCase {
         manager.stop()
         manager.stop()
         XCTAssertFalse(manager.isActive)
+    }
+
+    @MainActor
+    func testDoubleShowCompletionDoesNotCrash() {
+        let manager = CronLiveActivityManager()
+        manager.showCompletionStatus(sessionName: "test", isError: false)
+        manager.showCompletionStatus(sessionName: "test", isError: true)
+        XCTAssertFalse(manager.isActive)
+    }
+
+    @MainActor
+    func testStopAfterShowCompletionDoesNotCrash() {
+        let manager = CronLiveActivityManager()
+        // showCompletionStatus ends the activity itself, so a later stop()
+        // must be a harmless no-op instead of double-ending.
+        manager.showCompletionStatus(sessionName: "test", isError: false)
+        manager.stop()
+        XCTAssertFalse(manager.isActive)
+    }
+
+    func testCompletionPillDismissesItself() {
+        // The completion pill must carry a bounded dismissal window so the
+        // system removes it without the app running.
+        XCTAssertGreaterThan(CronLiveActivityManager.completionDismissalInterval, 0)
+        XCTAssertLessThanOrEqual(CronLiveActivityManager.completionDismissalInterval, 60 * 60)
+    }
+
+    func testRunningContentHasStaleFallback() {
+        XCTAssertGreaterThan(CronLiveActivityManager.staleInterval, 0)
     }
 }
 

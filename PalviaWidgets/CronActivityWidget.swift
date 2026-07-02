@@ -96,6 +96,10 @@ struct CronActivityWidget: Widget {
             return .red
         } else if context.state.isCompleted {
             return .green
+        } else if context.isStale {
+            // The app hasn't refreshed the content past its stale date (it was
+            // likely killed) — dim the accent so the state doesn't read as live.
+            return .gray
         } else {
             return .blue
         }
