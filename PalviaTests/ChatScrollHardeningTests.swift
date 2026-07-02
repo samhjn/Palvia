@@ -405,25 +405,42 @@ final class ScrollObserverGrowthGatingTests: XCTestCase {
         withExtendedLifetime((coordinator, sv)) {}
     }
 
-    func testShrinkUnderOffsetClampsAndReAnchorsEvenWhileIdle() async throws {
+    func testShrinkLeavesNoBlankSpaceBelowContent() async throws {
         let (state, coordinator, sv) = makeObservedPair()
         state.isGenerationActive = false
         sv.contentSize = CGSize(width: 375, height: 3000)
         sv.contentOffset = CGPoint(x: 0, y: 2000)
         try await Task.sleep(for: .milliseconds(50))
-        let ticksBefore = state.bottomCorrectionTick
 
         // Content collapses under the current offset (e.g. streaming bubble
-        // removed, or a huge card collapsed): blank space would show.
+        // removed, or a huge card collapsed). Depending on the OS version,
+        // UIKit may clamp the offset itself during setContentSize — in which
+        // case the observer correctly stays quiet — or leave it over-scrolled,
+        // in which case the observer must clamp/re-anchor. Either way the end
+        // state must have no blank space below the content.
         sv.contentSize = CGSize(width: 375, height: 1000)
-        try await Task.sleep(for: .milliseconds(200))
+        try await Task.sleep(for: .milliseconds(300))
 
-        XCTAssertGreaterThan(state.bottomCorrectionTick, ticksBefore,
-            "Shrink under the offset must re-anchor even without a generation running")
+        XCTAssertGreaterThanOrEqual(ChatScrollGeometry.distanceToBottom(sv), -1,
+            "After a shrink the offset must end inside the legal range (no blank screen)")
+        withExtendedLifetime((coordinator, state, sv)) {}
+    }
+
+    func testDirectOverScrollIsClampedBackToContentEnd() async throws {
+        // makeObservedPair starts with contentSize 1000 in an 812pt viewport.
+        let (state, coordinator, sv) = makeObservedPair()
+        state.isGenerationActive = false
+
+        // Force an over-scrolled offset directly. Unlike a contentSize shrink,
+        // UIKit does not clamp direct contentOffset assignment, so this
+        // deterministically exercises the observer's display-link clamp.
+        sv.contentOffset = CGPoint(x: 0, y: 2000)
+        try await Task.sleep(for: .milliseconds(300))
+
         let maxY = ChatScrollGeometry.maxOffsetY(sv)
-        XCTAssertLessThanOrEqual(sv.contentOffset.y, maxY + 1,
-            "The over-scroll clamp must pull the offset back into the legal range (no blank screen)")
-        withExtendedLifetime((coordinator, sv)) {}
+        XCTAssertEqual(sv.contentOffset.y, maxY, accuracy: 1,
+            "An over-scrolled offset must be clamped back to maxOffsetY (no blank screen)")
+        withExtendedLifetime((coordinator, state, sv)) {}
     }
 }
 
