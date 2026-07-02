@@ -25,6 +25,61 @@ final class PromptBuilder {
         set { UserDefaults.standard.set(newValue, forKey: progressiveDisclosureKey) }
     }
 
+    /// Categorises a system-prompt section so callers (e.g. token analytics)
+    /// can attribute cost to user-authored config vs skills vs framework boilerplate.
+    enum SystemPromptSectionKind {
+        /// Framework-provided text: capabilities/tools, sub-agent hints, related sessions.
+        case base
+        /// User-authored injected markdown: SOUL / MEMORY / USER + custom configs.
+        case config
+        /// Installed-skills section.
+        case skills
+    }
+
+    struct SystemPromptSection {
+        let kind: SystemPromptSectionKind
+        let text: String
+    }
+
+    /// The system prompt as its ordered, labeled sections. `buildSystemPrompt`
+    /// simply joins these, so the produced prompt is byte-identical.
+    func systemPromptSections(
+        for agent: Agent,
+        isSubAgent: Bool = false,
+        relatedSessions: [(id: UUID, title: String, updatedAt: Date)] = [],
+        rootAgentId: UUID? = nil,
+        activatedSkillSlugs: Set<String>? = nil
+    ) -> [SystemPromptSection] {
+        var sections: [SystemPromptSection] = []
+
+        let effectiveRootId = rootAgentId ?? AgentFileManager.shared.resolveAgentId(for: agent)
+        sections.append(.init(kind: .base, text: buildCapabilitiesSection(for: agent, rootAgentId: effectiveRootId)))
+
+        sections.append(.init(kind: .config, text: buildSoulSection(agent.soulMarkdown)))
+
+        if isSubAgent {
+            sections.append(.init(kind: .base, text: buildSubAgentHints()))
+        } else {
+            sections.append(.init(kind: .config, text: buildMemorySection(agent.memoryMarkdown)))
+            sections.append(.init(kind: .config, text: buildUserSection(agent.userMarkdown)))
+        }
+
+        let activeSkills = agent.activeSkills
+        if !activeSkills.isEmpty {
+            sections.append(.init(kind: .skills, text: buildInstalledSkillsSection(activeSkills, activatedSlugs: activatedSkillSlugs)))
+        }
+
+        if !agent.customConfigs.isEmpty {
+            sections.append(.init(kind: .config, text: buildCustomConfigsIndex(agent)))
+        }
+
+        if !relatedSessions.isEmpty {
+            sections.append(.init(kind: .base, text: buildRelatedSessionsSection(relatedSessions)))
+        }
+
+        return sections
+    }
+
     func buildSystemPrompt(
         for agent: Agent,
         isSubAgent: Bool = false,
@@ -32,34 +87,15 @@ final class PromptBuilder {
         rootAgentId: UUID? = nil,
         activatedSkillSlugs: Set<String>? = nil
     ) -> String {
-        var sections: [String] = []
-
-        let effectiveRootId = rootAgentId ?? AgentFileManager.shared.resolveAgentId(for: agent)
-        sections.append(buildCapabilitiesSection(for: agent, rootAgentId: effectiveRootId))
-
-        sections.append(buildSoulSection(agent.soulMarkdown))
-
-        if isSubAgent {
-            sections.append(buildSubAgentHints())
-        } else {
-            sections.append(buildMemorySection(agent.memoryMarkdown))
-            sections.append(buildUserSection(agent.userMarkdown))
-        }
-
-        let activeSkills = agent.activeSkills
-        if !activeSkills.isEmpty {
-            sections.append(buildInstalledSkillsSection(activeSkills, activatedSlugs: activatedSkillSlugs))
-        }
-
-        if !agent.customConfigs.isEmpty {
-            sections.append(buildCustomConfigsIndex(agent))
-        }
-
-        if !relatedSessions.isEmpty {
-            sections.append(buildRelatedSessionsSection(relatedSessions))
-        }
-
-        return sections.joined(separator: "\n\n---\n\n")
+        systemPromptSections(
+            for: agent,
+            isSubAgent: isSubAgent,
+            relatedSessions: relatedSessions,
+            rootAgentId: rootAgentId,
+            activatedSkillSlugs: activatedSkillSlugs
+        )
+        .map(\.text)
+        .joined(separator: "\n\n---\n\n")
     }
 
     func buildSystemPromptWithCompressedContext(

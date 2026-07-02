@@ -130,6 +130,10 @@
 "tokenStats.systemPrompt" = "系統提示詞";
 "tokenStats.toolSchemas" = "工具定義";
 "tokenStats.overheadNote" = "根據最近一次請求估算，每輪都會在訊息之外額外傳送並計費。";
+"tokenStats.configMarkdown" = "設定（SOUL / USER / MEMORY）";
+"tokenStats.skills" = "技能";
+"tokenStats.compressedSummary" = "壓縮摘要";
+"tokenStats.compressedNote" = "%d 則較早的訊息已壓縮為摘要，不再原樣傳送。";
 
 // MARK: - Agents
 "agents.title" = "智能體";

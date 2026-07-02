@@ -47,6 +47,21 @@ struct TokenStatistics: Equatable {
     /// request (also sent and billed every turn). Zero if none / never sent.
     var toolSchemaTokens: Int = 0
 
+    /// Subset of `systemPromptTokens`: user-authored injected config markdown
+    /// (SOUL / MEMORY / USER + custom configs).
+    var configMarkdownTokens: Int = 0
+    /// Subset of `systemPromptTokens`: the installed-skills section.
+    var skillsTokens: Int = 0
+
+    // MARK: Compression
+
+    /// Number of leading messages folded into the compressed summary (i.e. no
+    /// longer sent verbatim). Zero when the session has never been compressed.
+    var compressedMessageCount: Int = 0
+    /// Estimated token size of the compressed-history summary that replaces
+    /// those messages in the context window.
+    var compressedSummaryTokens: Int = 0
+
     // MARK: Counts
 
     var messageCount: Int = 0
@@ -85,6 +100,9 @@ struct TokenStatistics: Equatable {
 
     /// True once a request has been sent and the overhead was captured.
     var hasPerTurnOverhead: Bool { perTurnOverheadTokens > 0 }
+
+    /// True when earlier messages have been compressed into a summary.
+    var isCompressed: Bool { compressedMessageCount > 0 }
 
     /// Active context usage as a fraction of the compression threshold (0...1+).
     var contextUsageRatio: Double {
@@ -154,6 +172,13 @@ struct TokenStatistics: Equatable {
         stats.contextThreshold = session.agent?.effectiveCompressionThreshold ?? ContextManager.compressionThreshold
         stats.systemPromptTokens = session.lastSystemPromptTokens ?? 0
         stats.toolSchemaTokens = session.lastToolSchemaTokens ?? 0
+        stats.configMarkdownTokens = session.lastConfigMarkdownTokens ?? 0
+        stats.skillsTokens = session.lastSkillsTokens ?? 0
+
+        stats.compressedMessageCount = session.compressedUpToIndex
+        if let compressed = session.compressedContext, !compressed.isEmpty {
+            stats.compressedSummaryTokens = TokenEstimator.estimate(compressed)
+        }
         return stats
     }
 

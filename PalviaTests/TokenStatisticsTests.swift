@@ -171,6 +171,8 @@ final class TokenStatisticsTests: XCTestCase {
         let session = Session(title: "S")
         session.lastSystemPromptTokens = 1500
         session.lastToolSchemaTokens = 800
+        session.lastConfigMarkdownTokens = 400
+        session.lastSkillsTokens = 250
         session.messages = [Message(role: .user, content: "Hi", tokenEstimate: 10)]
         context.insert(session)
         try context.save()
@@ -179,10 +181,43 @@ final class TokenStatisticsTests: XCTestCase {
 
         XCTAssertEqual(stats.systemPromptTokens, 1500)
         XCTAssertEqual(stats.toolSchemaTokens, 800)
+        XCTAssertEqual(stats.configMarkdownTokens, 400)
+        XCTAssertEqual(stats.skillsTokens, 250)
         XCTAssertEqual(stats.perTurnOverheadTokens, 2300)
         XCTAssertTrue(stats.hasPerTurnOverhead)
         // Overhead must not leak into the conversation composition.
         XCTAssertEqual(stats.systemTokens, 0)
         XCTAssertEqual(stats.userTokens, 10)
+    }
+
+    // Compression must be visible: the summary size and how many messages it replaced.
+    @MainActor
+    func testCompressionSurfaced() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+
+        let session = Session(title: "S")
+        session.compressedUpToIndex = 12
+        session.compressedContext = String(repeating: "summary text ", count: 40)
+        session.messages = [Message(role: .user, content: "latest", tokenEstimate: 10)]
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertTrue(stats.isCompressed)
+        XCTAssertEqual(stats.compressedMessageCount, 12)
+        XCTAssertGreaterThan(stats.compressedSummaryTokens, 0)
+    }
+
+    func testNotCompressedByDefault() {
+        let stats = TokenStatistics.compute(from: [message(.user, estimate: 10)])
+        XCTAssertFalse(stats.isCompressed)
+        XCTAssertEqual(stats.compressedMessageCount, 0)
+        XCTAssertEqual(stats.compressedSummaryTokens, 0)
     }
 }

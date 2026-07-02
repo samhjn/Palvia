@@ -130,6 +130,10 @@
 "tokenStats.systemPrompt" = "System Prompt";
 "tokenStats.toolSchemas" = "Tool Schemas";
 "tokenStats.overheadNote" = "Estimated from your last request — sent (and billed) every turn on top of the messages.";
+"tokenStats.configMarkdown" = "Config (SOUL / USER / MEMORY)";
+"tokenStats.skills" = "Skills";
+"tokenStats.compressedSummary" = "Compressed Summary";
+"tokenStats.compressedNote" = "%d earlier messages were compressed into a summary and are no longer sent verbatim.";
 
 // MARK: - Agents
 "agents.title" = "Agents";

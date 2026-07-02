@@ -130,6 +130,10 @@
 "tokenStats.systemPrompt" = "システムプロンプト";
 "tokenStats.toolSchemas" = "ツール定義";
 "tokenStats.overheadNote" = "直近のリクエストからの推定値です。メッセージに加えて毎ターン送信・課金されます。";
+"tokenStats.configMarkdown" = "設定（SOUL / USER / MEMORY）";
+"tokenStats.skills" = "スキル";
+"tokenStats.compressedSummary" = "圧縮された要約";
+"tokenStats.compressedNote" = "以前のメッセージ %d 件は要約に圧縮され、そのままは送信されなくなりました。";
 
 // MARK: - Agents
 "agents.title" = "エージェント";

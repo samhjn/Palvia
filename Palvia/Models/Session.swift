@@ -44,6 +44,14 @@ final class Session {
     /// recent request (also billed every turn). Nil until the first send.
     var lastToolSchemaTokens: Int?
 
+    /// Subset of `lastSystemPromptTokens`: user-authored injected config markdown
+    /// (SOUL / MEMORY / USER + custom configs). Nil until the first send.
+    var lastConfigMarkdownTokens: Int?
+
+    /// Subset of `lastSystemPromptTokens`: the installed-skills section. Nil until
+    /// the first send.
+    var lastSkillsTokens: Int?
+
     /// Draft text the user was typing but hasn't sent yet (persisted across app quit / session exit).
     var draftText: String?
 

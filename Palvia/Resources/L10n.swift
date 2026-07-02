@@ -175,6 +175,10 @@ enum L10n {
         static var systemPrompt: String { tr("tokenStats.systemPrompt") }
         static var toolSchemas: String { tr("tokenStats.toolSchemas") }
         static var overheadNote: String { tr("tokenStats.overheadNote") }
+        static var configMarkdown: String { tr("tokenStats.configMarkdown") }
+        static var skills: String { tr("tokenStats.skills") }
+        static var compressedSummary: String { tr("tokenStats.compressedSummary") }
+        static func compressedNote(_ count: Int) -> String { tr("tokenStats.compressedNote", count) }
     }
 
     // MARK: - Agents

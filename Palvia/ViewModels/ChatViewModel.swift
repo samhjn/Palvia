@@ -916,12 +916,13 @@ final class ChatViewModel {
                 relatedSessions = []
             }
 
-            let systemPrompt = promptBuilder.buildSystemPrompt(
+            let promptSections = promptBuilder.systemPromptSections(
                 for: agent,
                 isSubAgent: agent.parentAgent != nil,
                 relatedSessions: relatedSessions,
                 activatedSkillSlugs: session.activatedSkillSlugs
             )
+            let systemPrompt = promptSections.map(\.text).joined(separator: "\n\n---\n\n")
             var contextMessages = contextManager.buildContextWindow(
                 session: session,
                 systemPrompt: systemPrompt
@@ -957,8 +958,16 @@ final class ChatViewModel {
             // Record the per-turn fixed overhead (system prompt + tool schemas)
             // for token analytics. Estimated here, where both are already built
             // on the main actor, rather than re-deriving them in the stats path.
+            // The system prompt is also split into its user-authored config and
+            // skills components for attribution.
             session.lastSystemPromptTokens = TokenEstimator.estimate(systemPrompt)
             session.lastToolSchemaTokens = Self.estimateToolSchemaTokens(toolDefs)
+            session.lastConfigMarkdownTokens = promptSections
+                .filter { $0.kind == .config }
+                .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
+            session.lastSkillsTokens = promptSections
+                .filter { $0.kind == .skills }
+                .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
 
             var fullContent = ""
             var fullThinking = ""

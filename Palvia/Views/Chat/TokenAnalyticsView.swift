@@ -118,6 +118,12 @@ struct TokenAnalyticsView: View {
                     value: stats.systemPromptTokens,
                     systemImage: "text.alignleft",
                     tint: .purple)
+            if stats.configMarkdownTokens > 0 {
+                subRow(label: L10n.TokenStats.configMarkdown, value: stats.configMarkdownTokens)
+            }
+            if stats.skillsTokens > 0 {
+                subRow(label: L10n.TokenStats.skills, value: stats.skillsTokens)
+            }
             if stats.toolSchemaTokens > 0 {
                 statRow(label: L10n.TokenStats.toolSchemas,
                         value: stats.toolSchemaTokens,
@@ -162,8 +168,19 @@ struct TokenAnalyticsView: View {
                 .frame(height: 6)
             }
             .padding(.vertical, 4)
+
+            if stats.isCompressed {
+                statRow(label: L10n.TokenStats.compressedSummary,
+                        value: stats.compressedSummaryTokens,
+                        systemImage: "arrow.down.right.and.arrow.up.left",
+                        tint: .teal)
+            }
         } header: {
             Text(L10n.TokenStats.sectionContext)
+        } footer: {
+            if stats.isCompressed {
+                Text(L10n.TokenStats.compressedNote(stats.compressedMessageCount))
+            }
         }
     }
 
@@ -181,6 +198,21 @@ struct TokenAnalyticsView: View {
                 .fontWeight(emphasized ? .semibold : .regular)
                 .monospacedDigit()
                 .foregroundStyle(emphasized ? .primary : .secondary)
+        }
+    }
+
+    /// Indented, de-emphasized "of which" sub-item beneath a stat row.
+    private func subRow(label: String, value: Int) -> some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 28)
+            Spacer()
+            Text(TokenStatistics.format(value))
+                .font(.subheadline)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
         }
     }
 
