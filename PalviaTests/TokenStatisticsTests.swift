@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import Palvia
 
 final class TokenStatisticsTests: XCTestCase {
@@ -61,22 +62,54 @@ final class TokenStatisticsTests: XCTestCase {
         XCTAssertEqual(stats.averageOutputPerTurn, 65)
     }
 
-    func testCacheHitRate() {
-        let messages = [
-            message(.assistant, estimate: 20, prompt: 200, completion: 50, cacheRead: 50),
-        ]
-        let stats = TokenStatistics.compute(from: messages)
-        XCTAssertEqual(stats.cacheHitRate, 0.25, accuracy: 0.0001)
+    func testHasCacheActivity() {
+        let none = TokenStatistics.compute(from: [message(.assistant, estimate: 20, prompt: 100, completion: 50)])
+        XCTAssertFalse(none.hasCacheActivity)
+
+        let readOnly = TokenStatistics.compute(from: [message(.assistant, estimate: 20, prompt: 100, completion: 50, cacheRead: 40)])
+        XCTAssertTrue(readOnly.hasCacheActivity)
+
+        let writeOnly = TokenStatistics.compute(from: [message(.assistant, estimate: 20, prompt: 100, completion: 50, cacheWrite: 10)])
+        XCTAssertTrue(writeOnly.hasCacheActivity)
     }
 
-    func testCacheHitRateClampedAndZeroSafe() {
-        // No input tokens -> no divide-by-zero.
-        let empty = TokenStatistics.compute(from: [])
-        XCTAssertEqual(empty.cacheHitRate, 0)
+    // Regression: a multi-round tool-call turn (several assistant messages, each
+    // carrying its own usage) must sum input/output/cache across every round,
+    // not just reflect the last one.
+    func testMultiRoundToolCallAggregation() {
+        let messages = [
+            message(.user, estimate: 10),
+            message(.assistant, estimate: 15, prompt: 500, completion: 30, cacheRead: 450),   // round 1: tool call
+            message(.tool, estimate: 800),
+            message(.assistant, estimate: 12, prompt: 900, completion: 25, cacheRead: 850),   // round 2: tool call
+            message(.tool, estimate: 300),
+            message(.assistant, estimate: 40, prompt: 1300, completion: 60, cacheRead: 1200), // round 3: final text
+        ]
+        let stats = TokenStatistics.compute(from: messages)
 
-        // Cache read exceeding billed input clamps to 1.0.
-        let messages = [message(.assistant, estimate: 5, prompt: 10, completion: 5, cacheRead: 999)]
-        XCTAssertEqual(TokenStatistics.compute(from: messages).cacheHitRate, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(stats.turnsWithUsage, 3)
+        XCTAssertEqual(stats.billedInputTokens, 2700)   // 500 + 900 + 1300
+        XCTAssertEqual(stats.billedOutputTokens, 115)   // 30 + 25 + 60
+        XCTAssertEqual(stats.cacheReadTokens, 2500)     // 450 + 850 + 1200
+        XCTAssertEqual(stats.toolTokens, 1100)          // 800 + 300
+        XCTAssertTrue(stats.hasCacheActivity)
+    }
+
+    // Regression for the split-usage bug: Anthropic reports input + cache in
+    // `message_start` and the final output only in `message_delta`. Merging must
+    // preserve the earlier fields instead of overwriting them with nils.
+    func testUsageMergePreservesSplitFields() {
+        let start = LLMUsage(promptTokens: 1200, completionTokens: 1, totalTokens: nil,
+                             cacheCreationInputTokens: 200, cacheReadInputTokens: 1000)
+        let delta = LLMUsage(promptTokens: nil, completionTokens: 350, totalTokens: nil,
+                             cacheCreationInputTokens: nil, cacheReadInputTokens: nil)
+
+        let merged = start.merging(delta)
+
+        XCTAssertEqual(merged.promptTokens, 1200)
+        XCTAssertEqual(merged.completionTokens, 350)
+        XCTAssertEqual(merged.cacheCreationInputTokens, 200)
+        XCTAssertEqual(merged.cacheReadInputTokens, 1000)
     }
 
     func testNoAPIUsage() {
@@ -112,5 +145,79 @@ final class TokenStatisticsTests: XCTestCase {
 
         stats.contextThreshold = 0
         XCTAssertEqual(stats.contextUsageRatio, 0)
+    }
+
+    // MARK: - Per-turn overhead
+
+    func testPerTurnOverheadDefaultsEmpty() {
+        let stats = TokenStatistics.compute(from: [message(.user, estimate: 10)])
+        XCTAssertEqual(stats.systemPromptTokens, 0)
+        XCTAssertEqual(stats.toolSchemaTokens, 0)
+        XCTAssertEqual(stats.perTurnOverheadTokens, 0)
+        XCTAssertFalse(stats.hasPerTurnOverhead)
+    }
+
+    // compute(for:) reads the overhead captured on the session at send time,
+    // without rebuilding the prompt, and keeps it out of the message composition.
+    @MainActor
+    func testPerTurnOverheadReadFromSession() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+
+        let session = Session(title: "S")
+        session.lastSystemPromptTokens = 1500
+        session.lastToolSchemaTokens = 800
+        session.lastConfigMarkdownTokens = 400
+        session.lastSkillsTokens = 250
+        session.messages = [Message(role: .user, content: "Hi", tokenEstimate: 10)]
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertEqual(stats.systemPromptTokens, 1500)
+        XCTAssertEqual(stats.toolSchemaTokens, 800)
+        XCTAssertEqual(stats.configMarkdownTokens, 400)
+        XCTAssertEqual(stats.skillsTokens, 250)
+        XCTAssertEqual(stats.perTurnOverheadTokens, 2300)
+        XCTAssertTrue(stats.hasPerTurnOverhead)
+        // Overhead must not leak into the conversation composition.
+        XCTAssertEqual(stats.systemTokens, 0)
+        XCTAssertEqual(stats.userTokens, 10)
+    }
+
+    // Compression must be visible: the summary size and how many messages it replaced.
+    @MainActor
+    func testCompressionSurfaced() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+
+        let session = Session(title: "S")
+        session.compressedUpToIndex = 12
+        session.compressedContext = String(repeating: "summary text ", count: 40)
+        session.messages = [Message(role: .user, content: "latest", tokenEstimate: 10)]
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertTrue(stats.isCompressed)
+        XCTAssertEqual(stats.compressedMessageCount, 12)
+        XCTAssertGreaterThan(stats.compressedSummaryTokens, 0)
+    }
+
+    func testNotCompressedByDefault() {
+        let stats = TokenStatistics.compute(from: [message(.user, estimate: 10)])
+        XCTAssertFalse(stats.isCompressed)
+        XCTAssertEqual(stats.compressedMessageCount, 0)
+        XCTAssertEqual(stats.compressedSummaryTokens, 0)
     }
 }

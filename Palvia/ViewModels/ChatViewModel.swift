@@ -916,12 +916,13 @@ final class ChatViewModel {
                 relatedSessions = []
             }
 
-            let systemPrompt = promptBuilder.buildSystemPrompt(
+            let promptSections = promptBuilder.systemPromptSections(
                 for: agent,
                 isSubAgent: agent.parentAgent != nil,
                 relatedSessions: relatedSessions,
                 activatedSkillSlugs: session.activatedSkillSlugs
             )
+            let systemPrompt = promptSections.map(\.text).joined(separator: "\n\n---\n\n")
             var contextMessages = contextManager.buildContextWindow(
                 session: session,
                 systemPrompt: systemPrompt
@@ -953,6 +954,20 @@ final class ChatViewModel {
             }
 
             let toolDefs = ToolDefinitions.tools(for: agent, supportsVision: supportsVision)
+
+            // Record the per-turn fixed overhead (system prompt + tool schemas)
+            // for token analytics. Estimated here, where both are already built
+            // on the main actor, rather than re-deriving them in the stats path.
+            // The system prompt is also split into its user-authored config and
+            // skills components for attribution.
+            session.lastSystemPromptTokens = TokenEstimator.estimate(systemPrompt)
+            session.lastToolSchemaTokens = Self.estimateToolSchemaTokens(toolDefs)
+            session.lastConfigMarkdownTokens = promptSections
+                .filter { $0.kind == .config }
+                .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
+            session.lastSkillsTokens = promptSections
+                .filter { $0.kind == .skills }
+                .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
 
             var fullContent = ""
             var fullThinking = ""
@@ -1013,7 +1028,11 @@ final class ChatViewModel {
                 case .toolCall(let toolCall):
                     pendingToolCalls.append(toolCall)
                 case .usage(let usage):
-                    lastUsage = usage
+                    // Merge rather than overwrite: providers such as Anthropic
+                    // split one turn's usage across `message_start` (input +
+                    // cache) and `message_delta` (final output), so the last
+                    // chunk alone loses the prompt and cache counts.
+                    lastUsage = lastUsage?.merging(usage) ?? usage
                 case .done:
                     break
                 case .error(let error):
@@ -1824,6 +1843,16 @@ final class ChatViewModel {
 
     /// Store vendor-reported token counts on the message and update the token
     /// estimate to the API-reported completion tokens when available.
+    /// Estimate the token cost of the tool/function JSON schemas sent with a
+    /// request. Serializes the definitions the way they go over the wire and
+    /// runs the same tokenizer used elsewhere; returns 0 when there are none.
+    private static func estimateToolSchemaTokens(_ tools: [LLMToolDefinition]) -> Int {
+        guard !tools.isEmpty else { return 0 }
+        guard let data = try? JSONEncoder().encode(tools),
+              let json = String(data: data, encoding: .utf8) else { return 0 }
+        return TokenEstimator.estimate(json)
+    }
+
     private static func applyAPIUsage(_ usage: LLMUsage?, to message: Message) {
         guard let usage else { return }
         message.apiPromptTokens = usage.promptTokens

@@ -16,6 +16,9 @@ struct TokenAnalyticsView: View {
                     noUsageSection
                 }
                 compositionSection
+                if stats.hasPerTurnOverhead {
+                    overheadSection
+                }
                 contextSection
             }
             .navigationTitle(L10n.TokenStats.title)
@@ -47,7 +50,7 @@ struct TokenAnalyticsView: View {
                     tint: .primary,
                     emphasized: true)
 
-            if stats.cacheReadTokens > 0 || stats.cacheWriteTokens > 0 {
+            if stats.hasCacheActivity {
                 statRow(label: L10n.TokenStats.cacheRead,
                         value: stats.cacheReadTokens,
                         systemImage: "bolt.horizontal.circle",
@@ -56,8 +59,6 @@ struct TokenAnalyticsView: View {
                         value: stats.cacheWriteTokens,
                         systemImage: "square.and.arrow.down",
                         tint: .orange)
-                plainRow(label: L10n.TokenStats.cacheHitRate,
-                         value: Self.percentFormatter.string(from: NSNumber(value: stats.cacheHitRate)) ?? "0%")
             }
 
             plainRow(label: L10n.TokenStats.avgOutputPerTurn,
@@ -109,6 +110,38 @@ struct TokenAnalyticsView: View {
         }
     }
 
+    // MARK: - Per-turn overhead
+
+    private var overheadSection: some View {
+        Section {
+            statRow(label: L10n.TokenStats.systemPrompt,
+                    value: stats.systemPromptTokens,
+                    systemImage: "text.alignleft",
+                    tint: .purple)
+            if stats.configMarkdownTokens > 0 {
+                subRow(label: L10n.TokenStats.configMarkdown, value: stats.configMarkdownTokens)
+            }
+            if stats.skillsTokens > 0 {
+                subRow(label: L10n.TokenStats.skills, value: stats.skillsTokens)
+            }
+            if stats.toolSchemaTokens > 0 {
+                statRow(label: L10n.TokenStats.toolSchemas,
+                        value: stats.toolSchemaTokens,
+                        systemImage: "wrench.and.screwdriver",
+                        tint: .indigo)
+            }
+            statRow(label: L10n.TokenStats.total,
+                    value: stats.perTurnOverheadTokens,
+                    systemImage: "sum",
+                    tint: .primary,
+                    emphasized: true)
+        } header: {
+            Text(L10n.TokenStats.sectionOverhead)
+        } footer: {
+            Text(L10n.TokenStats.overheadNote)
+        }
+    }
+
     // MARK: - Context window
 
     private var contextSection: some View {
@@ -135,8 +168,19 @@ struct TokenAnalyticsView: View {
                 .frame(height: 6)
             }
             .padding(.vertical, 4)
+
+            if stats.isCompressed {
+                statRow(label: L10n.TokenStats.compressedSummary,
+                        value: stats.compressedSummaryTokens,
+                        systemImage: "arrow.down.right.and.arrow.up.left",
+                        tint: .teal)
+            }
         } header: {
             Text(L10n.TokenStats.sectionContext)
+        } footer: {
+            if stats.isCompressed {
+                Text(L10n.TokenStats.compressedNote(stats.compressedMessageCount))
+            }
         }
     }
 
@@ -154,6 +198,21 @@ struct TokenAnalyticsView: View {
                 .fontWeight(emphasized ? .semibold : .regular)
                 .monospacedDigit()
                 .foregroundStyle(emphasized ? .primary : .secondary)
+        }
+    }
+
+    /// Indented, de-emphasized "of which" sub-item beneath a stat row.
+    private func subRow(label: String, value: Int) -> some View {
+        HStack {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 28)
+            Spacer()
+            Text(TokenStatistics.format(value))
+                .font(.subheadline)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -186,13 +245,6 @@ struct TokenAnalyticsView: View {
         default: return .red
         }
     }
-
-    private static let percentFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .percent
-        f.maximumFractionDigits = 0
-        return f
-    }()
 }
 
 /// A single horizontal stacked bar showing the relative token weight of each role.

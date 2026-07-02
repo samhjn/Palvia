@@ -114,7 +114,6 @@
 "tokenStats.total" = "合計";
 "tokenStats.cacheRead" = "キャッシュ読み取り";
 "tokenStats.cacheWrite" = "キャッシュ書き込み";
-"tokenStats.cacheHitRate" = "キャッシュヒット率";
 "tokenStats.avgOutputPerTurn" = "1ターンあたりの平均出力";
 "tokenStats.turnsWithUsage" = "使用量あり %d ターン";
 "tokenStats.roleSystem" = "システム";
@@ -124,9 +123,17 @@
 "tokenStats.estimatedTotal" = "推定合計";
 "tokenStats.activeContext" = "アクティブなコンテキスト";
 "tokenStats.messages" = "%d 件のメッセージ";
-"tokenStats.billedNote" = "モデルプロバイダーからの報告値です。";
+"tokenStats.billedNote" = "プロバイダー報告値。1ターン内の全 API 呼び出し（ツール呼び出しのラウンドを含む）を合算しています。";
 "tokenStats.estimatedNote" = "ローカルのトークナイザーによる推定値です。";
 "tokenStats.noUsage" = "課金対象のトークン使用量はまだありません。メッセージを送信すると、プロバイダー報告の分析が表示されます。";
+"tokenStats.sectionOverhead" = "毎ターンの固定オーバーヘッド";
+"tokenStats.systemPrompt" = "システムプロンプト";
+"tokenStats.toolSchemas" = "ツール定義";
+"tokenStats.overheadNote" = "直近のリクエストからの推定値です。メッセージに加えて毎ターン送信・課金されます。";
+"tokenStats.configMarkdown" = "設定（SOUL / USER / MEMORY）";
+"tokenStats.skills" = "スキル";
+"tokenStats.compressedSummary" = "圧縮された要約";
+"tokenStats.compressedNote" = "以前のメッセージ %d 件は要約に圧縮され、そのままは送信されなくなりました。";
 
 // MARK: - Agents
 "agents.title" = "エージェント";

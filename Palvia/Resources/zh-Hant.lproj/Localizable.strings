@@ -104,29 +104,36 @@
 "chat.videoFailed" = "失敗：%@";
 
 // MARK: - Token Analytics
-"tokenStats.menuLabel" = "Token 統計分析";
-"tokenStats.title" = "Token 統計分析";
-"tokenStats.sectionBilled" = "計費用量";
+"tokenStats.menuLabel" = "Token 用量";
+"tokenStats.title" = "Token 用量分析";
+"tokenStats.sectionBilled" = "實際用量";
 "tokenStats.sectionComposition" = "上下文組成";
 "tokenStats.sectionContext" = "上下文視窗";
 "tokenStats.input" = "輸入";
 "tokenStats.output" = "輸出";
-"tokenStats.total" = "合計";
-"tokenStats.cacheRead" = "快取讀取";
+"tokenStats.total" = "總計";
+"tokenStats.cacheRead" = "快取命中";
 "tokenStats.cacheWrite" = "快取寫入";
-"tokenStats.cacheHitRate" = "快取命中率";
-"tokenStats.avgOutputPerTurn" = "每輪平均輸出";
-"tokenStats.turnsWithUsage" = "%d 輪含用量";
+"tokenStats.avgOutputPerTurn" = "平均每輪輸出";
+"tokenStats.turnsWithUsage" = "%d 輪有用量資料";
 "tokenStats.roleSystem" = "系統";
 "tokenStats.roleUser" = "你";
 "tokenStats.roleAssistant" = "助手";
 "tokenStats.roleTool" = "工具";
-"tokenStats.estimatedTotal" = "估算合計";
-"tokenStats.activeContext" = "活躍上下文";
+"tokenStats.estimatedTotal" = "估算總計";
+"tokenStats.activeContext" = "目前上下文";
 "tokenStats.messages" = "%d 則訊息";
-"tokenStats.billedNote" = "由模型服務商回報。";
-"tokenStats.estimatedNote" = "由本機分詞器估算。";
-"tokenStats.noUsage" = "尚無計費 Token 用量。傳送一則訊息後即可查看服務商回報的統計。";
+"tokenStats.billedNote" = "服務商回報的實際用量，已累計該回合的每次 API 呼叫（含工具輪次）。";
+"tokenStats.estimatedNote" = "由本機分詞器估算，僅供參考。";
+"tokenStats.noUsage" = "尚無用量資料。傳送訊息後，這裡會顯示服務商回報的 Token 統計。";
+"tokenStats.sectionOverhead" = "每輪固定開銷";
+"tokenStats.systemPrompt" = "系統提示詞";
+"tokenStats.toolSchemas" = "工具定義";
+"tokenStats.overheadNote" = "根據最近一次請求估算，每輪都會在訊息之外額外傳送並計費。";
+"tokenStats.configMarkdown" = "設定（SOUL / USER / MEMORY）";
+"tokenStats.skills" = "技能";
+"tokenStats.compressedSummary" = "壓縮摘要";
+"tokenStats.compressedNote" = "%d 則較早的訊息已壓縮為摘要，不再原樣傳送。";
 
 // MARK: - Agents
 "agents.title" = "智能體";
