@@ -31,10 +31,6 @@ struct MessageBubbleView: View {
         role == .tool
     }
 
-    private var isAssistant: Bool {
-        role == .assistant
-    }
-
     private var isStreaming: Bool {
         streamingContent != nil
     }
@@ -150,12 +146,14 @@ struct MessageBubbleView: View {
         return Self.sanitizeForCopy(streamingContent ?? "")
     }
 
-    /// In silent mode, hide tool results and content-less assistant messages with tool calls.
+    /// In silent mode, hide tool results and content-less assistant messages
+    /// with tool calls. Delegates to `ChatMessageFilter` — the same predicate
+    /// that builds `displayMessages` — so the bubble can never disagree with
+    /// the list filter about visibility (a mismatch leaves zero-height rows
+    /// the scroll anchors then point at).
     private var shouldHideInSilentMode: Bool {
-        guard !isVerbose else { return false }
-        if isTool { return true }
-        if isAssistant, let calls = toolCalls, !calls.isEmpty, content.isEmpty { return true }
-        return false
+        guard !isVerbose, let msg = message else { return false }
+        return !ChatMessageFilter.isVisibleInSilentMode(msg)
     }
 
     var body: some View {
