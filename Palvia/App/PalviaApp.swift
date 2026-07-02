@@ -241,6 +241,7 @@ struct PalviaApp: App {
                 }
         }
         .environment(sessionRouter)
+        .environment(\.keepAliveManager, keepAliveManager)
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .background:

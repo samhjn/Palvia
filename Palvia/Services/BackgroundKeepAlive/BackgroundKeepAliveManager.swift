@@ -31,11 +31,6 @@ final class BackgroundKeepAliveManager {
     private var rotationTimer: Timer?
     /// Whether the app is currently in the background.
     private(set) var isInBackground = false
-    /// Whether any new tasks were started while the app was in background.
-    private var hadNewTasksDuringBackground = false
-    /// Name and error state of the last completed session (persists until new task starts).
-    private var lastCompletionName: String?
-    private var lastCompletionIsError: Bool = false
     /// Whether we are currently showing a completion status.
     private var isShowingCompletion = false
 
@@ -48,7 +43,12 @@ final class BackgroundKeepAliveManager {
         set {
             UserDefaults.standard.set(newValue, forKey: Self.enabledKey)
             updatePreserveFlag()
-            if !newValue { forceDeactivate() }
+            if !newValue {
+                forceDeactivate()
+            } else if !activeSessions.isEmpty {
+                // Turned on while work is already running — show the island now.
+                startOrUpdateActivity()
+            }
         }
     }
 
@@ -67,7 +67,6 @@ final class BackgroundKeepAliveManager {
     /// Called when the app moves to background.
     func activate() {
         isInBackground = true
-        hadNewTasksDuringBackground = false
         guard isEnabled else { return }
 
         // Only start background keep-alive when there are active sessions
@@ -83,12 +82,18 @@ final class BackgroundKeepAliveManager {
         stopRotationTimer()
         endSystemBackgroundTask()
 
-        if activeSessions.isEmpty && !hadNewTasksDuringBackground {
-            // No tasks ran during background and nothing active now — dismiss
+        if activeSessions.isEmpty {
+            // Nothing running. A completion pill has already been ended with
+            // its own dismissal date, so this only tears down an activity
+            // stuck in the "running" state (e.g. the feature was disabled
+            // mid-run, where onSessionCompleted skips the teardown).
             liveActivityManager.stop()
             clearCompletion()
+        } else if isEnabled {
+            // Tasks still running — refresh the island and restart the
+            // rotation timer, which was stopped above.
+            startOrUpdateActivity()
         }
-        // If tasks are still active, keep the Live Activity visible
     }
 
     /// Force-stop the Live Activity (used when user disables the feature).
@@ -128,7 +133,6 @@ final class BackgroundKeepAliveManager {
         updatePreserveFlag()
 
         if isInBackground {
-            hadNewTasksDuringBackground = true
             // Ensure we have a background task when new work starts in background
             beginSystemBackgroundTask()
         }
@@ -166,20 +170,19 @@ final class BackgroundKeepAliveManager {
         sessionBriefs.removeValue(forKey: sessionId)
         updatePreserveFlag()
 
+        if activeSessions.isEmpty {
+            // No more work — release the system background task. It is begun
+            // regardless of `isEnabled`, so it must end before the guard below.
+            endSystemBackgroundTask()
+        }
+
         guard isEnabled else { return }
 
         if activeSessions.isEmpty {
-            // All tasks done — show completion status
+            // All tasks done — show a self-dismissing completion pill
             stopRotationTimer()
-            lastCompletionName = sessionName
-            lastCompletionIsError = isError
             isShowingCompletion = true
             liveActivityManager.showCompletionStatus(sessionName: sessionName, isError: isError)
-
-            // No more work — release the background task
-            if isInBackground {
-                endSystemBackgroundTask()
-            }
         } else {
             // Other tasks still running — update the count
             startOrUpdateActivity()
@@ -258,8 +261,6 @@ final class BackgroundKeepAliveManager {
     }
 
     private func clearCompletion() {
-        lastCompletionName = nil
-        lastCompletionIsError = false
         isShowingCompletion = false
     }
 
