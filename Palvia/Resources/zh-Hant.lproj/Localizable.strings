@@ -126,6 +126,10 @@
 "tokenStats.billedNote" = "服務商回報的實際用量，已累計該回合的每次 API 呼叫（含工具輪次）。";
 "tokenStats.estimatedNote" = "由本機分詞器估算，僅供參考。";
 "tokenStats.noUsage" = "尚無用量資料。傳送訊息後，這裡會顯示服務商回報的 Token 統計。";
+"tokenStats.sectionOverhead" = "每輪固定開銷";
+"tokenStats.systemPrompt" = "系統提示詞";
+"tokenStats.toolSchemas" = "工具定義";
+"tokenStats.overheadNote" = "根據最近一次請求估算，每輪都會在訊息之外額外傳送並計費。";
 
 // MARK: - Agents
 "agents.title" = "智能體";

@@ -126,6 +126,10 @@
 "tokenStats.billedNote" = "プロバイダー報告値。1ターン内の全 API 呼び出し（ツール呼び出しのラウンドを含む）を合算しています。";
 "tokenStats.estimatedNote" = "ローカルのトークナイザーによる推定値です。";
 "tokenStats.noUsage" = "課金対象のトークン使用量はまだありません。メッセージを送信すると、プロバイダー報告の分析が表示されます。";
+"tokenStats.sectionOverhead" = "毎ターンの固定オーバーヘッド";
+"tokenStats.systemPrompt" = "システムプロンプト";
+"tokenStats.toolSchemas" = "ツール定義";
+"tokenStats.overheadNote" = "直近のリクエストからの推定値です。メッセージに加えて毎ターン送信・課金されます。";
 
 // MARK: - Agents
 "agents.title" = "エージェント";

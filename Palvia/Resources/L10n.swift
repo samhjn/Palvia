@@ -171,6 +171,10 @@ enum L10n {
         static var billedNote: String { tr("tokenStats.billedNote") }
         static var estimatedNote: String { tr("tokenStats.estimatedNote") }
         static var noUsage: String { tr("tokenStats.noUsage") }
+        static var sectionOverhead: String { tr("tokenStats.sectionOverhead") }
+        static var systemPrompt: String { tr("tokenStats.systemPrompt") }
+        static var toolSchemas: String { tr("tokenStats.toolSchemas") }
+        static var overheadNote: String { tr("tokenStats.overheadNote") }
     }
 
     // MARK: - Agents

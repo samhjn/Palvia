@@ -16,6 +16,9 @@ struct TokenAnalyticsView: View {
                     noUsageSection
                 }
                 compositionSection
+                if stats.hasPerTurnOverhead {
+                    overheadSection
+                }
                 contextSection
             }
             .navigationTitle(L10n.TokenStats.title)
@@ -104,6 +107,32 @@ struct TokenAnalyticsView: View {
             Text(L10n.TokenStats.sectionComposition)
         } footer: {
             Text("\(L10n.TokenStats.estimatedNote) · \(L10n.TokenStats.messages(stats.messageCount))")
+        }
+    }
+
+    // MARK: - Per-turn overhead
+
+    private var overheadSection: some View {
+        Section {
+            statRow(label: L10n.TokenStats.systemPrompt,
+                    value: stats.systemPromptTokens,
+                    systemImage: "text.alignleft",
+                    tint: .purple)
+            if stats.toolSchemaTokens > 0 {
+                statRow(label: L10n.TokenStats.toolSchemas,
+                        value: stats.toolSchemaTokens,
+                        systemImage: "wrench.and.screwdriver",
+                        tint: .indigo)
+            }
+            statRow(label: L10n.TokenStats.total,
+                    value: stats.perTurnOverheadTokens,
+                    systemImage: "sum",
+                    tint: .primary,
+                    emphasized: true)
+        } header: {
+            Text(L10n.TokenStats.sectionOverhead)
+        } footer: {
+            Text(L10n.TokenStats.overheadNote)
         }
     }
 

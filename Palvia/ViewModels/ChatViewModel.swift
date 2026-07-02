@@ -954,6 +954,12 @@ final class ChatViewModel {
 
             let toolDefs = ToolDefinitions.tools(for: agent, supportsVision: supportsVision)
 
+            // Record the per-turn fixed overhead (system prompt + tool schemas)
+            // for token analytics. Estimated here, where both are already built
+            // on the main actor, rather than re-deriving them in the stats path.
+            session.lastSystemPromptTokens = TokenEstimator.estimate(systemPrompt)
+            session.lastToolSchemaTokens = Self.estimateToolSchemaTokens(toolDefs)
+
             var fullContent = ""
             var fullThinking = ""
             var thinkingSignature: String?
@@ -1828,6 +1834,16 @@ final class ChatViewModel {
 
     /// Store vendor-reported token counts on the message and update the token
     /// estimate to the API-reported completion tokens when available.
+    /// Estimate the token cost of the tool/function JSON schemas sent with a
+    /// request. Serializes the definitions the way they go over the wire and
+    /// runs the same tokenizer used elsewhere; returns 0 when there are none.
+    private static func estimateToolSchemaTokens(_ tools: [LLMToolDefinition]) -> Int {
+        guard !tools.isEmpty else { return 0 }
+        guard let data = try? JSONEncoder().encode(tools),
+              let json = String(data: data, encoding: .utf8) else { return 0 }
+        return TokenEstimator.estimate(json)
+    }
+
     private static func applyAPIUsage(_ usage: LLMUsage?, to message: Message) {
         guard let usage else { return }
         message.apiPromptTokens = usage.promptTokens

@@ -1,4 +1,5 @@
 import XCTest
+import SwiftData
 @testable import Palvia
 
 final class TokenStatisticsTests: XCTestCase {
@@ -144,5 +145,44 @@ final class TokenStatisticsTests: XCTestCase {
 
         stats.contextThreshold = 0
         XCTAssertEqual(stats.contextUsageRatio, 0)
+    }
+
+    // MARK: - Per-turn overhead
+
+    func testPerTurnOverheadDefaultsEmpty() {
+        let stats = TokenStatistics.compute(from: [message(.user, estimate: 10)])
+        XCTAssertEqual(stats.systemPromptTokens, 0)
+        XCTAssertEqual(stats.toolSchemaTokens, 0)
+        XCTAssertEqual(stats.perTurnOverheadTokens, 0)
+        XCTAssertFalse(stats.hasPerTurnOverhead)
+    }
+
+    // compute(for:) reads the overhead captured on the session at send time,
+    // without rebuilding the prompt, and keeps it out of the message composition.
+    @MainActor
+    func testPerTurnOverheadReadFromSession() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+
+        let session = Session(title: "S")
+        session.lastSystemPromptTokens = 1500
+        session.lastToolSchemaTokens = 800
+        session.messages = [Message(role: .user, content: "Hi", tokenEstimate: 10)]
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertEqual(stats.systemPromptTokens, 1500)
+        XCTAssertEqual(stats.toolSchemaTokens, 800)
+        XCTAssertEqual(stats.perTurnOverheadTokens, 2300)
+        XCTAssertTrue(stats.hasPerTurnOverhead)
+        // Overhead must not leak into the conversation composition.
+        XCTAssertEqual(stats.systemTokens, 0)
+        XCTAssertEqual(stats.userTokens, 10)
     }
 }

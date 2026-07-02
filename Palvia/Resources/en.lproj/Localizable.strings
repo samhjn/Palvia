@@ -126,6 +126,10 @@
 "tokenStats.billedNote" = "Provider-reported, summed across every API call in a turn (including tool rounds).";
 "tokenStats.estimatedNote" = "Estimated from the local tokenizer.";
 "tokenStats.noUsage" = "No billed token usage yet. Send a message to see provider-reported analytics.";
+"tokenStats.sectionOverhead" = "Per-Turn Overhead";
+"tokenStats.systemPrompt" = "System Prompt";
+"tokenStats.toolSchemas" = "Tool Schemas";
+"tokenStats.overheadNote" = "Estimated from your last request — sent (and billed) every turn on top of the messages.";
 
 // MARK: - Agents
 "agents.title" = "Agents";

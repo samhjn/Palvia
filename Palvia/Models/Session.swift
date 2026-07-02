@@ -34,6 +34,16 @@ final class Session {
     /// Partial streaming content from assistant (persisted so re-entry can display progress).
     var pendingStreamingContent: String?
 
+    /// Estimated token size of the system prompt sent on the most recent request.
+    /// Captured at send time (where the prompt is already assembled) so token
+    /// analytics can account for this per-turn fixed cost without re-deriving it.
+    /// Nil until the first send since this was introduced.
+    var lastSystemPromptTokens: Int?
+
+    /// Estimated token size of the tool/function JSON schemas sent on the most
+    /// recent request (also billed every turn). Nil until the first send.
+    var lastToolSchemaTokens: Int?
+
     /// Draft text the user was typing but hasn't sent yet (persisted across app quit / session exit).
     var draftText: String?
 

@@ -36,6 +36,17 @@ struct TokenStatistics: Equatable {
     var assistantTokens: Int = 0
     var toolTokens: Int = 0
 
+    // MARK: Per-turn fixed overhead
+
+    /// Estimated size of the system prompt sent on the most recent request
+    /// (SOUL / USER / MEMORY / capabilities / skills). Assembled per request and
+    /// never stored as a `Message`, so it is captured at send time and read back
+    /// here. Sent — and billed — on every turn. Zero if never sent.
+    var systemPromptTokens: Int = 0
+    /// Estimated size of the tool/function JSON schemas sent on the most recent
+    /// request (also sent and billed every turn). Zero if none / never sent.
+    var toolSchemaTokens: Int = 0
+
     // MARK: Counts
 
     var messageCount: Int = 0
@@ -67,6 +78,13 @@ struct TokenStatistics: Equatable {
 
     /// True when the provider reported any prompt-cache activity.
     var hasCacheActivity: Bool { cacheReadTokens > 0 || cacheWriteTokens > 0 }
+
+    /// Fixed input sent on every turn on top of the conversation: system prompt
+    /// plus tool schemas.
+    var perTurnOverheadTokens: Int { systemPromptTokens + toolSchemaTokens }
+
+    /// True once a request has been sent and the overhead was captured.
+    var hasPerTurnOverhead: Bool { perTurnOverheadTokens > 0 }
 
     /// Active context usage as a fraction of the compression threshold (0...1+).
     var contextUsageRatio: Double {
@@ -122,11 +140,20 @@ struct TokenStatistics: Equatable {
         return stats
     }
 
-    /// Convenience that also fills in the active-context figures from a session.
+    /// Convenience that also fills in the active-context figures and the
+    /// per-turn fixed overhead (system prompt + tool schemas) captured on the
+    /// session at send time.
+    ///
+    /// The overhead is read from stored fields rather than rebuilt here on
+    /// purpose: reconstructing the system prompt would mean faulting the agent's
+    /// relationships off the send path — expensive, and unsafe with a
+    /// generation possibly mutating the context.
     static func compute(for session: Session, contextManager: ContextManager = ContextManager()) -> TokenStatistics {
         var stats = compute(from: session.messages)
         stats.activeContextTokens = contextManager.activeContextTokens(session: session)
         stats.contextThreshold = session.agent?.effectiveCompressionThreshold ?? ContextManager.compressionThreshold
+        stats.systemPromptTokens = session.lastSystemPromptTokens ?? 0
+        stats.toolSchemaTokens = session.lastToolSchemaTokens ?? 0
         return stats
     }
 
