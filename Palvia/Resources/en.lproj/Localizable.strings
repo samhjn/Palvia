@@ -7,6 +7,9 @@
 "migration.exitApp" = "Exit App";
 
 // MARK: - Launch Tasks
+"launch.protectedDataTitle" = "Preparing your data";
+"launch.progressStatus" = "%1$@, %2$@ complete";
+"launch.protectedDataMessage" = "Unlock this device once after restart to load Palvia data.";
 "launch.cleaningUp" = "Cleaning up…";
 "launch.buildingIndex" = "Building search index…";
 

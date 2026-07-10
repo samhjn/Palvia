@@ -7,6 +7,9 @@
 "migration.exitApp" = "앱 종료";
 
 // MARK: - Launch Tasks
+"launch.protectedDataTitle" = "데이터 준비 중";
+"launch.progressStatus" = "%1$@, %2$@ 완료";
+"launch.protectedDataMessage" = "재시작 후 Palvia 데이터를 불러오려면 이 기기를 한 번 잠금 해제하세요.";
 "launch.cleaningUp" = "정리 중…";
 "launch.buildingIndex" = "검색 인덱스 구축 중…";
 

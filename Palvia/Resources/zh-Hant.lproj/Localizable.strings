@@ -7,6 +7,9 @@
 "migration.exitApp" = "退出 App";
 
 // MARK: - Launch Tasks
+"launch.protectedDataTitle" = "正在準備資料";
+"launch.progressStatus" = "%1$@，已完成 %2$@";
+"launch.protectedDataMessage" = "裝置重新啟動後請先解鎖一次，以載入 Palvia 資料。";
 "launch.cleaningUp" = "正在清理…";
 "launch.buildingIndex" = "正在建立搜尋索引…";
 
