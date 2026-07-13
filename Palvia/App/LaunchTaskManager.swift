@@ -5,6 +5,8 @@ import Observation
 @Observable
 final class LaunchTaskManager {
 
+    typealias EmbeddingProvider = @Sendable (String) -> [Float]?
+
     enum TaskPhase: Equatable {
         case idle
         case running(description: String, progress: Double?)
@@ -16,9 +18,14 @@ final class LaunchTaskManager {
     private(set) var totalCount = 0
 
     private let container: ModelContainer
+    private let embeddingProvider: EmbeddingProvider?
 
-    init(container: ModelContainer) {
+    init(
+        container: ModelContainer,
+        embeddingProvider: EmbeddingProvider? = nil
+    ) {
         self.container = container
+        self.embeddingProvider = embeddingProvider
     }
 
     // MARK: - Public
@@ -121,7 +128,10 @@ final class LaunchTaskManager {
         let total = pending.count
         guard total > 0 else { return }
 
-        let localService = LocalEmbeddingService()
+        // Keep the production service scoped to one backfill so its embedding
+        // model is reused across every session. Tests may override only the
+        // compute step to avoid depending on NaturalLanguage model warm-up.
+        let localService = embeddingProvider == nil ? LocalEmbeddingService() : nil
         let batchSize = 5
 
         var computed: [(sessionId: UUID, vector: [Float], text: String)] = []
@@ -130,7 +140,13 @@ final class LaunchTaskManager {
             if Task.isCancelled { break }
 
             guard !task.text.isEmpty else { continue }
-            guard let vector = localService.embed(text: task.text) else { continue }
+            let vector: [Float]?
+            if let embeddingProvider {
+                vector = embeddingProvider(task.text)
+            } else {
+                vector = localService?.embed(text: task.text)
+            }
+            guard let vector else { continue }
             computed.append((task.sessionId, vector, task.text))
 
             let progress = Double(index + 1) / Double(total)

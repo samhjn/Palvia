@@ -91,7 +91,14 @@ final class LaunchTaskManagerBatchTests: XCTestCase {
         }
         try context.save()
 
-        let manager = LaunchTaskManager(container: container)
+        // This test exercises the manager's batching and single-context
+        // persistence behavior, not NaturalLanguage model availability. A
+        // deterministic provider avoids making completion depend on the CI
+        // machine's first NLEmbedding model load.
+        let manager = LaunchTaskManager(
+            container: container,
+            embeddingProvider: { _ in [0.1, 0.2, 0.3] }
+        )
         manager.runAll()
 
         for _ in 0..<200 {
@@ -99,6 +106,9 @@ final class LaunchTaskManagerBatchTests: XCTestCase {
             try await Task.sleep(for: .milliseconds(50))
         }
         XCTAssertEqual(manager.phase, .done)
+
+        let embeddings = try context.fetch(FetchDescriptor<SessionEmbedding>())
+        XCTAssertEqual(embeddings.count, 3)
     }
 }
 
