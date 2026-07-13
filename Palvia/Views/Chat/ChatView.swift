@@ -124,9 +124,7 @@ private struct ChatDisplayModeMenu: View {
         Menu {
             Section {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        vm.isVerbose = true
-                    }
+                    vm.isVerbose = true
                 } label: {
                     Label {
                         Text(L10n.Chat.verbose)
@@ -138,9 +136,7 @@ private struct ChatDisplayModeMenu: View {
                 }
                 .accessibilityIdentifier(AccessibilityID.Chat.verboseOption)
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        vm.isVerbose = false
-                    }
+                    vm.isVerbose = false
                 } label: {
                     Label {
                         Text(L10n.Chat.silent)
@@ -346,7 +342,11 @@ private struct ChatContentView: View {
                 .onChange(of: vm.isVerbose) {
                     // Capture the currently visible message before the list changes.
                     let anchorId = scrollPosition
-                    displayMessages = filteredMessages()
+                    var transaction = Transaction(animation: nil)
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        displayMessages = filteredMessages()
+                    }
                     lastKnownMessageCount = displayMessages.count
                     if !scrollState.userDidScrollAway {
                         // Pinned to the bottom: keep it pinned through the
@@ -361,20 +361,20 @@ private struct ChatContentView: View {
                             }
                             scrollState.requestBottomSettle()
                         }
-                    } else if let anchorId {
-                        // Restore scroll to the same message. The anchor row may
-                        // have been filtered out (e.g. a tool message when
-                        // switching to silent), which would make scrollTo a
-                        // silent no-op and leave the viewport on unrelated —
-                        // possibly blank — space; resolve to the nearest
-                        // surviving row instead.
-                        var resolved = anchorId
-                        if let uuid = UUID(uuidString: anchorId),
-                           let nearest = nearestVisibleId(to: uuid) {
-                            resolved = nearest.uuidString
-                        }
+                    } else if let anchorId,
+                              let uuid = UUID(uuidString: anchorId),
+                              !displayMessages.contains(where: { $0.id == uuid }),
+                              let nearest = nearestVisibleId(to: uuid) {
+                        // A message can be much taller than the viewport. Forcing
+                        // a surviving row back to `.center` loses the reader's
+                        // position *inside* that message (often by several
+                        // screens), so let the scroll view preserve its existing
+                        // offset when the anchor survives. Only intervene when
+                        // silent mode removed the anchor itself; otherwise
+                        // scrollTo would target a non-existent row and may leave
+                        // the viewport over blank space.
                         DispatchQueue.main.async {
-                            proxy.scrollTo(resolved, anchor: .center)
+                            proxy.scrollTo(nearest.uuidString, anchor: .center)
                         }
                     }
                 }
