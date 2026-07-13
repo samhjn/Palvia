@@ -6,9 +6,9 @@ private struct ProtectedDataUnavailableView: View {
     var body: some View {
         VStack(spacing: 12) {
             ProgressView()
-            Text("Waiting for protected data")
+            Text(L10n.Launch.protectedDataTitle)
                 .font(.headline)
-            Text("Unlock this device once after restart to load Palvia data.")
+            Text(L10n.Launch.protectedDataMessage)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
