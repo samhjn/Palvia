@@ -382,7 +382,7 @@ final class ChatDisplayModeTests: BaseTestCase {
                 label.localizedCaseInsensitiveContains("Silent") || label.localizedCaseInsensitiveContains("静默"),
                 "Should be in silent mode"
             )
-            // Anchor-based scrollTo preserves position; last-round content should still be visible.
+            // Position preservation keeps the current long-message content visible.
             let found = waitForAnyKeyword(["Result", "错误处理", "throws", "async"], timeout: 5)
             XCTAssertTrue(found, "Assistant content should remain visible in silent mode")
         }
@@ -451,11 +451,11 @@ final class ChatDisplayModeTests: BaseTestCase {
         chat.switchToSilentMode()
         waitForMode("静", chat: chat)
 
-        // Anchor-based scroll correction keeps the same message visible.
-        // No manual swipe needed — if this fails, the scrollTo(anchorId) logic is broken.
+        // The mode switch keeps the same long-message content visible.
+        // No manual swipe should be needed after the filtered list update.
         XCTAssertTrue(waitForAnyKeyword(lastRoundKeywords, timeout: 5),
                       "After Verbose→Silent, last round content should still be visible. " +
-                      "The anchor-based scrollTo should keep the visible message in place.")
+                      "The mode switch should keep the visible content in place.")
     }
 
     /// Verifies that switching Verbose→Silent while scrolled to mid-content
@@ -501,10 +501,10 @@ final class ChatDisplayModeTests: BaseTestCase {
         chat.switchToSilentMode()
         waitForMode("静", chat: chat)
 
-        // Anchor-based scrollTo should keep the same message visible without nudging.
+        // The mode switch should keep the same message content visible without nudging.
         XCTAssertTrue(waitForAnyKeyword(midKeywords, timeout: 5),
                       "After Verbose→Silent at mid-content, Round 2 keywords should still be visible. " +
-                      "The anchor-based scrollTo should preserve the visible message position.")
+                      "The mode switch should preserve the visible message position.")
     }
 
     /// Verifies that switching Verbose→Silent while viewing the first round

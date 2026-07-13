@@ -14,6 +14,22 @@ final class ChatStreamingTests: BaseTestCase {
 
     // MARK: - Helpers
 
+    /// Wait for either mutually-exclusive input action without checking them
+    /// sequentially. Streaming can finish between two `waitForExistence`
+    /// calls, replacing stop with send and making both waits report false.
+    private func waitForChatActionButton(timeout: TimeInterval = 10) -> Bool {
+        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
+        let stopBtn = app.buttons[AccessibilityID.Chat.stopButton]
+        let deadline = Date().addingTimeInterval(timeout)
+
+        repeat {
+            if sendBtn.exists || stopBtn.exists { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        } while Date() < deadline
+
+        return sendBtn.exists || stopBtn.exists
+    }
+
     private func enterStreamingSession() -> ChatPage {
         waitForAppReady()
 
@@ -40,9 +56,7 @@ final class ChatStreamingTests: BaseTestCase {
         }
 
         let chat = ChatPage(app: app)
-        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        let stopBtn = app.buttons[AccessibilityID.Chat.stopButton]
-        let appeared = sendBtn.waitForExistence(timeout: 5) || stopBtn.waitForExistence(timeout: 5)
+        let appeared = waitForChatActionButton()
         XCTAssertTrue(appeared, "Chat view should be displayed (send or stop button visible)")
         return chat
     }
@@ -393,9 +407,7 @@ final class ChatStreamingTests: BaseTestCase {
         }
 
         // After aggressive scrolling, the app should remain responsive
-        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        let stopBtn = app.buttons[AccessibilityID.Chat.stopButton]
-        let responsive = sendBtn.waitForExistence(timeout: 5) || stopBtn.waitForExistence(timeout: 3)
+        let responsive = waitForChatActionButton(timeout: 8)
         XCTAssertTrue(responsive,
                       "App should remain responsive after rapid scrolling during fast streaming.")
 
