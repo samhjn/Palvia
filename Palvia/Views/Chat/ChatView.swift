@@ -277,6 +277,14 @@ private struct ChatContentView: View {
         ChatMessageFilter.nearestVisibleId(to: target, all: vm.messages, displayed: displayMessages)
     }
 
+    private func restoreScroll(proxy: ScrollViewProxy, target: String, anchor: UnitPoint) {
+        Task { @MainActor in
+            proxy.scrollTo(target, anchor: anchor)
+            try? await Task.sleep(for: .milliseconds(120))
+            proxy.scrollTo(target, anchor: anchor)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
@@ -356,9 +364,7 @@ private struct ChatContentView: View {
                             ? "streaming"
                             : displayMessages.last?.id.uuidString
                         if let target {
-                            DispatchQueue.main.async {
-                                proxy.scrollTo(target, anchor: .bottom)
-                            }
+                            restoreScroll(proxy: proxy, target: target, anchor: .bottom)
                             scrollState.requestBottomSettle()
                         }
                     } else if let anchorId {
@@ -373,9 +379,10 @@ private struct ChatContentView: View {
                            let nearest = nearestVisibleId(to: uuid) {
                             resolved = nearest.uuidString
                         }
-                        DispatchQueue.main.async {
-                            proxy.scrollTo(resolved, anchor: .center)
-                        }
+                        restoreScroll(proxy: proxy, target: resolved, anchor: .center)
+                    } else if let target = displayMessages.last?.id.uuidString {
+                        restoreScroll(proxy: proxy, target: target, anchor: .bottom)
+                        scrollState.requestBottomSettle()
                     }
                 }
                 .onAppear {

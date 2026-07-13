@@ -113,8 +113,9 @@ final class ChatMessageFilterTests: XCTestCase {
         let calls = [LLMToolCall(id: "c2", name: "browser_navigate", arguments: "{}")]
         let assistant4 = Message(role: .assistant, content: nil,
                                  toolCallsData: try! JSONEncoder().encode(calls))
-        let user5 = Message(role: .user, content: "Thanks!")
-        let all = [user1, assistant2, tool3, assistant4, user5]
+        let assistant5 = Message(role: .assistant, content: "The forecast is 72F.")
+        let user6 = Message(role: .user, content: "Thanks!")
+        let all = [user1, assistant2, tool3, assistant4, assistant5, user6]
         for msg in all { context.insert(msg) }
         return all
     }
@@ -130,9 +131,9 @@ final class ChatMessageFilterTests: XCTestCase {
     func testSilentModeHidesToolAndEmptyToolCallAssistant() {
         let all = makeMixedMessages()
         let visible = ChatMessageFilter.visibleMessages(all, isVerbose: false)
-        XCTAssertEqual(visible.count, 3)
+        XCTAssertEqual(visible.count, 4)
         XCTAssertFalse(visible.contains { $0.role == .tool })
-        XCTAssertEqual(visible.map(\.id), [all[0].id, all[1].id, all[4].id])
+        XCTAssertEqual(visible.map(\.id), [all[0].id, all[1].id, all[4].id, all[5].id])
     }
 
     @MainActor
@@ -165,17 +166,19 @@ final class ChatMessageFilterTests: XCTestCase {
     }
 
     @MainActor
-    func testNearestVisibleIdWalksBackToPreviousVisibleMessage() {
+    func testNearestVisibleIdUsesClosestSurvivingNeighbor() {
         let all = makeMixedMessages()
         let displayed = ChatMessageFilter.visibleMessages(all, isVerbose: false)
-        // tool3 (idx 2) is filtered; nearest visible predecessor is assistant2.
+        // tool3 (idx 2) is filtered; the next assistant answer is the semantic
+        // continuation of the hidden tool plumbing.
         XCTAssertEqual(
             ChatMessageFilter.nearestVisibleId(to: all[2].id, all: all, displayed: displayed),
-            all[1].id)
-        // assistant4 (idx 3) is filtered; walking back skips tool3 → assistant2.
+            all[4].id)
+        // assistant4 (idx 3) is filtered; restoring should likewise move to
+        // the assistant answer instead of jumping back to earlier content.
         XCTAssertEqual(
             ChatMessageFilter.nearestVisibleId(to: all[3].id, all: all, displayed: displayed),
-            all[1].id)
+            all[4].id)
     }
 
     @MainActor

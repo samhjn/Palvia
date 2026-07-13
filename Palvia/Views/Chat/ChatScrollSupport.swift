@@ -88,17 +88,47 @@ enum ChatMessageFilter {
         return true
     }
 
-    /// Resolve `target` to the nearest message that survives filtering:
-    /// the target itself if visible, else the closest visible predecessor,
-    /// else the first / last displayed message. Returns nil only when
-    /// nothing is displayed at all.
+    /// Resolve `target` to a message that survives filtering: the target
+    /// itself if visible, else the next visible assistant answer when hidden
+    /// tool plumbing sits before it, else the closest surviving neighbor in
+    /// either direction. This matters when verbose → silent removes the row
+    /// currently under the viewport (tool result or tool-call-only assistant):
+    /// restoring only to a predecessor can jump away from the assistant answer
+    /// the user was reading. Returns nil only when nothing is displayed.
     static func nearestVisibleId(to target: UUID, all: [Message], displayed: [Message]) -> UUID? {
         if displayed.contains(where: { $0.id == target }) { return target }
         guard let idx = all.firstIndex(where: { $0.id == target }) else { return displayed.last?.id }
         let visibleIds = Set(displayed.map(\.id))
-        for i in stride(from: idx, through: 0, by: -1) {
-            if visibleIds.contains(all[i].id) { return all[i].id }
+
+        if let forwardAssistant = nextVisibleAssistantContent(after: idx, all: all, visibleIds: visibleIds) {
+            return forwardAssistant
         }
-        return displayed.first?.id
+
+        let maxDistance = max(idx, all.count - idx - 1)
+        guard maxDistance > 0 else { return displayed.last?.id }
+
+        for distance in 1...maxDistance {
+            let next = idx + distance
+            if next < all.count, visibleIds.contains(all[next].id) { return all[next].id }
+
+            let previous = idx - distance
+            if previous >= 0, visibleIds.contains(all[previous].id) { return all[previous].id }
+        }
+
+        return displayed.last?.id
+    }
+
+    private static func nextVisibleAssistantContent(after index: Int,
+                                                    all: [Message],
+                                                    visibleIds: Set<UUID>) -> UUID? {
+        guard index + 1 < all.count else { return nil }
+        for next in all[(index + 1)...] {
+            guard visibleIds.contains(next.id) else { continue }
+            if next.role == .assistant, !(next.content ?? "").isEmpty {
+                return next.id
+            }
+            if next.role == .user { return nil }
+        }
+        return nil
     }
 }
