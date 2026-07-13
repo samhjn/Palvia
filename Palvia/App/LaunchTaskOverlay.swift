@@ -15,12 +15,14 @@ private struct LaunchTaskOverlayModifier: ViewModifier {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let progress {
-                        Text("\(Int(progress * 100))%")
+                        Text(formattedProgress(progress))
                             .font(.caption)
                             .monospacedDigit()
                             .foregroundStyle(.tertiary)
                     }
                 }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(accessibilityLabel(description: description, progress: progress))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(.ultraThinMaterial, in: Capsule())
@@ -42,6 +44,15 @@ private struct LaunchTaskOverlayModifier: ViewModifier {
                 visible = false
             }
         }
+    }
+
+    private func formattedProgress(_ progress: Double) -> String {
+        progress.formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    private func accessibilityLabel(description: String, progress: Double?) -> String {
+        guard let progress else { return description }
+        return L10n.Launch.progressStatus(description, formattedProgress(progress))
     }
 }
 

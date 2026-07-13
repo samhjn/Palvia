@@ -26,6 +26,11 @@ enum L10n {
     // MARK: - Launch Tasks
 
     enum Launch {
+        static var protectedDataTitle: String { tr("launch.protectedDataTitle") }
+        static var protectedDataMessage: String { tr("launch.protectedDataMessage") }
+        static func progressStatus(_ description: String, _ progress: String) -> String {
+            tr("launch.progressStatus", description, progress)
+        }
         static var cleaningUp: String { tr("launch.cleaningUp") }
         static var buildingIndex: String { tr("launch.buildingIndex") }
     }
