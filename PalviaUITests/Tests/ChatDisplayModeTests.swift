@@ -70,6 +70,19 @@ final class ChatDisplayModeTests: BaseTestCase {
 
     // MARK: - Helpers
 
+    /// These scroll-position assertions need a fresh SwiftUI/scroll-view
+    /// lifecycle. Most tests reuse the class app for speed, but mode toggles
+    /// from earlier tests can leave in-flight collection updates attached to
+    /// the shared navigation stack even after returning to the session list.
+    private func restartSeededApp() {
+        app.terminate()
+        let freshApp = XCUIApplication()
+        freshApp.launchArguments += [LaunchArguments.uiTesting, LaunchArguments.seedMarkdown]
+        freshApp.launch()
+        Self.sharedApp = freshApp
+        app = freshApp
+    }
+
     private func enterSeededSession() -> ChatPage {
         let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
         let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
@@ -359,6 +372,7 @@ final class ChatDisplayModeTests: BaseTestCase {
     }
 
     func test_multiRound_silentModeFiltersAcrossAllRounds() {
+        restartSeededApp()
         let chat = enterSeededSession()
 
         XCTContext.runActivity(named: "Verify verbose mode and visible content") { _ in
@@ -442,6 +456,7 @@ final class ChatDisplayModeTests: BaseTestCase {
     /// Verifies that switching Verbose→Silent while viewing the last round
     /// keeps that content visible (not jumped to an unrelated position).
     func test_verboseToSilent_atBottom_remainsAtBottom() {
+        restartSeededApp()
         let chat = enterSeededSession()
 
         let lastRoundKeywords = ["Result", "错误处理", "throws"]
