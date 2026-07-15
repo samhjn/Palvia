@@ -281,6 +281,7 @@ private struct ChatContentView: View {
                         ForEach(displayMessages, id: \.id) { message in
                             MessageBubbleView(message: message, isVerbose: vm.isVerbose)
                                 .id(message.id.uuidString)
+                                .accessibilityElement(children: .contain)
                                 .accessibilityIdentifier(AccessibilityID.Chat.messageBubble)
                         }
 

@@ -463,7 +463,9 @@ final class ChatStreamingTests: BaseTestCase {
     /// scroll offset stays put — stranding the viewport in blank space past
     /// the end of the content with no auto-recovery. Keyword `exists` checks
     /// don't catch this (off-screen elements still exist), so this test
-    /// asserts the last bubble's frame actually intersects the window.
+    /// asserts the final message container's frame actually intersects the
+    /// window. The production view exposes each message as an accessibility
+    /// container so this query does not expand into every Markdown child.
     func test_streaming_noBlankScreenAfterCompletion() {
         _ = enterStreamingSession()
         guard waitForStreamingActive(timeout: 15) else {
@@ -475,7 +477,8 @@ final class ChatStreamingTests: BaseTestCase {
             return
         }
 
-        let bubbles = app.descendants(matching: .any).matching(identifier: AccessibilityID.Chat.messageBubble)
+        let bubbles = app.scrollViews.descendants(matching: .other)
+            .matching(identifier: AccessibilityID.Chat.messageBubble)
         XCTAssertTrue(bubbles.firstMatch.waitForExistence(timeout: 5),
                       "Persisted message bubbles should exist after streaming completes")
 
@@ -488,7 +491,7 @@ final class ChatStreamingTests: BaseTestCase {
         }
         let exp = XCTNSPredicateExpectation(predicate: lastBubbleOnScreen, object: nil)
         XCTAssertEqual(XCTWaiter().wait(for: [exp], timeout: 5), .completed,
-                       "After streaming ends, the last message must be on screen. " +
-                       "A miss means the view is over-scrolled into blank space past the content end.")
+                       "After streaming ends, the final message must remain on screen. " +
+                       "A miss means the viewport is stranded in blank space outside the content.")
     }
 }
