@@ -1531,4 +1531,121 @@ final class LLMUsageTests: XCTestCase {
         XCTAssertNil(usage.completionTokens)
         XCTAssertNil(usage.totalTokens)
     }
+
+    func testUsageDecodesResponsesStyleAliasesFromCompatibleProvider() throws {
+        let data = #"{"input_tokens":321,"output_tokens":45,"total_tokens":366}"#.data(using: .utf8)!
+        let usage = try JSONDecoder().decode(LLMUsage.self, from: data)
+
+        XCTAssertEqual(usage.promptTokens, 321)
+        XCTAssertEqual(usage.completionTokens, 45)
+        XCTAssertEqual(usage.totalTokens, 366)
+    }
+
+    func testUsageDecodesGeminiStyleAliasesFromCompatibleProvider() throws {
+        let data = #"{"prompt_token_count":90,"candidates_token_count":10,"total_token_count":100,"cached_content_token_count":30}"#.data(using: .utf8)!
+        let usage = try JSONDecoder().decode(LLMUsage.self, from: data)
+
+        XCTAssertEqual(usage.promptTokens, 90)
+        XCTAssertEqual(usage.completionTokens, 10)
+        XCTAssertEqual(usage.totalTokens, 100)
+        XCTAssertEqual(usage.cacheReadInputTokens, 30)
+    }
+
+    func testAddingUsageSumsSeparateContinuationRequests() {
+        let first = LLMUsage(promptTokens: 100, completionTokens: 20, totalTokens: 120)
+        let continued = LLMUsage(promptTokens: 130, completionTokens: 30, totalTokens: 160)
+        let total = first.adding(continued)
+
+        XCTAssertEqual(total.promptTokens, 230)
+        XCTAssertEqual(total.completionTokens, 50)
+        XCTAssertEqual(total.totalTokens, 280)
+    }
+}
+
+// MARK: - Interrupted Tool-Call History Repair
+
+final class InterruptedToolCallHistoryTests: XCTestCase {
+
+    func testDanglingToolCallGetsSyntheticResultBeforeNextUserMessage() {
+        let call = LLMToolCall(id: "call_1", name: "file_read", arguments: "{}")
+        let repaired = ContextManager.repairDanglingToolCalls(in: [
+            .user("Read it"),
+            .assistant(nil, toolCalls: [call]),
+            .user("Continue without it")
+        ])
+
+        XCTAssertEqual(repaired.map(\.role), [.user, .assistant, .tool, .user])
+        XCTAssertEqual(repaired[2].toolCallId, "call_1")
+        XCTAssertEqual(repaired[2].name, "file_read")
+        XCTAssertFalse(repaired[2].content?.isEmpty ?? true)
+    }
+
+    func testOnlyMissingResultsAreSynthesizedForMultiToolCall() {
+        let first = LLMToolCall(id: "call_1", name: "one", arguments: "{}")
+        let second = LLMToolCall(id: "call_2", name: "two", arguments: "{}")
+        let repaired = ContextManager.repairDanglingToolCalls(in: [
+            .assistant(nil, toolCalls: [first, second]),
+            .tool(content: "one completed", toolCallId: "call_1", name: "one"),
+            .user("next")
+        ])
+
+        XCTAssertEqual(repaired.filter { $0.role == .tool }.count, 2)
+        XCTAssertEqual(repaired[1].content, "one completed")
+        XCTAssertEqual(repaired[2].toolCallId, "call_2")
+        XCTAssertEqual(repaired[3].role, .user)
+    }
+
+    func testOrphanToolResultIsDroppedWhenCallWasTrimmed() {
+        let repaired = ContextManager.repairDanglingToolCalls(in: [
+            .tool(content: "orphan", toolCallId: "old_call"),
+            .user("hello")
+        ])
+
+        XCTAssertEqual(repaired.count, 1)
+        XCTAssertEqual(repaired.first?.role, .user)
+    }
+}
+
+// MARK: - Output-Limit Termination
+
+final class OutputLimitTerminationTests: XCTestCase {
+
+    func testOpenAIAdapterPreservesLengthFinishReason() {
+        let adapter = OpenAIAdapter(context: LLMAdapterContext(baseURL: "https://example.com", apiKey: "k"))
+        let chunks = adapter.processStreamEvent(.message(data: #"{"id":"x","choices":[{"index":0,"delta":{},"finish_reason":"length"}]}"#))
+
+        XCTAssertTrue(chunks.contains {
+            if case .finishReason(.outputLimit) = $0 { return true }
+            return false
+        })
+    }
+
+    func testAnthropicAdapterPreservesMaxTokensStopReason() {
+        let adapter = AnthropicAdapter(context: LLMAdapterContext(baseURL: "https://example.com", apiKey: "k"))
+        let chunks = adapter.processStreamEvent(.message(data: #"{"type":"message_delta","delta":{"type":"message_delta","stop_reason":"max_tokens"},"usage":{"output_tokens":25}}"#))
+
+        XCTAssertTrue(chunks.contains {
+            if case .finishReason(.outputLimit) = $0 { return true }
+            return false
+        })
+    }
+
+    @MainActor
+    func testAutomaticContinuationIsBoundedAndSkipsToolCalls() {
+        XCTAssertTrue(ChatViewModel.shouldAutomaticallyContinue(
+            after: .outputLimit, completedContinuationCount: 0, hasToolCalls: false
+        ))
+        XCTAssertFalse(ChatViewModel.shouldAutomaticallyContinue(
+            after: .outputLimit,
+            completedContinuationCount: ChatViewModel.maximumAutomaticOutputContinuations,
+            hasToolCalls: false
+        ))
+        XCTAssertFalse(ChatViewModel.shouldAutomaticallyContinue(
+            after: .outputLimit, completedContinuationCount: 0, hasToolCalls: true
+        ))
+        XCTAssertFalse(ChatViewModel.shouldAutomaticallyContinue(
+            after: .stop, completedContinuationCount: 0, hasToolCalls: false
+        ))
+        XCTAssertFalse(ChatViewModel.outputContinuationPrompt.isEmpty)
+    }
 }

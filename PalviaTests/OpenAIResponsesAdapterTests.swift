@@ -139,13 +139,32 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
         XCTAssertEqual(toolCall.function.name, "lookup")
 
         let doneChunks = adapter.processStreamEvent(.message(data: #"{"type":"response.completed","response":{"id":"resp_1","output":[],"usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}}"#))
-        XCTAssertEqual(doneChunks.count, 2)
+        XCTAssertEqual(doneChunks.count, 3)
         guard case .usage(let usage) = doneChunks[0] else {
             return XCTFail("Expected usage chunk")
         }
         XCTAssertEqual(usage.totalTokens, 3)
-        guard case .done = doneChunks[1] else {
+        guard case .finishReason(.stop) = doneChunks[1] else {
+            return XCTFail("Expected stop finish reason")
+        }
+        guard case .done = doneChunks[2] else {
             return XCTFail("Expected done chunk")
+        }
+    }
+
+    func testIncompleteMaxOutputTokensBecomesContinuableCompletion() {
+        let chunks = makeAdapter().processStreamEvent(.message(data: #"{"type":"response.incomplete","response":{"id":"resp_1","output":[],"usage":{"input_tokens":9,"output_tokens":4,"total_tokens":13},"incomplete_details":{"reason":"max_output_tokens"}}}"#))
+
+        XCTAssertEqual(chunks.count, 3)
+        guard case .usage(let usage) = chunks[0] else {
+            return XCTFail("Expected usage before termination")
+        }
+        XCTAssertEqual(usage.totalTokens, 13)
+        guard case .finishReason(.outputLimit) = chunks[1] else {
+            return XCTFail("Expected output-limit finish reason")
+        }
+        guard case .done = chunks[2] else {
+            return XCTFail("Expected a completed stream so ChatViewModel can continue it")
         }
     }
 

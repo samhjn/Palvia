@@ -404,3 +404,112 @@ final class AnthropicThinkingDisabledTests: XCTestCase {
         XCTAssertEqual(dict["budget_tokens"] as? Int, 8192)
     }
 }
+
+// MARK: - LLM HTTP 429 Retry
+
+private final class RateLimitThenSuccessURLProtocol: URLProtocol, @unchecked Sendable {
+    private static let lock = NSLock()
+    private static var _requestCount = 0
+
+    static var requestCount: Int { lock.withLock { _requestCount } }
+    static func reset() { lock.withLock { _requestCount = 0 } }
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        let attempt = Self.lock.withLock { () -> Int in
+            Self._requestCount += 1
+            return Self._requestCount
+        }
+
+        let statusCode = attempt <= 2 ? 429 : 200
+        let headers = attempt <= 2
+            ? ["Content-Type": "application/json", "Retry-After": "0"]
+            : ["Content-Type": "application/json"]
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: statusCode,
+            httpVersion: "HTTP/1.1",
+            headerFields: headers
+        )!
+        let body: Data
+        if statusCode == 429 {
+            body = #"{"error":{"message":"rate limited"}}"#.data(using: .utf8)!
+        } else {
+            body = #"{"id":"ok","choices":[{"index":0,"message":{"role":"assistant","content":"done"},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":1,"total_tokens":4}}"#.data(using: .utf8)!
+        }
+
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+final class LLMRateLimitRetryTests: XCTestCase {
+
+    func testRetryAfterSecondsOverridesBackoff() {
+        let policy = LLMRateLimitRetryPolicy(maxRetries: 3, baseDelay: 1, maximumDelay: 30)
+        XCTAssertEqual(policy.delay(retryAfter: "2.5", retryNumber: 0), 2.5)
+        XCTAssertEqual(policy.delay(retryAfter: "60", retryNumber: 0), 60,
+                       "An explicit server retry delay should not be capped locally")
+        XCTAssertEqual(policy.delay(retryAfter: nil, retryNumber: 0), 1)
+        XCTAssertEqual(policy.delay(retryAfter: nil, retryNumber: 2), 4)
+    }
+
+    func testChatCompletionRetries429OnSameProviderThenSucceeds() async throws {
+        RateLimitThenSuccessURLProtocol.reset()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RateLimitThenSuccessURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+
+        let provider = LLMProvider(
+            name: "Retry Test",
+            endpoint: "https://retry.example/v1",
+            apiKey: "test",
+            modelName: "gpt-4o"
+        )
+        let service = LLMService(
+            provider: provider,
+            urlSession: session,
+            rateLimitRetryPolicy: LLMRateLimitRetryPolicy(maxRetries: 2, baseDelay: 0, maximumDelay: 0),
+            retrySleeper: { _ in }
+        )
+
+        let response = try await service.chatCompletion(messages: [.user("hello")])
+
+        XCTAssertEqual(response.choices.first?.message?.content, "done")
+        XCTAssertEqual(RateLimitThenSuccessURLProtocol.requestCount, 3,
+                       "Two 429 responses should be retried before succeeding")
+    }
+
+    func testChatCompletionStreamRetries429BeforeReturningStream() async throws {
+        RateLimitThenSuccessURLProtocol.reset()
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RateLimitThenSuccessURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+
+        let provider = LLMProvider(
+            name: "Streaming Retry Test",
+            endpoint: "https://retry.example/v1",
+            apiKey: "test",
+            modelName: "gpt-4o"
+        )
+        let service = LLMService(
+            provider: provider,
+            urlSession: session,
+            rateLimitRetryPolicy: LLMRateLimitRetryPolicy(maxRetries: 2, baseDelay: 0, maximumDelay: 0),
+            retrySleeper: { _ in }
+        )
+
+        let result = try await service.chatCompletionStream(messages: [.user("hello")])
+        result.cancel()
+
+        XCTAssertEqual(RateLimitThenSuccessURLProtocol.requestCount, 3,
+                       "Streaming requests should retry 429 on the same provider")
+    }
+}

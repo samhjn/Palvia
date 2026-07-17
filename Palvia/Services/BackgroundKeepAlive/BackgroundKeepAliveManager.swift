@@ -284,6 +284,12 @@ final class BackgroundKeepAliveManager {
     /// - Returns: A tuple of (display text, SF Symbol icon name).
     static func formatSilentStatusBrief(silentStatus: String,
                                         lastTool: String?) -> (text: String, icon: String) {
+        if silentStatus.hasPrefix("continue:") {
+            return (L10n.Chat.continuingOutput, "arrow.clockwise")
+        }
+        if silentStatus == "limit" {
+            return (L10n.Chat.outputLimitReached, "exclamationmark.triangle")
+        }
         if silentStatus.hasPrefix("tool:") {
             let name = String(silentStatus.dropFirst(5))
             let meta = ToolMeta.resolve(name)

@@ -9,8 +9,72 @@ enum StreamChunk {
     case thinkingSignature(String)
     case toolCall(LLMToolCall)
     case usage(LLMUsage)
+    /// Why the provider stopped generating. Kept separate from `.done` so
+    /// callers can distinguish a natural completion from an output-token cap.
+    case finishReason(StreamFinishReason)
     case done
     case error(String)
+}
+
+/// Provider-neutral stream termination reason.
+enum StreamFinishReason: Equatable, Sendable {
+    case stop
+    case toolCalls
+    case outputLimit
+    case other(String)
+
+    init(rawValue: String) {
+        switch rawValue.lowercased() {
+        case "stop", "end_turn", "completed":
+            self = .stop
+        case "tool_calls", "tool_call", "function_call", "tool_use":
+            self = .toolCalls
+        case "length", "max_tokens", "max_output_tokens":
+            self = .outputLimit
+        default:
+            self = .other(rawValue)
+        }
+    }
+
+    var isOutputLimit: Bool { self == .outputLimit }
+}
+
+/// Retry policy for HTTP 429 responses. Retries stay on the same provider;
+/// router-level failover is attempted only after this policy is exhausted.
+struct LLMRateLimitRetryPolicy: Sendable, Equatable {
+    static let `default` = LLMRateLimitRetryPolicy()
+
+    let maxRetries: Int
+    let baseDelay: TimeInterval
+    let maximumDelay: TimeInterval
+
+    init(maxRetries: Int = 3, baseDelay: TimeInterval = 1, maximumDelay: TimeInterval = 30) {
+        self.maxRetries = max(0, maxRetries)
+        self.baseDelay = max(0, baseDelay)
+        self.maximumDelay = max(0, maximumDelay)
+    }
+
+    func delay(retryAfter: String?, retryNumber: Int, now: Date = Date()) -> TimeInterval {
+        if let retryAfter {
+            let trimmed = retryAfter.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let seconds = TimeInterval(trimmed) {
+                // Respect an explicit server hint even when it is longer than
+                // our locally-capped exponential backoff.
+                return max(0, seconds)
+            }
+
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            formatter.dateFormat = "EEE',' dd MMM yyyy HH':'mm':'ss zzz"
+            if let date = formatter.date(from: trimmed) {
+                return max(0, date.timeIntervalSince(now))
+            }
+        }
+
+        let exponent = max(0, retryNumber)
+        return min(baseDelay * pow(2, Double(exponent)), maximumDelay)
+    }
 }
 
 /// Thread-safe holder for the inner SSE-reading Task, allowing external cancellation
@@ -42,6 +106,9 @@ final class LLMService: @unchecked Sendable {
     let provider: LLMProvider
     private let modelNameOverride: String?
     private let thinkingLevelOverride: ThinkingLevel?
+    private let urlSession: URLSession
+    private let rateLimitRetryPolicy: LLMRateLimitRetryPolicy
+    private let retrySleeper: @Sendable (TimeInterval) async throws -> Void
 
     private var baseURL: String { provider.endpoint }
     private var apiKey: String { provider.apiKey }
@@ -82,10 +149,24 @@ final class LLMService: @unchecked Sendable {
         }
     }
 
-    init(provider: LLMProvider, modelNameOverride: String? = nil, thinkingLevelOverride: ThinkingLevel? = nil) {
+    init(
+        provider: LLMProvider,
+        modelNameOverride: String? = nil,
+        thinkingLevelOverride: ThinkingLevel? = nil,
+        urlSession: URLSession = .shared,
+        rateLimitRetryPolicy: LLMRateLimitRetryPolicy = .default,
+        retrySleeper: (@Sendable (TimeInterval) async throws -> Void)? = nil
+    ) {
         self.provider = provider
         self.modelNameOverride = modelNameOverride
         self.thinkingLevelOverride = thinkingLevelOverride
+        self.urlSession = urlSession
+        self.rateLimitRetryPolicy = rateLimitRetryPolicy
+        self.retrySleeper = retrySleeper ?? { seconds in
+            try Task.checkCancellation()
+            guard seconds > 0 else { return }
+            try await Task.sleep(for: .seconds(seconds))
+        }
     }
 
     // MARK: - Fetch available models
@@ -123,9 +204,18 @@ final class LLMService: @unchecked Sendable {
         messages: [LLMChatMessage],
         tools: [LLMToolDefinition]? = nil
     ) async throws -> LLMChatResponse {
+        try await chatCompletion(messages: messages, tools: tools, rateLimitRetry: 0)
+    }
+
+    private func chatCompletion(
+        messages: [LLMChatMessage],
+        tools: [LLMToolDefinition]?,
+        rateLimitRetry: Int
+    ) async throws -> LLMChatResponse {
         let adapter = createAdapter()
         let caps = effectiveCapabilities
-        let adaptedMessages = adaptVideoContentParts(in: messages)
+        let repairedMessages = ContextManager.repairDanglingToolCalls(in: messages)
+        let adaptedMessages = adaptVideoContentParts(in: repairedMessages)
 
         let urlRequest = try adapter.buildChatRequest(
             model: model,
@@ -137,7 +227,22 @@ final class LLMService: @unchecked Sendable {
             thinkingLevel: effectiveThinkingLevel
         )
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await urlSession.data(for: urlRequest)
+
+        if let httpResponse = response as? HTTPURLResponse,
+           httpResponse.statusCode == 429,
+           rateLimitRetry < rateLimitRetryPolicy.maxRetries {
+            let delay = rateLimitRetryPolicy.delay(
+                retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After"),
+                retryNumber: rateLimitRetry
+            )
+            try await retrySleeper(delay)
+            return try await chatCompletion(
+                messages: messages,
+                tools: tools,
+                rateLimitRetry: rateLimitRetry + 1
+            )
+        }
 
         do {
             try APIRequestBuilder.validate(data: data, response: response)
@@ -157,9 +262,18 @@ final class LLMService: @unchecked Sendable {
         messages: [LLMChatMessage],
         tools: [LLMToolDefinition]? = nil
     ) async throws -> (stream: AsyncStream<StreamChunk>, cancel: @Sendable () -> Void) {
+        try await chatCompletionStream(messages: messages, tools: tools, rateLimitRetry: 0)
+    }
+
+    private func chatCompletionStream(
+        messages: [LLMChatMessage],
+        tools: [LLMToolDefinition]?,
+        rateLimitRetry: Int
+    ) async throws -> (stream: AsyncStream<StreamChunk>, cancel: @Sendable () -> Void) {
         let adapter = createAdapter()
         let caps = effectiveCapabilities
-        let adaptedMessages = adaptVideoContentParts(in: messages)
+        let repairedMessages = ContextManager.repairDanglingToolCalls(in: messages)
+        let adaptedMessages = adaptVideoContentParts(in: repairedMessages)
 
         let urlRequest = try adapter.buildStreamRequest(
             model: model,
@@ -171,7 +285,7 @@ final class LLMService: @unchecked Sendable {
             thinkingLevel: effectiveThinkingLevel
         )
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+        let (bytes, response) = try await urlSession.bytes(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMError.invalidResponse
@@ -179,6 +293,19 @@ final class LLMService: @unchecked Sendable {
         guard (200...299).contains(httpResponse.statusCode) else {
             var body = ""
             for try await line in bytes.lines { body += line }
+            if httpResponse.statusCode == 429,
+               rateLimitRetry < rateLimitRetryPolicy.maxRetries {
+                let delay = rateLimitRetryPolicy.delay(
+                    retryAfter: httpResponse.value(forHTTPHeaderField: "Retry-After"),
+                    retryNumber: rateLimitRetry
+                )
+                try await retrySleeper(delay)
+                return try await chatCompletionStream(
+                    messages: messages,
+                    tools: tools,
+                    rateLimitRetry: rateLimitRetry + 1
+                )
+            }
             print("[LLMService] Stream error \(httpResponse.statusCode): \(body.prefix(300))")
             throw LLMError.apiError(statusCode: httpResponse.statusCode, message: body)
         }

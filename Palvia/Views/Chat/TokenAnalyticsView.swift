@@ -12,7 +12,10 @@ struct TokenAnalyticsView: View {
             List {
                 if stats.hasAPIUsage {
                     billedSection
-                } else {
+                }
+                if stats.hasEstimatedUsage {
+                    estimatedUsageSection
+                } else if !stats.hasAPIUsage {
                     noUsageSection
                 }
                 compositionSection
@@ -81,6 +84,28 @@ struct TokenAnalyticsView: View {
             }
         } header: {
             Text(L10n.TokenStats.sectionBilled)
+        }
+    }
+
+    private var estimatedUsageSection: some View {
+        Section {
+            statRow(label: L10n.TokenStats.input,
+                    value: stats.fallbackInputTokens,
+                    systemImage: "arrow.down.circle",
+                    tint: .blue)
+            statRow(label: L10n.TokenStats.output,
+                    value: stats.fallbackOutputTokens,
+                    systemImage: "arrow.up.circle",
+                    tint: .green)
+            statRow(label: L10n.TokenStats.total,
+                    value: stats.fallbackTotalTokens,
+                    systemImage: "sum",
+                    tint: .primary,
+                    emphasized: true)
+        } header: {
+            Text(L10n.TokenStats.sectionEstimatedUsage)
+        } footer: {
+            Text("\(L10n.TokenStats.estimatedUsageNote) · \(L10n.TokenStats.turnsWithEstimatedUsage(stats.turnsWithEstimatedUsage))")
         }
     }
 

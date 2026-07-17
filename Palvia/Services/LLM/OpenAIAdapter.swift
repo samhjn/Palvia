@@ -151,12 +151,13 @@ final class OpenAIAdapter: LLMAPIAdapter, @unchecked Sendable {
             chunks.append(.usage(usage))
         }
 
-        if let reason = chunk.choices.first?.finishReason,
-           isToolCallFinishReason(reason),
-           toolAccum.hasPending {
-            for toolCall in toolAccum.flush() {
-                chunks.append(.toolCall(toolCall))
+        if let reason = chunk.choices.first?.finishReason {
+            if isToolCallFinishReason(reason), toolAccum.hasPending {
+                for toolCall in toolAccum.flush() {
+                    chunks.append(.toolCall(toolCall))
+                }
             }
+            chunks.append(.finishReason(StreamFinishReason(rawValue: reason)))
         }
 
         return chunks

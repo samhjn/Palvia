@@ -80,6 +80,8 @@ enum L10n {
             tr("chat.skillActivated", name)
         }
         static var thinking: String { tr("chat.thinking") }
+        static var continuingOutput: String { tr("chat.continuingOutput") }
+        static var outputLimitReached: String { tr("chat.outputLimitReached") }
         static var compressingContext: String { tr("chat.compressingContext") }
         static var renameSession: String { tr("chat.renameSession") }
         static var rename: String { tr("chat.rename") }
@@ -176,6 +178,9 @@ enum L10n {
         static var billedNote: String { tr("tokenStats.billedNote") }
         static var estimatedNote: String { tr("tokenStats.estimatedNote") }
         static var noUsage: String { tr("tokenStats.noUsage") }
+        static var sectionEstimatedUsage: String { tr("tokenStats.sectionEstimatedUsage") }
+        static var estimatedUsageNote: String { tr("tokenStats.estimatedUsageNote") }
+        static func turnsWithEstimatedUsage(_ count: Int) -> String { tr("tokenStats.turnsWithEstimatedUsage", count) }
         static var sectionOverhead: String { tr("tokenStats.sectionOverhead") }
         static var systemPrompt: String { tr("tokenStats.systemPrompt") }
         static var toolSchemas: String { tr("tokenStats.toolSchemas") }

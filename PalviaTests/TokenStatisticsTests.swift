@@ -122,6 +122,26 @@ final class TokenStatisticsTests: XCTestCase {
         XCTAssertEqual(stats.turnsWithUsage, 0)
         XCTAssertEqual(stats.billedTotalTokens, 0)
         XCTAssertEqual(stats.averageOutputPerTurn, 0)
+        XCTAssertTrue(stats.hasEstimatedUsage)
+        XCTAssertEqual(stats.turnsWithEstimatedUsage, 1)
+        XCTAssertEqual(stats.fallbackInputTokens, 10)
+        XCTAssertEqual(stats.fallbackOutputTokens, 20)
+        XCTAssertEqual(stats.fallbackTotalTokens, 30)
+    }
+
+    func testPartialProviderUsageFallsBackOnlyForMissingField() {
+        let messages = [
+            message(.user, estimate: 12),
+            message(.assistant, estimate: 30, prompt: 120, completion: nil),
+        ]
+        let stats = TokenStatistics.compute(from: messages)
+
+        XCTAssertTrue(stats.hasAPIUsage)
+        XCTAssertEqual(stats.billedInputTokens, 120)
+        XCTAssertEqual(stats.fallbackInputTokens, 0,
+                       "Reported prompt usage must not be replaced by an estimate")
+        XCTAssertEqual(stats.fallbackOutputTokens, 30)
+        XCTAssertEqual(stats.turnsWithEstimatedUsage, 1)
     }
 
     // MARK: - Formatting
@@ -188,6 +208,56 @@ final class TokenStatisticsTests: XCTestCase {
         // Overhead must not leak into the conversation composition.
         XCTAssertEqual(stats.systemTokens, 0)
         XCTAssertEqual(stats.userTokens, 10)
+    }
+
+    @MainActor
+    func testEstimatedUsageIncludesPerTurnOverhead() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let session = Session(title: "S")
+        session.lastSystemPromptTokens = 100
+        session.lastToolSchemaTokens = 50
+        session.messages = [
+            Message(role: .user, content: "Hi", tokenEstimate: 10),
+            Message(role: .assistant, content: "Hello", tokenEstimate: 20),
+        ]
+        let context = ModelContext(container)
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertEqual(stats.fallbackInputTokens, 160,
+                       "10 conversation tokens + 150 fixed request overhead")
+        XCTAssertEqual(stats.fallbackOutputTokens, 20)
+    }
+
+    @MainActor
+    func testEstimatedOverheadIsNotAddedWhenOnlyCompletionUsageIsMissing() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let session = Session(title: "S")
+        session.lastSystemPromptTokens = 100
+        session.lastToolSchemaTokens = 50
+        let user = Message(role: .user, content: "Hi", tokenEstimate: 10)
+        let assistant = Message(role: .assistant, content: "Hello", tokenEstimate: 20)
+        assistant.apiPromptTokens = 500
+        session.messages = [user, assistant]
+        let context = ModelContext(container)
+        context.insert(session)
+        try context.save()
+
+        let stats = TokenStatistics.compute(for: session)
+
+        XCTAssertEqual(stats.billedInputTokens, 500)
+        XCTAssertEqual(stats.fallbackInputTokens, 0)
+        XCTAssertEqual(stats.fallbackOutputTokens, 20)
     }
 
     // Compression must be visible: the summary size and how many messages it replaced.

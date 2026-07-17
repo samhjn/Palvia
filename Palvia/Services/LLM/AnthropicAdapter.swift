@@ -169,12 +169,14 @@ final class AnthropicAdapter: LLMAPIAdapter, @unchecked Sendable {
                     cacheReadInputTokens: usage.cacheReadInputTokens
                 )))
             }
-            if let stopReason = streamEvent.delta?.stopReason,
-               (stopReason == "tool_use" || stopReason == "tool_calls"),
-               toolAccum.hasPending {
-                for toolCall in toolAccum.flush() {
-                    chunks.append(.toolCall(toolCall))
+            if let stopReason = streamEvent.delta?.stopReason {
+                if (stopReason == "tool_use" || stopReason == "tool_calls"),
+                   toolAccum.hasPending {
+                    for toolCall in toolAccum.flush() {
+                        chunks.append(.toolCall(toolCall))
+                    }
                 }
+                chunks.append(.finishReason(StreamFinishReason(rawValue: stopReason)))
             }
 
         case "message_stop":
