@@ -47,6 +47,8 @@
 "chat.cancelling" = "中止中…";
 "chat.skillActivated" = "%@ を有効化しました — 質問をどうぞ。";
 "chat.thinking" = "考え中…";
+"chat.continuingOutput" = "出力上限に達したため、自動的に続きを生成しています…";
+"chat.outputLimitReached" = "応答が繰り返し出力上限に達しました。現在の内容は保存されています。再試行して続行できます。";
 "chat.compressingContext" = "コンテキストを圧縮中…";
 "chat.renameSession" = "セッション名を変更";
 "chat.rename" = "名前変更";
@@ -129,6 +131,9 @@
 "tokenStats.billedNote" = "プロバイダー報告値。1ターン内の全 API 呼び出し（ツール呼び出しのラウンドを含む）を合算しています。";
 "tokenStats.estimatedNote" = "ローカルのトークナイザーによる推定値です。";
 "tokenStats.noUsage" = "課金対象のトークン使用量はまだありません。メッセージを送信すると、プロバイダー報告の分析が表示されます。";
+"tokenStats.sectionEstimatedUsage" = "ローカル使用量の推定";
+"tokenStats.estimatedUsageNote" = "プロバイダーが使用量を返さないリクエストをローカルで推定します。";
+"tokenStats.turnsWithEstimatedUsage" = "%d ターンを推定";
 "tokenStats.sectionOverhead" = "毎ターンの固定オーバーヘッド";
 "tokenStats.systemPrompt" = "システムプロンプト";
 "tokenStats.toolSchemas" = "ツール定義";

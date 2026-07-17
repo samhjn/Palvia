@@ -29,6 +29,15 @@ struct TokenStatistics: Equatable {
     /// Number of assistant turns that carried API usage.
     var turnsWithUsage: Int = 0
 
+    /// Local fallback for calls where the provider omitted all or part of the
+    /// usage payload. Kept separate so estimates are never presented as billed.
+    var fallbackInputTokens: Int = 0
+    var fallbackOutputTokens: Int = 0
+    var turnsWithEstimatedUsage: Int = 0
+    /// Subset of estimated turns whose prompt/input count specifically was
+    /// absent. This keeps prompt overhead out of output-only estimates.
+    var turnsWithEstimatedInputUsage: Int = 0
+
     // MARK: Estimated composition (by role)
 
     var systemTokens: Int = 0
@@ -79,12 +88,17 @@ struct TokenStatistics: Equatable {
 
     var billedTotalTokens: Int { billedInputTokens + billedOutputTokens }
 
+    var fallbackTotalTokens: Int { fallbackInputTokens + fallbackOutputTokens }
+
     var estimatedTotalTokens: Int {
         systemTokens + userTokens + assistantTokens + toolTokens
     }
 
     /// True when at least one turn reported real API usage.
     var hasAPIUsage: Bool { turnsWithUsage > 0 }
+
+    /// True when at least one assistant request needed a local usage estimate.
+    var hasEstimatedUsage: Bool { turnsWithEstimatedUsage > 0 }
 
     /// Average billed output tokens per assistant turn.
     var averageOutputPerTurn: Int {
@@ -117,6 +131,7 @@ struct TokenStatistics: Equatable {
     static func compute(from messages: [Message]) -> TokenStatistics {
         var stats = TokenStatistics()
         stats.messageCount = messages.count
+        var runningContextTokens = 0
 
         for message in messages {
             let estimate = message.tokenEstimate > 0
@@ -137,6 +152,18 @@ struct TokenStatistics: Equatable {
                 stats.toolMessageCount += 1
             }
 
+            if message.role == .assistant,
+               message.apiPromptTokens == nil || message.apiCompletionTokens == nil {
+                stats.turnsWithEstimatedUsage += 1
+                if message.apiPromptTokens == nil {
+                    stats.turnsWithEstimatedInputUsage += 1
+                    stats.fallbackInputTokens += runningContextTokens
+                }
+                if message.apiCompletionTokens == nil {
+                    stats.fallbackOutputTokens += estimate
+                }
+            }
+
             // Billed usage is recorded on the assistant turn.
             if let prompt = message.apiPromptTokens {
                 stats.billedInputTokens += prompt
@@ -153,6 +180,8 @@ struct TokenStatistics: Equatable {
             if message.apiPromptTokens != nil || message.apiCompletionTokens != nil {
                 stats.turnsWithUsage += 1
             }
+
+            runningContextTokens += estimate
         }
 
         return stats
@@ -167,13 +196,16 @@ struct TokenStatistics: Equatable {
     /// relationships off the send path — expensive, and unsafe with a
     /// generation possibly mutating the context.
     static func compute(for session: Session, contextManager: ContextManager = ContextManager()) -> TokenStatistics {
-        var stats = compute(from: session.messages)
+        var stats = compute(from: session.sortedMessages)
         stats.activeContextTokens = contextManager.activeContextTokens(session: session)
         stats.contextThreshold = session.agent?.effectiveCompressionThreshold ?? ContextManager.compressionThreshold
         stats.systemPromptTokens = session.lastSystemPromptTokens ?? 0
         stats.toolSchemaTokens = session.lastToolSchemaTokens ?? 0
         stats.configMarkdownTokens = session.lastConfigMarkdownTokens ?? 0
         stats.skillsTokens = session.lastSkillsTokens ?? 0
+        // The fixed system/tool overhead is part of every prompt. Add it only
+        // to locally-estimated calls; provider-reported input already includes it.
+        stats.fallbackInputTokens += stats.perTurnOverheadTokens * stats.turnsWithEstimatedInputUsage
 
         stats.compressedMessageCount = session.compressedUpToIndex
         if let compressed = session.compressedContext, !compressed.isEmpty {

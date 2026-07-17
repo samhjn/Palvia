@@ -748,7 +748,15 @@ private struct ChatContentView: View {
 
     @ViewBuilder
     private func silentLabel(for status: String) -> some View {
-        if status == "tool:generate_video", let phase = ChatViewModel.videoProgress[vm.session.id] {
+        if status.hasPrefix("continue:") {
+            Label(L10n.Chat.continuingOutput, systemImage: "arrow.clockwise")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        } else if status == "limit" {
+            Label(L10n.Chat.outputLimitReached, systemImage: "exclamationmark.triangle")
+                .font(.subheadline)
+                .foregroundStyle(.orange)
+        } else if status == "tool:generate_video", let phase = ChatViewModel.videoProgress[vm.session.id] {
             videoProgressLabel(phase: phase)
         } else if status.hasPrefix("tool:") {
             let name = String(status.dropFirst(5))

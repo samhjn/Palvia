@@ -47,6 +47,8 @@
 "chat.cancelling" = "중지 중…";
 "chat.skillActivated" = "%@ 이(가) 활성화되었습니다 — 질문을 입력하세요.";
 "chat.thinking" = "생각 중…";
+"chat.continuingOutput" = "출력 한도에 도달하여 자동으로 이어서 생성 중…";
+"chat.outputLimitReached" = "응답이 반복해서 출력 한도에 도달했습니다. 현재 내용은 저장되었으며 재시도하여 계속할 수 있습니다.";
 "chat.compressingContext" = "컨텍스트 압축 중…";
 "chat.renameSession" = "세션 이름 변경";
 "chat.rename" = "이름 변경";
@@ -129,6 +131,9 @@
 "tokenStats.billedNote" = "제공업체가 보고한 값이며, 한 턴의 모든 API 호출(도구 호출 라운드 포함)을 합산했습니다.";
 "tokenStats.estimatedNote" = "로컬 토크나이저로 추정한 값입니다.";
 "tokenStats.noUsage" = "아직 청구된 토큰 사용량이 없습니다. 메시지를 보내면 제공업체가 보고한 분석을 볼 수 있습니다.";
+"tokenStats.sectionEstimatedUsage" = "로컬 사용량 추정";
+"tokenStats.estimatedUsageNote" = "제공업체가 사용량을 반환하지 않은 요청을 로컬에서 추정합니다.";
+"tokenStats.turnsWithEstimatedUsage" = "%d개 턴 추정";
 "tokenStats.sectionOverhead" = "턴당 고정 오버헤드";
 "tokenStats.systemPrompt" = "시스템 프롬프트";
 "tokenStats.toolSchemas" = "도구 스키마";

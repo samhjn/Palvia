@@ -827,8 +827,36 @@ final class ChatViewModel {
 
     private var generationDepth = 0
 
+    /// Bound automatic continuations so a model that repeatedly reports an
+    /// output cap cannot create an unbounded request/cost loop.
+    static let maximumAutomaticOutputContinuations = 3
+    static let outputContinuationPrompt = "Continue the previous response exactly where it stopped. Do not repeat completed text, add a new introduction, or mention the token limit."
+
+    static func shouldAutomaticallyContinue(
+        after finishReason: StreamFinishReason?,
+        completedContinuationCount: Int,
+        hasToolCalls: Bool
+    ) -> Bool {
+        finishReason?.isOutputLimit == true
+            && !hasToolCalls
+            && completedContinuationCount < maximumAutomaticOutputContinuations
+    }
+
+    private struct OutputContinuation {
+        let content: String
+        let thinking: String
+        let thinkingSignature: String?
+        let usage: LLMUsage?
+        let count: Int
+    }
+
     @MainActor
     func generateResponse() async {
+        await generateResponse(continuation: nil)
+    }
+
+    @MainActor
+    private func generateResponse(continuation: OutputContinuation?) async {
         let isTopLevel = generationDepth == 0
         generationDepth += 1
 
@@ -840,6 +868,10 @@ final class ChatViewModel {
             canRetry = false
             session.isActive = true
             try? modelContext.save()
+        } else if let continuation {
+            silentStatus = "continue:\(continuation.count)"
+            streamingContent = continuation.content
+            streamingThinking = continuation.thinking
         } else {
             silentRound += 1
             silentStatus = "think:\(silentRound)"
@@ -927,6 +959,16 @@ final class ChatViewModel {
                 session: session,
                 systemPrompt: systemPrompt
             )
+            if let continuation {
+                // The continuation instruction is request-local: keeping it out
+                // of persisted chat history avoids showing a synthetic user turn.
+                contextMessages.append(.assistant(
+                    continuation.content,
+                    reasoningContent: continuation.thinking.isEmpty ? nil : continuation.thinking,
+                    thinkingSignature: continuation.thinkingSignature
+                ))
+                contextMessages.append(.user(Self.outputContinuationPrompt))
+            }
 
             let chain = router.resolveProviderChainWithModels(for: agent)
             var supportsVision = false
@@ -969,11 +1011,18 @@ final class ChatViewModel {
                 .filter { $0.kind == .skills }
                 .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
 
-            var fullContent = ""
-            var fullThinking = ""
-            var thinkingSignature: String?
+            var fullContent = continuation?.content ?? ""
+            var fullThinking = continuation?.thinking ?? ""
+            var thinkingSignature: String? = continuation?.thinkingSignature
             var pendingToolCalls: [LLMToolCall] = []
-            var lastUsage: LLMUsage?
+            var requestUsage: LLMUsage?
+            var finishReason: StreamFinishReason?
+
+            if continuation != nil {
+                streamingContent = fullContent
+                streamingThinking = fullThinking
+                Self.streamingRelays[session.id]?.send(content: fullContent, thinking: fullThinking)
+            }
 
             let (stream, providerName, _, cancelStream) = try await router.chatCompletionStreamWithFailover(
                 agent: agent,
@@ -1032,7 +1081,9 @@ final class ChatViewModel {
                     // split one turn's usage across `message_start` (input +
                     // cache) and `message_delta` (final output), so the last
                     // chunk alone loses the prompt and cache counts.
-                    lastUsage = lastUsage?.merging(usage) ?? usage
+                    requestUsage = requestUsage?.merging(usage) ?? usage
+                case .finishReason(let reason):
+                    finishReason = reason
                 case .done:
                     break
                 case .error(let error):
@@ -1062,6 +1113,40 @@ final class ChatViewModel {
                 return
             }
 
+            let combinedUsage: LLMUsage? = {
+                switch (continuation?.usage, requestUsage) {
+                case let (existing?, latest?): return existing.adding(latest)
+                case let (existing?, nil): return existing
+                case let (nil, latest?): return latest
+                case (nil, nil): return nil
+                }
+            }()
+
+            if Self.shouldAutomaticallyContinue(
+                after: finishReason,
+                completedContinuationCount: continuation?.count ?? 0,
+                hasToolCalls: !pendingToolCalls.isEmpty
+            ) {
+                let continuationCount = (continuation?.count ?? 0) + 1
+                session.pendingStreamingContent = fullContent
+                session.updatedAt = Date()
+                try? modelContext.save()
+                silentStatus = "continue:\(continuationCount)"
+                await generateResponse(continuation: OutputContinuation(
+                    content: fullContent,
+                    thinking: fullThinking,
+                    thinkingSignature: thinkingSignature,
+                    usage: combinedUsage,
+                    count: continuationCount
+                ))
+                return
+            }
+            if finishReason?.isOutputLimit == true, pendingToolCalls.isEmpty {
+                // Preserve all generated text, but surface the bounded-loop
+                // failure both in-app and through the Live Activity status.
+                silentStatus = "limit"
+            }
+
             let (cleanedContent, thinkingFromTags) = Self.extractThinkTags(from: fullContent)
             let combinedThinking: String? = {
                 var parts: [String] = []
@@ -1084,7 +1169,7 @@ final class ChatViewModel {
                 assistantMsg.thinkingContent = combinedThinking
                 assistantMsg.thinkingSignature = thinkingSignature
                 assistantMsg.extractAndStoreInlineImages(agentId: agentId)
-                Self.applyAPIUsage(lastUsage, to: assistantMsg)
+                Self.applyAPIUsage(combinedUsage, to: assistantMsg)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 try? modelContext.save()
@@ -1097,7 +1182,7 @@ final class ChatViewModel {
                 assistantMsg.thinkingSignature = thinkingSignature
                 assistantMsg.extractAndStoreInlineImages(agentId: agentId)
                 attachPendingToolMedia(to: assistantMsg)
-                Self.applyAPIUsage(lastUsage, to: assistantMsg)
+                Self.applyAPIUsage(combinedUsage, to: assistantMsg)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 session.updatedAt = Date()
@@ -1106,12 +1191,17 @@ final class ChatViewModel {
             } else if !pendingToolImageAttachments.isEmpty || !pendingToolVideoAttachments.isEmpty {
                 let assistantMsg = Message(role: .assistant, content: nil)
                 attachPendingToolMedia(to: assistantMsg)
-                Self.applyAPIUsage(lastUsage, to: assistantMsg)
+                Self.applyAPIUsage(combinedUsage, to: assistantMsg)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 session.updatedAt = Date()
                 try? modelContext.save()
                 loadMessages()
+            }
+
+            if finishReason?.isOutputLimit == true {
+                errorMessage = L10n.Chat.outputLimitReached
+                canRetry = true
             }
         } catch {
             if Task.isCancelled || cancelled {

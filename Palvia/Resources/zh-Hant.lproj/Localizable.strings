@@ -47,6 +47,8 @@
 "chat.cancelling" = "正在中止…";
 "chat.skillActivated" = "%@ 已啟用——請提出你的問題。";
 "chat.thinking" = "思考中…";
+"chat.continuingOutput" = "輸出達到上限，正在自動續寫…";
+"chat.outputLimitReached" = "回應多次達到輸出上限，已儲存目前內容，可重試繼續。";
 "chat.compressingContext" = "正在壓縮上下文…";
 "chat.renameSession" = "重新命名對話";
 "chat.rename" = "重新命名";
@@ -129,6 +131,9 @@
 "tokenStats.billedNote" = "服務商回報的實際用量，已累計該回合的每次 API 呼叫（含工具輪次）。";
 "tokenStats.estimatedNote" = "由本機分詞器估算，僅供參考。";
 "tokenStats.noUsage" = "尚無用量資料。傳送訊息後，這裡會顯示服務商回報的 Token 統計。";
+"tokenStats.sectionEstimatedUsage" = "本機用量估算";
+"tokenStats.estimatedUsageNote" = "服務商未回傳用量時使用本機估算，不作為計費依據。";
+"tokenStats.turnsWithEstimatedUsage" = "%d 輪估算";
 "tokenStats.sectionOverhead" = "每輪固定開銷";
 "tokenStats.systemPrompt" = "系統提示詞";
 "tokenStats.toolSchemas" = "工具定義";

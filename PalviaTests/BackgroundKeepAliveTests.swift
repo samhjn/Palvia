@@ -559,6 +559,22 @@ final class SilentStatusBriefFormatterTests: XCTestCase {
         XCTAssertEqual(brief.text, L10n.Chat.silentThinking(3))
     }
 
+    func testOutputContinuationStatusIsForwardedToLiveActivity() {
+        let brief = BackgroundKeepAliveManager.formatSilentStatusBrief(
+            silentStatus: "continue:1", lastTool: nil
+        )
+        XCTAssertEqual(brief.text, L10n.Chat.continuingOutput)
+        XCTAssertEqual(brief.icon, "arrow.clockwise")
+    }
+
+    func testExhaustedOutputLimitIsForwardedAsWarning() {
+        let brief = BackgroundKeepAliveManager.formatSilentStatusBrief(
+            silentStatus: "limit", lastTool: nil
+        )
+        XCTAssertEqual(brief.text, L10n.Chat.outputLimitReached)
+        XCTAssertEqual(brief.icon, "exclamationmark.triangle")
+    }
+
     func testMalformedStatusFallsBackToThinking() {
         let brief = BackgroundKeepAliveManager.formatSilentStatusBrief(
             silentStatus: "garbage", lastTool: nil

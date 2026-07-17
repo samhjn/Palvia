@@ -108,9 +108,24 @@ final class OpenAIResponsesAdapter: LLMAPIAdapter, @unchecked Sendable {
             if let usage = event.response?.usage?.asLLMUsage {
                 chunks.append(.usage(usage))
             }
+            chunks.append(.finishReason(.stop))
             chunks.append(.done)
             return chunks
-        case "response.failed", "response.incomplete":
+        case "response.incomplete":
+            var chunks: [StreamChunk] = []
+            if let usage = event.response?.usage?.asLLMUsage {
+                chunks.append(.usage(usage))
+            }
+            let reason = event.response?.incompleteDetails?.reason ?? event.type
+            let finishReason = StreamFinishReason(rawValue: reason)
+            if finishReason.isOutputLimit {
+                chunks.append(.finishReason(finishReason))
+                chunks.append(.done)
+            } else {
+                chunks.append(.error(event.error?.message ?? reason))
+            }
+            return chunks
+        case "response.failed":
             return [.error(event.error?.message ?? event.response?.incompleteDetails?.reason ?? event.type)]
         default:
             // Forward-compatible: ignore event types that do not map to the

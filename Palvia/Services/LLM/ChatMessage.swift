@@ -493,6 +493,14 @@ struct LLMUsage: Codable {
         case promptTokens = "prompt_tokens"
         case completionTokens = "completion_tokens"
         case totalTokens = "total_tokens"
+        // Several nominally OpenAI-compatible providers expose Responses- or
+        // Gemini-style names in Chat Completions usage payloads.
+        case inputTokens = "input_tokens"
+        case outputTokens = "output_tokens"
+        case promptTokenCount = "prompt_token_count"
+        case candidatesTokenCount = "candidates_token_count"
+        case totalTokenCount = "total_token_count"
+        case cachedContentTokenCount = "cached_content_token_count"
         case cacheCreationInputTokens = "cache_creation_input_tokens"
         case cacheReadInputTokens = "cache_read_input_tokens"
         case promptTokensDetails = "prompt_tokens_details"
@@ -503,8 +511,13 @@ struct LLMUsage: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         promptTokens = try c.decodeIfPresent(Int.self, forKey: .promptTokens)
+            ?? c.decodeIfPresent(Int.self, forKey: .inputTokens)
+            ?? c.decodeIfPresent(Int.self, forKey: .promptTokenCount)
         completionTokens = try c.decodeIfPresent(Int.self, forKey: .completionTokens)
+            ?? c.decodeIfPresent(Int.self, forKey: .outputTokens)
+            ?? c.decodeIfPresent(Int.self, forKey: .candidatesTokenCount)
         totalTokens = try c.decodeIfPresent(Int.self, forKey: .totalTokens)
+            ?? c.decodeIfPresent(Int.self, forKey: .totalTokenCount)
         cacheCreationInputTokens = try c.decodeIfPresent(Int.self, forKey: .cacheCreationInputTokens)
 
         // Anthropic puts it at `cache_read_input_tokens`
@@ -514,6 +527,9 @@ struct LLMUsage: Codable {
         if cacheRead == nil,
            let details = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .promptTokensDetails) {
             cacheRead = details.cachedTokens
+        }
+        if cacheRead == nil {
+            cacheRead = try c.decodeIfPresent(Int.self, forKey: .cachedContentTokenCount)
         }
         cacheReadInputTokens = cacheRead
     }
@@ -552,6 +568,23 @@ struct LLMUsage: Codable {
             totalTokens: newer.totalTokens ?? totalTokens,
             cacheCreationInputTokens: newer.cacheCreationInputTokens ?? cacheCreationInputTokens,
             cacheReadInputTokens: newer.cacheReadInputTokens ?? cacheReadInputTokens
+        )
+    }
+
+    /// Add usage from a separate HTTP request, used when an output-token stop
+    /// is automatically continued with another request. This differs from
+    /// `merging`, which combines split fields belonging to one request.
+    func adding(_ newer: LLMUsage) -> LLMUsage {
+        func sum(_ lhs: Int?, _ rhs: Int?) -> Int? {
+            guard lhs != nil || rhs != nil else { return nil }
+            return (lhs ?? 0) + (rhs ?? 0)
+        }
+        return LLMUsage(
+            promptTokens: sum(promptTokens, newer.promptTokens),
+            completionTokens: sum(completionTokens, newer.completionTokens),
+            totalTokens: sum(totalTokens, newer.totalTokens),
+            cacheCreationInputTokens: sum(cacheCreationInputTokens, newer.cacheCreationInputTokens),
+            cacheReadInputTokens: sum(cacheReadInputTokens, newer.cacheReadInputTokens)
         )
     }
 

@@ -47,6 +47,8 @@
 "chat.cancelling" = "Cancelling…";
 "chat.skillActivated" = "%@ activated — ask your question.";
 "chat.thinking" = "Thinking…";
+"chat.continuingOutput" = "Continuing after the output limit…";
+"chat.outputLimitReached" = "The response repeatedly reached the output limit. Partial output was saved; retry to continue.";
 "chat.compressingContext" = "Compressing context…";
 "chat.renameSession" = "Rename Session";
 "chat.rename" = "Rename";
@@ -129,6 +131,9 @@
 "tokenStats.billedNote" = "Provider-reported, summed across every API call in a turn (including tool rounds).";
 "tokenStats.estimatedNote" = "Estimated from the local tokenizer.";
 "tokenStats.noUsage" = "No billed token usage yet. Send a message to see provider-reported analytics.";
+"tokenStats.sectionEstimatedUsage" = "Local Usage Estimate";
+"tokenStats.estimatedUsageNote" = "Estimated locally for requests where the provider omitted usage.";
+"tokenStats.turnsWithEstimatedUsage" = "%d estimated turns";
 "tokenStats.sectionOverhead" = "Per-Turn Overhead";
 "tokenStats.systemPrompt" = "System Prompt";
 "tokenStats.toolSchemas" = "Tool Schemas";

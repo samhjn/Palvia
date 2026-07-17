@@ -78,7 +78,7 @@ final class ContextManager {
         let eligibleRecent = recentMessages.filter { !anchoredIds.contains($0.id) }
         messages.append(contentsOf: convertWithImageForwarding(eligibleRecent))
 
-        return messages
+        return Self.repairDanglingToolCalls(in: messages)
     }
 
     /// Converts a sequence of Messages to LLMChatMessages, forwarding any images
@@ -283,34 +283,63 @@ final class ContextManager {
             tokenCount += tokens
         }
 
-        selected = repairToolCallPairs(selected)
-
         return selected
     }
 
-    /// Ensures tool call message pairs are intact.
-    private func repairToolCallPairs(_ messages: [Message]) -> [Message] {
-        var result = messages
+    /// Enforce the tool-call/result invariant required by strict providers.
+    ///
+    /// A cancellation can happen after an assistant tool call is persisted but
+    /// before every tool finishes. If the user then sends another message, APIs
+    /// such as OpenAI reject the whole history because each `tool_call_id` must
+    /// have an immediately-following result. Fill only missing results with an
+    /// explicit interrupted value and discard orphan results whose calls were
+    /// trimmed out of the context window.
+    static func repairDanglingToolCalls(in messages: [LLMChatMessage]) -> [LLMChatMessage] {
+        var result: [LLMChatMessage] = []
+        var pendingCalls: [LLMToolCall] = []
+        var fulfilledCallIds = Set<String>()
 
-        while let first = result.first, first.role == .tool {
-            result.removeFirst()
+        func appendMissingResults() {
+            for call in pendingCalls where !fulfilledCallIds.contains(call.id) {
+                result.append(.tool(
+                    content: L10n.Chat.toolCallAborted,
+                    toolCallId: call.id,
+                    name: call.function.name
+                ))
+            }
+            pendingCalls = []
+            fulfilledCallIds = []
         }
 
-        if let last = result.last, last.role == .assistant, last.toolCallsData != nil {
-            if let toolCalls = try? JSONDecoder().decode([LLMToolCall].self, from: last.toolCallsData!) {
-                let expectedIds = Set(toolCalls.map(\.id))
-                let followingToolIds = Set(
-                    result.dropLast()
-                        .suffix(toolCalls.count)
-                        .filter { $0.role == .tool }
-                        .compactMap(\.toolCallId)
-                )
-                if !expectedIds.isSubset(of: followingToolIds) {
-                    result.removeLast()
+        for message in messages {
+            if message.role == .tool {
+                guard let id = message.toolCallId,
+                      pendingCalls.contains(where: { $0.id == id }),
+                      !fulfilledCallIds.contains(id) else {
+                    // Its assistant call was truncated or this is a duplicate.
+                    continue
                 }
+                result.append(message)
+                fulfilledCallIds.insert(id)
+                continue
+            }
+
+            if !pendingCalls.isEmpty {
+                appendMissingResults()
+            }
+
+            result.append(message)
+            if message.role == .assistant,
+               let toolCalls = message.toolCalls,
+               !toolCalls.isEmpty {
+                pendingCalls = toolCalls
+                fulfilledCallIds = []
             }
         }
 
+        if !pendingCalls.isEmpty {
+            appendMissingResults()
+        }
         return result
     }
 
