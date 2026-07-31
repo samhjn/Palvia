@@ -12,7 +12,14 @@ struct MarkdownContentView: View {
     @State private var cachedBlocks: [MarkdownBlock] = []
     @State private var cachedContent: String = ""
     @State private var refreshTask: Task<Void, Never>?
+    @State private var lastRefreshTime = Date.distantPast
     @State private var inlineCache: [String: AttributedString] = [:]
+
+    static let streamingRefreshInterval: TimeInterval = 0.08
+
+    static func streamingRefreshDelay(lastRefresh: Date, now: Date) -> TimeInterval {
+        max(0, streamingRefreshInterval - now.timeIntervalSince(lastRefresh))
+    }
 
     init(_ content: String, isUser: Bool = false, imageAttachments: [ImageAttachment] = []) {
         self.content = content
@@ -48,10 +55,10 @@ struct MarkdownContentView: View {
         return cache
     }()
 
-    private func cachedOrParsedBlocks() -> [MarkdownBlock] {
-        let key = content as NSString
+    private func cachedOrParsedBlocks(_ source: String) -> [MarkdownBlock] {
+        let key = source as NSString
         if let entry = Self.blockCache.object(forKey: key) { return entry.blocks }
-        let blocks = parseBlocks()
+        let blocks = parseBlocks(source)
         Self.blockCache.setObject(BlockCacheEntry(blocks), forKey: key)
         return blocks
     }
@@ -63,22 +70,40 @@ struct MarkdownContentView: View {
         // instance already parsed (cache hit) — no debounce needed.
         if cachedBlocks.isEmpty || Self.blockCache.object(forKey: content as NSString) != nil {
             refreshTask?.cancel()
-            cachedContent = content
-            cachedBlocks = cachedOrParsedBlocks()
-            rebuildInlineCache()
+            refreshTask = nil
+            applyParsedContent(content)
             return
         }
 
-        // Streaming path: content mutates on every delta; debounce the
-        // re-parse so at most ~12 parses/second happen per bubble.
+        // Streaming path: throttle, rather than trailing-debounce, reparses.
+        // A trailing debounce is continually cancelled by a fast stream and
+        // eventually renders one very large block, producing a visible jump.
+        // Anchoring the deadline to the previous render guarantees steady
+        // progress at no more than ~12 parses/second.
+        let now = Date()
+        let delay = Self.streamingRefreshDelay(lastRefresh: lastRefreshTime, now: now)
         refreshTask?.cancel()
-        refreshTask = Task {
-            try? await Task.sleep(for: .milliseconds(80))
-            guard !Task.isCancelled else { return }
-            cachedContent = content
-            cachedBlocks = cachedOrParsedBlocks()
-            rebuildInlineCache()
+        let pendingContent = content
+
+        if delay == 0 {
+            refreshTask = nil
+            applyParsedContent(pendingContent)
+            return
         }
+
+        refreshTask = Task {
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            applyParsedContent(pendingContent)
+            refreshTask = nil
+        }
+    }
+
+    private func applyParsedContent(_ source: String) {
+        cachedContent = source
+        cachedBlocks = cachedOrParsedBlocks(source)
+        rebuildInlineCache()
+        lastRefreshTime = Date()
     }
 
     private func rebuildInlineCache() {
@@ -206,7 +231,11 @@ struct MarkdownContentView: View {
     // MARK: - Block Parsing
 
     func parseBlocks() -> [MarkdownBlock] {
-        let lines = content.components(separatedBy: "\n")
+        parseBlocks(content)
+    }
+
+    private func parseBlocks(_ source: String) -> [MarkdownBlock] {
+        let lines = source.components(separatedBy: "\n")
         var blocks: [MarkdownBlock] = []
         var i = 0
 

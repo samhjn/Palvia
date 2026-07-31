@@ -434,6 +434,7 @@ extension PalviaApp {
 
             try? await Task.sleep(for: .milliseconds(200))
             let finalMsg = Message(role: .assistant, content: accumulated)
+            finalMsg.thinkingContent = thinkingAccumulated
             finalMsg.session = session
             finalMsg.timestamp = Date()
             context.insert(finalMsg)

@@ -700,9 +700,23 @@ enum StreamingFixtures {
         var steps: [StreamingStep] = []
 
         // Steps 1-3: thinking (long CoT)
-        steps.append(StreamingStep(content: "", thinking: "用户要求一份综合文档，涵盖泛型、协议、SwiftUI架构和并发四大主题。这是一个非常大的请求，我需要系统性地组织内容。"))
-        steps.append(StreamingStep(content: "", thinking: "\n首先按主题分章节，每个章节都需要代码示例和对比表格。我会从整体架构理念开始，然后逐一深入每个主题，最后给出综合实践建议。"))
-        steps.append(StreamingStep(content: "", thinking: "\n需要确保代码示例之间有连贯性，展示这些概念如何在真实项目中协同工作。开始生成完整文档。"))
+        steps.append(StreamingStep(content: "", thinking: """
+        用户要求一份综合文档，涵盖泛型、协议、SwiftUI 架构和并发四大主题。这是一个非常大的请求，我需要系统性地组织内容。
+
+        先拆解目标：泛型部分解释关联类型、类型擦除和条件一致性；协议部分覆盖组合、依赖注入和测试替身；SwiftUI 部分说明状态所有权、导航与模块边界；并发部分则需要 Actor、TaskGroup、取消和性能分析。每个主题都应有可运行的代码，而不是只列概念。
+        """))
+        steps.append(StreamingStep(content: "", thinking: """
+
+        接下来安排章节之间的依赖顺序。先用协议定义领域边界，再用泛型实现可复用的数据层，之后把这些能力注入 SwiftUI 的状态容器，最后使用结构化并发串起数据加载。这样后面的示例可以复用前面已经建立的类型，读者不会面对彼此割裂的代码片段。
+
+        对比表格要聚焦真实取舍，例如静态分派与动态分派、值语义与共享状态、串行隔离与任务并行度。性能数字必须明确是示例基准，避免让读者把它们误认为适用于所有设备的结论。
+        """))
+        steps.append(StreamingStep(content: "", thinking: """
+
+        最后检查文档的可读性和完整性：每节先给结论，再解释机制，然后给代码和常见陷阱；长代码示例需要保持命名一致；并发示例必须处理错误传播与取消；SwiftUI 示例要确保 UI 状态只在 MainActor 更新。结尾再提供从小型项目到大型项目的渐进式采用路径和决策清单。
+
+        这些约束已经足够明确，可以开始生成完整文档。
+        """))
 
         // Steps 4-8: title + architecture overview (large chunks)
         steps.append(StreamingStep(content: """

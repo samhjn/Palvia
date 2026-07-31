@@ -4,6 +4,12 @@ struct ThinkingBubbleView: View {
     let content: String
     let isStreaming: Bool
 
+    /// Keep a long, fast reasoning stream from continuously changing the
+    /// outer chat scroll view's content height. The newest part remains
+    /// visible while streaming; after completion the full trace is available
+    /// when the user expands the collapsed card.
+    static let streamingContentMaxHeight: CGFloat = 280
+
     @State private var isExpanded = false
     @State private var hasBeenManuallyToggled = false
 
@@ -44,10 +50,25 @@ struct ThinkingBubbleView: View {
                 Divider()
                     .padding(.horizontal, 8)
 
-                MarkdownContentView(content, isUser: false)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding(10)
+                if isStreaming {
+                    thinkingContent
+                        // Measure the complete Markdown at its natural height,
+                        // then show a bottom-aligned window onto the newest
+                        // reasoning. Once the window reaches this height,
+                        // further deltas no longer resize the outer chat list.
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxHeight: Self.streamingContentMaxHeight, alignment: .bottom)
+                        .clipped()
+                        // Streaming deltas may arrive inside an animated
+                        // transaction started elsewhere in the chat. Never
+                        // interpolate this rapidly changing subtree.
+                        .transaction {
+                            $0.animation = nil
+                            $0.disablesAnimations = true
+                        }
+                } else {
+                    thinkingContent
+                }
             }
         }
         .background(
@@ -65,13 +86,23 @@ struct ThinkingBubbleView: View {
         }
         .onChange(of: isStreaming) { oldValue, newValue in
             guard !hasBeenManuallyToggled else { return }
-            if !oldValue && newValue {
-                withAnimation { isExpanded = true }
-            } else if oldValue && !newValue {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isExpanded = false
-                }
+            guard oldValue != newValue else { return }
+
+            // Automatic expansion/collapse can remove hundreds of points from
+            // the row. Animating that change while the parent keeps itself
+            // bottom-anchored makes the two layouts fight and visibly bounce.
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isExpanded = newValue
             }
         }
+    }
+
+    private var thinkingContent: some View {
+        MarkdownContentView(content, isUser: false)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .padding(10)
     }
 }

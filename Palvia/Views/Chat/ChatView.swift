@@ -177,12 +177,10 @@ final class ChatScrollState {
     /// Set only by user gesture (drag/track), not by content growth.
     /// Prevents auto-scroll from stopping due to rendering-induced position shifts.
     var userDidScrollAway = false
-    /// Incremented whenever the pipeline decides the view should be re-anchored
-    /// to the bottom: by the contentSize observer when content grows during a
-    /// generation or shrinks under the current offset, and by the settle loop
-    /// below when an explicit scroll-to-bottom landed short. SwiftUI reacts via
-    /// onChange with a non-animated scrollTo, replacing fragile timer-based
-    /// corrections.
+    /// Incremented by the settle loop when an explicit scroll-to-bottom lands
+    /// short. SwiftUI reacts via onChange with a non-animated scrollTo.
+    /// Streaming growth follows a separate display-link path that adjusts the
+    /// UIScrollView directly without invalidating this observable state.
     var bottomCorrectionTick = 0
     /// Mirrors `vm.isLoading` so the contentSize observer can distinguish
     /// streaming-induced growth (follow it) from user-initiated growth such as
@@ -273,6 +271,12 @@ private struct ChatContentView: View {
         ChatMessageFilter.nearestVisibleId(to: target, all: vm.messages, displayed: displayMessages)
     }
 
+    private var hasVisibleStreamingBubble: Bool {
+        vm.isLoading
+            && (!vm.streamingContent.isEmpty
+                || (vm.isVerbose && !vm.streamingThinking.isEmpty))
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
@@ -285,7 +289,7 @@ private struct ChatContentView: View {
                                 .accessibilityIdentifier(AccessibilityID.Chat.messageBubble)
                         }
 
-                        if vm.isLoading && (!vm.streamingContent.isEmpty || (vm.isVerbose && !vm.streamingThinking.isEmpty)) {
+                        if hasVisibleStreamingBubble {
                             MessageBubbleView(
                                 streamingContent: vm.streamingContent,
                                 streamingThinking: vm.isVerbose ? vm.streamingThinking : nil,
@@ -295,7 +299,7 @@ private struct ChatContentView: View {
                             .accessibilityIdentifier(AccessibilityID.Chat.streamingBubble)
                         }
 
-                        if vm.isLoading && vm.streamingContent.isEmpty && (vm.isVerbose ? vm.streamingThinking.isEmpty : true) && !vm.isCompressing {
+                        if vm.isLoading && !hasVisibleStreamingBubble && !vm.isCompressing {
                             HStack {
                                 ProgressView()
                                     .padding(.trailing, 4)
@@ -353,7 +357,7 @@ private struct ChatContentView: View {
                         // Pinned to the bottom: keep it pinned through the
                         // structural change instead of restoring a mid-list
                         // anchor that may resolve slightly off-bottom.
-                        let target: String? = (vm.isLoading && !vm.streamingContent.isEmpty)
+                        let target: String? = hasVisibleStreamingBubble
                             ? "streaming"
                             : displayMessages.last?.id.uuidString
                         if let target {
@@ -399,9 +403,8 @@ private struct ChatContentView: View {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
                             }
                             // The initial scrollTo lands on estimated row heights;
-                            // the settle loop plus the contentSize KVO →
-                            // bottomCorrectionTick pipeline finish the job as
-                            // markdown renders to full height.
+                            // the settle loop finishes the job as markdown
+                            // renders to full height.
                             scrollState.requestBottomSettle()
                         }
                     }
@@ -424,27 +427,30 @@ private struct ChatContentView: View {
                         // below the fold with no auto-scroll.
                         scrollState.userDidScrollAway = false
                     }
-                    withAnimation {
-                        proxy.scrollTo(displayMessages.last?.id.uuidString, anchor: .bottom)
+                    if shouldForce {
+                        // Sending a message is an explicit user action, so the
+                        // short animated trip to the new row is intentional.
+                        if let lastId = displayMessages.last?.id {
+                            withAnimation {
+                                proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                            }
+                        }
+                    } else {
+                        // Persisting an assistant/tool row often happens in the
+                        // same update that replaces and collapses the streaming
+                        // CoT card. Animating that structural transition makes
+                        // the viewport chase a moving target.
+                        if hasVisibleStreamingBubble {
+                            proxy.scrollTo("streaming", anchor: .bottom)
+                        } else if let lastId = displayMessages.last?.id {
+                            proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                        }
                     }
                     scrollState.requestBottomSettle()
                 }
-                .onChange(of: vm.streamingContent) {
-                    guard !scrollState.userDidScrollAway, !vm.streamingContent.isEmpty,
-                          !scrollState.isUserInteracting else { return }
-                    // Non-animated: deltas arrive faster than the default scroll
-                    // animation, and restarting an in-flight animation on every
-                    // delta makes the follow stutter and lag.
-                    proxy.scrollTo("streaming", anchor: .bottom)
-                }
-                .onChange(of: vm.streamingThinking) {
-                    guard !scrollState.userDidScrollAway, vm.isVerbose, !vm.streamingThinking.isEmpty,
-                          !scrollState.isUserInteracting else { return }
-                    proxy.scrollTo("streaming", anchor: .bottom)
-                }
                 .onChange(of: scrollState.bottomCorrectionTick) {
                     guard !scrollState.userDidScrollAway else { return }
-                    if vm.isLoading && !vm.streamingContent.isEmpty {
+                    if hasVisibleStreamingBubble {
                         proxy.scrollTo("streaming", anchor: .bottom)
                     } else if let lastId = displayMessages.last?.id {
                         proxy.scrollTo(lastId.uuidString, anchor: .bottom)
@@ -486,7 +492,7 @@ private struct ChatContentView: View {
                             sv.setContentOffset(sv.contentOffset, animated: false)
                         }
                         withAnimation {
-                            if vm.isLoading && !vm.streamingContent.isEmpty {
+                            if hasVisibleStreamingBubble {
                                 proxy.scrollTo("streaming", anchor: .bottom)
                             } else if let lastId = displayMessages.last?.id {
                                 proxy.scrollTo(lastId.uuidString, anchor: .bottom)
@@ -741,9 +747,6 @@ private struct ChatContentView: View {
                 onRemoveFile: { vm.removeFile(id: $0) }
             )
         }
-        .animation(.easeInOut(duration: 0.25), value: vm.canRetry)
-        .animation(.easeInOut(duration: 0.25), value: vm.isLoading)
-        .animation(.easeInOut(duration: 0.25), value: vm.errorMessage)
     }
 
     @ViewBuilder
@@ -937,6 +940,7 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
         private var displayLink: CADisplayLink?
         private var pendingNearBottom: Bool?
         private var pendingOverScrollClamp = false
+        private var pendingStreamingBottomPin = false
         private weak var observedScrollView: UIScrollView?
 
         init(scrollState: ChatScrollState) {
@@ -1003,26 +1007,35 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                     self.displayLink?.isPaused = false
                 }
                 guard !self.scrollState.userDidScrollAway, !isUserDriven else { return }
-                // distance < -1: content shrank under the current offset
-                // (e.g. streaming bubble removed); re-anchor unconditionally —
-                // blank space would show otherwise.
-                // Growth only re-anchors while a generation is rendering.
-                // Outside a generation, growth above the viewport is user
-                // action (expanding a tool-call or CoT card) and re-anchoring
-                // would scroll the just-expanded content out of view; explicit
-                // bottom intents cover their own corrections via the settle loop.
-                let followGrowth = self.scrollState.isGenerationActive
-                    && distance > ChatScrollGeometry.userScrollThreshold
-                if followGrowth || distance < -1 {
-                    DispatchQueue.main.async {
-                        self.scrollState.bottomCorrectionTick &+= 1
-                    }
+
+                // While streaming, pin once per display frame directly on the
+                // UIScrollView. The old path issued a SwiftUI scrollTo for every
+                // token, then waited until the accumulated miss exceeded 50pt
+                // before issuing a second correction. Fast CoT therefore moved
+                // in a visible sawtooth. Coalescing here follows the final layout
+                // for each frame without publishing another observable state
+                // change back into the view hierarchy.
+                if self.scrollState.isGenerationActive,
+                   abs(distance) > ChatScrollGeometry.bottomTolerance {
+                    self.pendingStreamingBottomPin = true
+                    self.displayLink?.isPaused = false
                 }
             }
         }
 
         @objc private func displayLinkFired() {
             displayLink?.isPaused = true
+            if pendingStreamingBottomPin {
+                pendingStreamingBottomPin = false
+                if let sv = observedScrollView,
+                   scrollState.isGenerationActive,
+                   !scrollState.userDidScrollAway,
+                   !ChatScrollGeometry.isUserDriven(sv),
+                   abs(ChatScrollGeometry.distanceToBottom(sv)) > ChatScrollGeometry.bottomTolerance {
+                    let maxY = ChatScrollGeometry.maxOffsetY(sv)
+                    sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: maxY), animated: false)
+                }
+            }
             if pendingOverScrollClamp {
                 pendingOverScrollClamp = false
                 // Re-validate against the live layout: the offset may have
