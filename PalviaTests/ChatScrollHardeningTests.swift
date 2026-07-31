@@ -349,8 +349,9 @@ final class ChatScrollStateSettleTests: XCTestCase {
 // MARK: - Content Growth Gating Tests
 
 /// Tests for the contentSize observer's growth gating: streaming-induced
-/// growth re-anchors to the bottom, but growth caused by the user expanding
-/// a tool-call / thinking card while idle must NOT yank the viewport down.
+/// growth pins directly to the bottom once per display frame, but growth
+/// caused by the user expanding a tool-call / thinking card while idle must
+/// NOT yank the viewport down.
 @MainActor
 final class ScrollObserverGrowthGatingTests: XCTestCase {
 
@@ -365,20 +366,39 @@ final class ScrollObserverGrowthGatingTests: XCTestCase {
         return (state, coordinator, sv)
     }
 
-    func testGrowthDuringGenerationTriggersBottomCorrection() async throws {
+    func testGrowthDuringGenerationPinsBottomWithoutPublishingCorrectionTicks() async throws {
         let (state, coordinator, sv) = makeObservedPair()
         state.isGenerationActive = true
 
-        // Content grows well past the follow threshold while pinned at bottom.
+        // Content grows well past the viewport while generation is active.
         sv.contentSize = CGSize(width: 375, height: 2000)
         try await Task.sleep(for: .milliseconds(100))
 
-        XCTAssertGreaterThanOrEqual(state.bottomCorrectionTick, 1,
-            "Streaming growth must re-anchor the view to the bottom")
+        XCTAssertEqual(ChatScrollGeometry.distanceToBottom(sv), 0, accuracy: 1,
+            "Streaming growth must pin the UIScrollView to the bottom on the next display frame")
+        XCTAssertEqual(state.bottomCorrectionTick, 0,
+            "Per-frame streaming follow must not publish observable correction ticks")
         withExtendedLifetime((coordinator, sv)) {}
     }
 
-    func testGrowthWhileIdleDoesNotTriggerBottomCorrection() async throws {
+    func testSmallRapidGrowthDoesNotAccumulateBeforeBottomPin() async throws {
+        let (state, coordinator, sv) = makeObservedPair()
+        state.isGenerationActive = true
+        sv.contentOffset = CGPoint(x: 0, y: ChatScrollGeometry.maxOffsetY(sv))
+
+        // Each individual delta is below the old 50pt correction threshold.
+        // They should be coalesced into one frame and pinned immediately,
+        // instead of accumulating into a visible sawtooth.
+        for height in stride(from: 1010.0, through: 1040.0, by: 10.0) {
+            sv.contentSize = CGSize(width: 375, height: height)
+        }
+        try await Task.sleep(for: .milliseconds(100))
+
+        XCTAssertEqual(ChatScrollGeometry.distanceToBottom(sv), 0, accuracy: 1)
+        withExtendedLifetime((coordinator, sv)) {}
+    }
+
+    func testGrowthWhileIdleDoesNotPinBottom() async throws {
         let (state, coordinator, sv) = makeObservedPair()
         state.isGenerationActive = false
 
@@ -387,6 +407,8 @@ final class ScrollObserverGrowthGatingTests: XCTestCase {
         sv.contentSize = CGSize(width: 375, height: 2000)
         try await Task.sleep(for: .milliseconds(100))
 
+        XCTAssertEqual(sv.contentOffset.y, 0, accuracy: 1,
+            "Idle card expansion must preserve the reader's current offset")
         XCTAssertEqual(state.bottomCorrectionTick, 0,
             "Idle growth (card expansion) must not yank the viewport to the bottom")
         withExtendedLifetime((coordinator, sv)) {}
@@ -400,6 +422,8 @@ final class ScrollObserverGrowthGatingTests: XCTestCase {
         sv.contentSize = CGSize(width: 375, height: 2000)
         try await Task.sleep(for: .milliseconds(100))
 
+        XCTAssertEqual(sv.contentOffset.y, 0, accuracy: 1,
+            "Streaming growth must preserve the offset after the user scrolls away")
         XCTAssertEqual(state.bottomCorrectionTick, 0,
             "Growth while the user reads history must not re-anchor")
         withExtendedLifetime((coordinator, sv)) {}
@@ -441,6 +465,39 @@ final class ScrollObserverGrowthGatingTests: XCTestCase {
         XCTAssertEqual(sv.contentOffset.y, maxY, accuracy: 1,
             "An over-scrolled offset must be clamped back to maxOffsetY (no blank screen)")
         withExtendedLifetime((coordinator, state, sv)) {}
+    }
+}
+
+// MARK: - Streaming Markdown Cadence Tests
+
+final class MarkdownStreamingCadenceTests: XCTestCase {
+
+    func testRefreshDeadlineStaysAnchoredToLastRenderDuringRapidDeltas() {
+        let lastRender = Date(timeIntervalSinceReferenceDate: 1_000)
+
+        let after10ms = MarkdownContentView.streamingRefreshDelay(
+            lastRefresh: lastRender,
+            now: lastRender.addingTimeInterval(0.01)
+        )
+        let after70ms = MarkdownContentView.streamingRefreshDelay(
+            lastRefresh: lastRender,
+            now: lastRender.addingTimeInterval(0.07)
+        )
+
+        XCTAssertEqual(after10ms, 0.07, accuracy: 0.001)
+        XCTAssertEqual(after70ms, 0.01, accuracy: 0.001)
+        XCTAssertLessThan(after70ms, after10ms,
+            "New deltas must approach the existing refresh deadline instead of restarting an 80ms debounce")
+    }
+
+    func testRefreshIsImmediateOnceThrottleIntervalHasElapsed() {
+        let lastRender = Date(timeIntervalSinceReferenceDate: 1_000)
+        let delay = MarkdownContentView.streamingRefreshDelay(
+            lastRefresh: lastRender,
+            now: lastRender.addingTimeInterval(0.1)
+        )
+
+        XCTAssertEqual(delay, 0, accuracy: 0.001)
     }
 }
 

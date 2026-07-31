@@ -152,6 +152,41 @@ final class ChatStreamingTests: BaseTestCase {
         _ = chat
     }
 
+    // MARK: - Verbose Reasoning Layout Stability
+
+    func test_streaming_verboseReasoningIsBoundedAndCollapsesWithoutLosingBottom() {
+        _ = enterStreamingSession()
+        guard waitForStreamingActive(timeout: 15) else {
+            XCTFail("Streaming did not start")
+            return
+        }
+
+        let thinking = app.descendants(matching: .any)
+            .matching(identifier: AccessibilityID.Chat.thinkingBubble)
+            .firstMatch
+        XCTAssertTrue(thinking.waitForExistence(timeout: 5),
+                      "Verbose streaming should expose the active reasoning card")
+
+        // 280pt content window + header, divider and border/padding.
+        XCTAssertLessThanOrEqual(thinking.frame.height, 340,
+                                 "A long streaming CoT must not continuously grow the outer chat row")
+
+        guard waitForStreamingComplete(timeout: 20) else {
+            XCTFail("Streaming did not complete in time")
+            return
+        }
+
+        let collapsedThinking = app.descendants(matching: .any)
+            .matching(identifier: AccessibilityID.Chat.thinkingBubble)
+            .firstMatch
+        XCTAssertTrue(collapsedThinking.waitForExistence(timeout: 5),
+                      "The persisted message should retain its reasoning card")
+        XCTAssertLessThan(collapsedThinking.frame.height, 80,
+                          "Persisted reasoning should settle directly into its collapsed height")
+        XCTAssertTrue(waitForScrollToBottomHidden(timeout: 5),
+                      "Automatic CoT collapse must keep the conversation pinned at the bottom")
+    }
+
     // MARK: - Scroll-to-Bottom After Manual Scroll During Stream
 
     func test_streaming_scrollToBottomWorksAfterScrollingUpDuringRapidStream() {
