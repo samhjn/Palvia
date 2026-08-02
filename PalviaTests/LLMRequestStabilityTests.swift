@@ -45,6 +45,105 @@ final class APIRequestBuilderHeaderTests: XCTestCase {
     }
 }
 
+final class VideoGenerationRequestTests: XCTestCase {
+
+    func testHappyHorseI2VUsesRequiredMediaArray() throws {
+        let provider = VideoGenProvider.dashScopeProvider()
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xE0])
+
+        let request = try provider.buildSubmitRequest(
+            "https://example.cn/api/v1",
+            "test-key",
+            "happyhorse-1.1-i2v",
+            "wave hello",
+            "5s",
+            "1:1",
+            jpeg
+        )
+
+        let body = try XCTUnwrap(request.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let input = try XCTUnwrap(json["input"] as? [String: Any])
+        let media = try XCTUnwrap(input["media"] as? [[String: Any]])
+        let firstFrame = try XCTUnwrap(media.first)
+
+        XCTAssertEqual(firstFrame["type"] as? String, "first_frame")
+        XCTAssertTrue((firstFrame["url"] as? String)?.hasPrefix("data:image/jpeg;base64,") == true)
+        XCTAssertNil(input["img_url"])
+    }
+
+    func testWanI2VKeepsLegacyImageURLField() throws {
+        let provider = VideoGenProvider.dashScopeProvider()
+        let png = Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+
+        let request = try provider.buildSubmitRequest(
+            "https://example.com/api/v1",
+            "test-key",
+            "wan2.6-i2v",
+            "wave hello",
+            nil,
+            nil,
+            png
+        )
+
+        let body = try XCTUnwrap(request.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let input = try XCTUnwrap(json["input"] as? [String: Any])
+
+        XCTAssertTrue((input["img_url"] as? String)?.hasPrefix("data:image/png;base64,") == true)
+        XCTAssertNil(input["media"])
+    }
+
+    func testUnsupportedI2VImageFormatFailsBeforeSubmission() {
+        let provider = VideoGenProvider.dashScopeProvider()
+
+        XCTAssertThrowsError(try provider.buildSubmitRequest(
+            "https://example.com/api/v1",
+            "test-key",
+            "happyhorse-1.1-i2v",
+            "wave hello",
+            nil,
+            nil,
+            Data("not-an-image".utf8)
+        )) { error in
+            XCTAssertEqual(
+                error.localizedDescription,
+                VideoGenerationError.unsupportedInputImageFormat.localizedDescription
+            )
+        }
+    }
+
+    @MainActor
+    func testI2VAutomaticallyUsesKnownSiblingModel() {
+        let provider = LLMProvider(name: "Video", modelName: "happyhorse-1.1-t2v")
+        provider.enabledModels = ["happyhorse-1.1-t2v", "happyhorse-1.1-i2v"]
+
+        XCTAssertEqual(
+            FunctionCallRouter.resolveVideoModel(
+                provider: provider,
+                configuredOverride: nil,
+                isI2V: true
+            ),
+            "happyhorse-1.1-i2v"
+        )
+    }
+
+    @MainActor
+    func testExplicitVideoModelIsNotRewritten() {
+        let provider = LLMProvider(name: "Video", modelName: "happyhorse-1.1-t2v")
+        provider.enabledModels = ["happyhorse-1.1-i2v"]
+
+        XCTAssertEqual(
+            FunctionCallRouter.resolveVideoModel(
+                provider: provider,
+                configuredOverride: "custom-video-model",
+                isI2V: true
+            ),
+            "custom-video-model"
+        )
+    }
+}
+
 /// Verifies that outgoing LLM request bodies are byte-stable across runs.
 ///
 /// Swift `Dictionary` iteration order is randomized per process, so without

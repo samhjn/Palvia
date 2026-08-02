@@ -547,7 +547,11 @@ final class FunctionCallRouter {
                 return ToolCallResult("[Error] Video generation provider not found. It may have been deleted.")
             }
             provider = p
-            effectiveModel = resolvedModelOverride ?? p.modelName
+            effectiveModel = Self.resolveVideoModel(
+                provider: p,
+                configuredOverride: resolvedModelOverride,
+                isI2V: isI2V
+            )
         }
         let agentId = AgentFileManager.shared.resolveAgentId(for: agent)
 
@@ -604,7 +608,44 @@ final class FunctionCallRouter {
                 }
             }
             throw CancellationError()
+        } catch let error as VideoGenerationError {
+            progressCallback?(.failed(error.localizedDescription))
+            let retryGuidance = isI2V
+                ? "Retry generate_video once with the same image and settings; do not call list_models or get_model first. If it fails again, explain the failure to the user instead of switching to text-to-video."
+                : "Retry generate_video once with the same settings; do not call list_models or get_model first. If it fails again, explain the failure to the user."
+            return ToolCallResult("[Error] \(error.localizedDescription) \(retryGuidance)")
+        } catch {
+            let message = "Video generation did not complete because of a network or provider error."
+            progressCallback?(.failed(message))
+            let retryGuidance = isI2V
+                ? "Retry generate_video once with the same image and settings; do not switch to text-to-video."
+                : "Retry generate_video once with the same settings."
+            return ToolCallResult("[Error] \(message) \(retryGuidance)")
         }
+    }
+
+    /// Prefer a known I2V sibling when an image is supplied but the selected
+    /// provider's default model is T2V. Explicit per-call model overrides are
+    /// handled before this helper and are never rewritten.
+    static func resolveVideoModel(
+        provider: LLMProvider,
+        configuredOverride: String?,
+        isI2V: Bool
+    ) -> String {
+        let configuredModel = configuredOverride ?? provider.modelName
+        guard isI2V,
+              configuredOverride == nil,
+              configuredModel.localizedCaseInsensitiveContains("-t2v") else {
+            return configuredModel
+        }
+
+        let candidate = configuredModel.replacingOccurrences(
+            of: "-t2v",
+            with: "-i2v",
+            options: [.caseInsensitive]
+        )
+        let knownModels = Set(provider.enabledModels + provider.cachedModelList)
+        return knownModels.contains(candidate) ? candidate : configuredModel
     }
 
     /// Thread-safe mutable box for capturing values from @Sendable closures.
