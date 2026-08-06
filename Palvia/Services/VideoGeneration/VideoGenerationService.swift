@@ -7,6 +7,8 @@ import UIKit
 enum VideoGenerationError: LocalizedError {
     case noProviderConfigured
     case invalidURL(String)
+    case inputImageUnavailable
+    case unsupportedInputImageFormat
     case apiError(statusCode: Int, message: String)
     case noTaskIdReturned
     case generationFailed(String)
@@ -20,8 +22,18 @@ enum VideoGenerationError: LocalizedError {
             return "No video generation provider configured."
         case .invalidURL(let url):
             return "Invalid URL: \(url)"
+        case .inputImageUnavailable:
+            return "The source image could not be read. Reattach the image and retry video generation."
+        case .unsupportedInputImageFormat:
+            return "The source image must be JPEG, PNG, or WebP for video generation."
         case .apiError(let code, let msg):
-            return "API error (\(code)): \(msg)"
+            if msg.localizedCaseInsensitiveContains("input.media") {
+                return "The video provider rejected the source image payload."
+            }
+            if code == 429 {
+                return "The video provider is temporarily busy."
+            }
+            return "The video provider rejected the request (HTTP \(code))."
         case .noTaskIdReturned:
             return "No task ID returned by the API."
         case .generationFailed(let reason):
@@ -304,6 +316,25 @@ extension VideoGenProvider {
 // MARK: - DashScope Provider (Alibaba / Tongyi Wan)
 
 extension VideoGenProvider {
+    /// Encode image bytes using the actual source MIME type. DashScope validates
+    /// that the data-URI MIME type matches the encoded file.
+    static func imageDataURI(_ data: Data) throws -> String {
+        let bytes = [UInt8](data.prefix(12))
+        let mimeType: String
+        if bytes.starts(with: [0xFF, 0xD8, 0xFF]) {
+            mimeType = "image/jpeg"
+        } else if bytes.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+            mimeType = "image/png"
+        } else if bytes.count >= 12,
+                  Array(bytes[0..<4]) == [0x52, 0x49, 0x46, 0x46],
+                  Array(bytes[8..<12]) == [0x57, 0x45, 0x42, 0x50] {
+            mimeType = "image/webp"
+        } else {
+            throw VideoGenerationError.unsupportedInputImageFormat
+        }
+        return "data:\(mimeType);base64,\(data.base64EncodedString())"
+    }
+
     static func dashScopeProvider() -> VideoGenProvider {
         VideoGenProvider(
             buildSubmitRequest: { endpoint, apiKey, model, prompt, duration, aspectRatio, imageData in
@@ -315,9 +346,18 @@ extension VideoGenProvider {
 
                 var input: [String: Any] = ["prompt": prompt]
 
-                // Image-to-video: use img_url with base64 data URI
+                // HappyHorse uses the newer media array. Wan 2.6 and older
+                // DashScope I2V models use the legacy img_url field.
                 if let imageData {
-                    input["img_url"] = "data:image/png;base64,\(imageData.base64EncodedString())"
+                    let dataURI = try imageDataURI(imageData)
+                    if model.lowercased().hasPrefix("happyhorse-") {
+                        input["media"] = [[
+                            "type": "first_frame",
+                            "url": dataURI
+                        ]]
+                    } else {
+                        input["img_url"] = dataURI
+                    }
                 }
 
                 var parameters: [String: Any] = [
@@ -689,7 +729,7 @@ final class VideoGenerationService: @unchecked Sendable {
            !(200...299).contains(httpResponse.statusCode) {
             let errorBody = String(data: submitData, encoding: .utf8) ?? "Unknown error"
             let error = VideoGenerationError.apiError(statusCode: httpResponse.statusCode, message: errorBody)
-            onProgress?(.failed(errorBody))
+            onProgress?(.failed(error.localizedDescription))
             throw error
         }
 
@@ -801,16 +841,26 @@ final class VideoGenerationService: @unchecked Sendable {
 
         // agentfile:// reference
         if imageURL.hasPrefix("agentfile://") {
-            return AgentFileManager.shared.loadImageData(from: imageURL)
-        }
-
-        // Regular URL
-        if let url = URL(string: imageURL) {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let data = AgentFileManager.shared.loadImageData(from: imageURL), !data.isEmpty else {
+                throw VideoGenerationError.inputImageUnavailable
+            }
             return data
         }
 
-        return nil
+        // Regular URL
+        if let url = URL(string: imageURL), ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            if let httpResponse = response as? HTTPURLResponse,
+               !(200...299).contains(httpResponse.statusCode) {
+                throw VideoGenerationError.inputImageUnavailable
+            }
+            guard !data.isEmpty else {
+                throw VideoGenerationError.inputImageUnavailable
+            }
+            return data
+        }
+
+        throw VideoGenerationError.inputImageUnavailable
     }
 
     private func downloadAndStore(

@@ -4,7 +4,10 @@ struct SessionExporter {
 
     /// Export a session to Markdown with YAML front matter.
     /// Machine-readable metadata in front matter, human-readable conversation body.
-    static func exportToMarkdown(_ session: Session) -> String {
+    /// The default export is safe to share: internal reasoning, system prompts,
+    /// tool payloads/results, token counts, and compressed context are omitted.
+    /// Diagnostics can still be requested explicitly for local troubleshooting.
+    static func exportToMarkdown(_ session: Session, includeDiagnostics: Bool = false) -> String {
         var lines: [String] = []
 
         let isoFormatter = ISO8601DateFormatter()
@@ -14,19 +17,26 @@ struct SessionExporter {
         readableFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
 
         let agentName = session.agent?.name ?? "Unknown"
+        let sorted = session.sortedMessages
+        let exportedMessages = includeDiagnostics ? sorted : sorted.filter { message in
+            guard message.role == .user || message.role == .assistant else { return false }
+            return !(message.content?.isEmpty ?? true)
+        }
 
         // YAML front matter
         lines.append("---")
         lines.append("title: \"\(escapeYAML(session.title))\"")
         lines.append("agent: \"\(escapeYAML(agentName))\"")
-        lines.append("session_id: \(session.id.uuidString)")
+        if includeDiagnostics {
+            lines.append("session_id: \(session.id.uuidString)")
+        }
         lines.append("created_at: \(isoFormatter.string(from: session.createdAt))")
         lines.append("updated_at: \(isoFormatter.string(from: session.updatedAt))")
-        lines.append("message_count: \(session.messages.count)")
-        if session.compressedUpToIndex > 0 {
+        lines.append("message_count: \(exportedMessages.count)")
+        if includeDiagnostics, session.compressedUpToIndex > 0 {
             lines.append("compressed_messages: \(session.compressedUpToIndex)")
         }
-        if let compressed = session.compressedContext, !compressed.isEmpty {
+        if includeDiagnostics, let compressed = session.compressedContext, !compressed.isEmpty {
             lines.append("has_compressed_context: true")
         }
         lines.append("exported_at: \(isoFormatter.string(from: Date()))")
@@ -38,11 +48,11 @@ struct SessionExporter {
         lines.append("")
         lines.append("> **Agent:** \(agentName)  ")
         lines.append("> **Created:** \(readableFormatter.string(from: session.createdAt))  ")
-        lines.append("> **Messages:** \(session.messages.count)")
+        lines.append("> **Messages:** \(exportedMessages.count)")
         lines.append("")
 
         // Compressed context summary
-        if let compressed = session.compressedContext, !compressed.isEmpty {
+        if includeDiagnostics, let compressed = session.compressedContext, !compressed.isEmpty {
             lines.append("## Compressed Context")
             lines.append("")
             lines.append("<details>")
@@ -58,8 +68,7 @@ struct SessionExporter {
         lines.append("")
 
         // Messages
-        let sorted = session.sortedMessages
-        for message in sorted {
+        for message in exportedMessages {
             let timestamp = readableFormatter.string(from: message.timestamp)
 
             switch message.role {
@@ -82,7 +91,7 @@ struct SessionExporter {
                 lines.append("")
 
                 // Thinking content
-                if let thinking = message.thinkingContent, !thinking.isEmpty {
+                if includeDiagnostics, let thinking = message.thinkingContent, !thinking.isEmpty {
                     lines.append("<details>")
                     lines.append("<summary>\(L10n.Chat.thinkingProcess)</summary>")
                     lines.append("")
@@ -97,7 +106,8 @@ struct SessionExporter {
                 }
 
                 // Tool calls
-                if let toolData = message.toolCallsData,
+                if includeDiagnostics,
+                   let toolData = message.toolCallsData,
                    let calls = try? JSONDecoder().decode([LLMToolCall].self, from: toolData) {
                     lines.append("")
                     for call in calls {
@@ -124,7 +134,9 @@ struct SessionExporter {
             }
 
             // Token info
-            if let prompt = message.apiPromptTokens, let completion = message.apiCompletionTokens {
+            if includeDiagnostics,
+               let prompt = message.apiPromptTokens,
+               let completion = message.apiCompletionTokens {
                 lines.append("")
                 lines.append("<!-- tokens: prompt=\(prompt) completion=\(completion) -->")
             }

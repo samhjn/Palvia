@@ -661,8 +661,11 @@ final class SessionExportTests: XCTestCase {
 
         let md = SessionExporter.exportToMarkdown(session)
         XCTAssertTrue(md.hasPrefix("---\n"))
-        XCTAssertTrue(md.contains("session_id: \(session.id.uuidString)"))
+        XCTAssertFalse(md.contains("session_id:"))
         XCTAssertTrue(md.contains("message_count:"))
+
+        let diagnostics = SessionExporter.exportToMarkdown(session, includeDiagnostics: true)
+        XCTAssertTrue(diagnostics.contains("session_id: \(session.id.uuidString)"))
     }
 
     @MainActor
@@ -673,13 +676,13 @@ final class SessionExportTests: XCTestCase {
         context.insert(session)
         try! context.save()
 
-        let md = SessionExporter.exportToMarkdown(session)
+        let md = SessionExporter.exportToMarkdown(session, includeDiagnostics: true)
         XCTAssertTrue(md.contains("Summary of earlier conversation"))
         XCTAssertTrue(md.contains("compressed_messages: 5"))
     }
 
     @MainActor
-    func testExportContainsThinkingContent() {
+    func testDefaultExportOmitsThinkingContent() {
         let session = Session(title: "Test")
         context.insert(session)
 
@@ -690,7 +693,41 @@ final class SessionExportTests: XCTestCase {
         try! context.save()
 
         let md = SessionExporter.exportToMarkdown(session)
-        XCTAssertTrue(md.contains("Let me think step by step..."))
+        XCTAssertFalse(md.contains("Let me think step by step..."))
+        XCTAssertTrue(md.contains("Result"))
+
+        let diagnostics = SessionExporter.exportToMarkdown(session, includeDiagnostics: true)
+        XCTAssertTrue(diagnostics.contains("Let me think step by step..."))
+    }
+
+    @MainActor
+    func testDefaultExportOmitsToolResultsAndTokens() {
+        let session = Session(title: "Test")
+        context.insert(session)
+
+        let assistant = Message(role: .assistant, content: "I will generate the video.")
+        assistant.apiPromptTokens = 100
+        assistant.apiCompletionTokens = 20
+        context.insert(assistant)
+        session.messages.append(assistant)
+
+        let tool = Message(
+            role: .tool,
+            content: "Provider ID: internal-provider-id; endpoint: https://internal.example.com",
+            name: "list_models"
+        )
+        context.insert(tool)
+        session.messages.append(tool)
+        try! context.save()
+
+        let md = SessionExporter.exportToMarkdown(session)
+        XCTAssertTrue(md.contains("I will generate the video."))
+        XCTAssertFalse(md.contains("internal-provider-id"))
+        XCTAssertFalse(md.contains("<!-- tokens:"))
+
+        let diagnostics = SessionExporter.exportToMarkdown(session, includeDiagnostics: true)
+        XCTAssertTrue(diagnostics.contains("internal-provider-id"))
+        XCTAssertTrue(diagnostics.contains("<!-- tokens: prompt=100 completion=20 -->"))
     }
 
     @MainActor

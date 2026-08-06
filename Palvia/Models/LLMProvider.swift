@@ -620,6 +620,7 @@ struct ModelCapabilities: Codable, Equatable {
     private static func inferVideoGenModel(_ name: String) -> Bool {
         name.hasPrefix("sora")
             || name.hasPrefix("veo-") || name.hasPrefix("veo_")
+            || name.hasPrefix("happyhorse-")
             || (name.hasPrefix("wan") && (name.contains("-t2v") || name.contains("-i2v")
                 || name.contains("-r2v") || name.contains("-kf2v")
                 || name.contains("-s2v") || name.contains("-vace")))

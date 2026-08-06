@@ -919,13 +919,13 @@ enum ToolDefinitions {
 
     static let generateVideoTool = ToolDefinitionBuilder.build(
         name: "generate_video",
-        description: "Generate a video using AI video generation models. Use this when the user asks you to create or generate a video. Video generation typically takes 1-5 minutes. Returns the generated video as an attachment in the conversation.",
+        description: "Generate a video using AI video generation models. Use this when the user asks you to create or generate a video. When image_url is present, the tool automatically uses the configured image-to-video model; normally omit provider_id and model_name and do not call list_models or get_model first. Video generation typically takes 1-5 minutes. Returns the generated video as an attachment in the conversation.",
         properties: [
             "prompt": ToolDefinitionBuilder.stringParam("Detailed description of the video to generate. Be specific about the scene, action, camera movement, style, and mood."),
             "duration": ToolDefinitionBuilder.stringParam("Desired video duration. Common values: '5s', '10s'. Optional, defaults to model default."),
             "aspect_ratio": ToolDefinitionBuilder.stringParam("Aspect ratio. Common values: '16:9', '9:16', '1:1'. Optional, defaults to model default."),
             "image_url": ToolDefinitionBuilder.stringParam("Optional URL or agentfile:// reference of an image to use as the first frame (image-to-video). Only supported by some models."),
-            "provider_id": ToolDefinitionBuilder.stringParam("Optional: UUID of a specific provider to use for this request, overriding the agent's default video provider. Use list_models to see available providers."),
+            "provider_id": ToolDefinitionBuilder.stringParam("Advanced optional override: UUID of a specific provider. Omit to use the automatically selected T2V or I2V provider."),
             "model_name": ToolDefinitionBuilder.stringParam("Optional: specific model name to use for this request, overriding the default. Must be used together with provider_id.")
         ],
         required: ["prompt"]
