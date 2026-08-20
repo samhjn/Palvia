@@ -40,7 +40,7 @@ struct FileAttachment: Codable, Identifiable, Hashable {
         case "json", "xml", "yaml", "yml", "toml", "csv", "tsv": return "doc.badge.gearshape"
         case "zip", "gz", "tar", "rar", "7z": return "doc.zipper"
         case "html", "htm": return "globe"
-        case "swift", "js", "ts", "py", "rb", "go", "rs", "c", "cpp", "h", "m", "mm", "java", "kt", "sh":
+        case "swift", "js", "ts", "py", "rb", "go", "rs", "c", "cpp", "h", "m", "mm", "java", "kt", "sh", "lua", "luau":
             return "chevron.left.forwardslash.chevron.right"
         case "mp3", "wav", "m4a", "aac", "flac": return "waveform"
         default: return "doc"

@@ -24,6 +24,7 @@ final class TextFilePreviewTests: XCTestCase {
             "yaml", "yml", "js", "py", "swift", "html", "css",
             "ts", "tsx", "jsx", "sh", "go", "rs", "c", "cpp",
             "h", "hpp", "java", "kt", "toml", "ini", "sql",
+            "lua", "luau",
         ]
         for ext in expected {
             XCTAssertTrue(
@@ -56,7 +57,10 @@ final class TextFilePreviewTests: XCTestCase {
     // MARK: - FileInfo.isTextPreviewable
 
     func testIsTextPreviewableForTextFiles() {
-        let textFiles = ["notes.txt", "README.md", "config.json", "script.py", "main.swift", "app.js", "style.css"]
+        let textFiles = [
+            "notes.txt", "README.md", "config.json", "script.py", "main.swift",
+            "app.js", "style.css", "script.lua", "roblox-script.luau",
+        ]
         for name in textFiles {
             let info = FileInfo(name: name, size: 100, createdAt: Date(), modifiedAt: Date(), isImage: false, isVideo: false)
             XCTAssertTrue(info.isTextPreviewable, "'\(name)' should be text-previewable")
@@ -340,8 +344,52 @@ final class TextFilePreviewTests: XCTestCase {
 
         XCTAssertTrue(coordinator.isPresented)
         XCTAssertEqual(coordinator.content?.count, largeContent.count)
+        XCTAssertEqual(coordinator.lineCount, 10_001)
 
         coordinator.close(animated: false)
+    }
+
+    @MainActor
+    func testEightThousandLineLuaUsesScrollableTextKit2Viewer() {
+        let content = (1...8_000).map { line in
+            "local result_\(line) = updateEntity(entities[\(line)], config)"
+        }.joined(separator: "\n")
+
+        let textView = PlainTextFileView.makeTextView(content: content)
+        textView.frame = CGRect(x: 0, y: 0, width: 390, height: 700)
+        textView.layoutIfNeeded()
+
+        XCTAssertEqual(textView.text, content)
+        XCTAssertNotNil(textView.textLayoutManager, "Viewer must use TextKit 2 viewport layout")
+        XCTAssertTrue(textView.isScrollEnabled)
+        XCTAssertTrue(textView.isSelectable)
+        XCTAssertFalse(textView.isEditable)
+        XCTAssertTrue(textView.textContainer.widthTracksTextView, "Viewer should lay out against its visible viewport")
+        XCTAssertEqual(TextFilePreviewDocument.countLines(in: content), 8_000)
+    }
+
+    func testLineCountingMatchesPreviousPreviewSemantics() {
+        XCTAssertEqual(TextFilePreviewDocument.countLines(in: ""), 1)
+        XCTAssertEqual(TextFilePreviewDocument.countLines(in: "one"), 1)
+        XCTAssertEqual(TextFilePreviewDocument.countLines(in: "one\ntwo"), 2)
+        XCTAssertEqual(TextFilePreviewDocument.countLines(in: "one\ntwo\n"), 3)
+    }
+
+    func testDocumentLoadsAndCountsOffDisk() async throws {
+        let content = (1...8_000).map { "local value_\($0) = \($0)" }.joined(separator: "\n")
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("text-preview-\(UUID().uuidString).lua")
+        defer { try? FileManager.default.removeItem(at: fileURL) }
+        try Data(content.utf8).write(to: fileURL)
+
+        let document = await TextFilePreviewDocument.load(
+            fileURL: fileURL,
+            filename: "modified-script.lua"
+        )
+
+        XCTAssertEqual(document?.filename, "modified-script.lua")
+        XCTAssertEqual(document?.lineCount, 8_000)
+        XCTAssertEqual(document?.content, content)
     }
 
     @MainActor

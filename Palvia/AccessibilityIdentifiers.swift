@@ -39,6 +39,12 @@ enum AccessibilityID {
         static let thinkingBubble = "chat.thinkingBubble"
     }
 
+    enum TextFilePreview {
+        static let closeButton = "textFilePreview.close"
+        static let lineCount = "textFilePreview.lineCount"
+        static let content = "textFilePreview.content"
+    }
+
     enum AgentList {
         static let createButton = "agentList.create"
         static let agentRow = "agentList.row"
