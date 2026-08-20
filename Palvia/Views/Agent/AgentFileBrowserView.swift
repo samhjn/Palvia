@@ -264,9 +264,18 @@ private struct FileRowView: View {
                 Task {
                     await BrowserService.shared.loadAgentFile(fileURL: fileURL, agentId: agentId)
                 }
-            } else if file.isTextPreviewable, let data = try? AgentFileManager.shared.readFile(agentId: agentId, name: relativePath),
-                      let text = String(data: data, encoding: .utf8) {
-                TextFilePreviewCoordinator.shared.show(content: text, filename: file.name)
+            } else if file.isTextPreviewable {
+                Task {
+                    guard let document = await TextFilePreviewDocument.load(
+                        fileURL: fileURL,
+                        filename: file.name
+                    ) else { return }
+                    TextFilePreviewCoordinator.shared.show(
+                        content: document.content,
+                        filename: document.filename,
+                        lineCount: document.lineCount
+                    )
+                }
             }
         } label: {
             HStack(spacing: 12) {

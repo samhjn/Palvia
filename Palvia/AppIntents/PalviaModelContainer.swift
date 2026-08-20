@@ -68,6 +68,7 @@ enum PalviaModelContainer {
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
     static let shouldSeedMarkdown = ProcessInfo.processInfo.arguments.contains("--uitesting-seed-markdown")
     static let shouldSeedHeavyMarkdown = ProcessInfo.processInfo.arguments.contains("--uitesting-seed-heavy-markdown")
+    static let shouldSeedLargeLuaPreview = ProcessInfo.processInfo.arguments.contains("--uitesting-seed-large-lua-preview")
     static let shouldSimulateStreaming = ProcessInfo.processInfo.arguments.contains("--uitesting-simulate-streaming")
 
     static let shared: ModelContainer = {

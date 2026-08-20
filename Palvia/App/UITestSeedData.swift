@@ -361,6 +361,46 @@ extension PalviaApp {
         try? context.save()
     }
 
+    // MARK: - Large Lua File Preview Regression Data
+
+    /// Reproduces the reported path: the agent returns an 8,000-line Lua file
+    /// as a chat attachment and the user taps it to open the text preview.
+    @MainActor
+    static func seedLargeLuaPreviewTestData(in container: ModelContainer) {
+        let context = container.mainContext
+
+        let agent = Agent(name: "LargeLuaPreviewAgent")
+        context.insert(agent)
+
+        let session = Session(title: "Large Lua File Preview")
+        session.agent = agent
+        context.insert(session)
+
+        let luaContent = (1...8_000).map { line in
+            "local value_\(line) = \(line)"
+        }.joined(separator: "\n")
+
+        guard let attachment = FileAttachment.from(
+            data: Data(luaContent.utf8),
+            filename: "modified-script.lua",
+            agentId: agent.id
+        ) else {
+            assertionFailure("Failed to create the large Lua UI-test attachment")
+            return
+        }
+
+        let assistantMessage = Message(
+            role: .assistant,
+            content: "I updated the requested Lua code. The modified file is attached."
+        )
+        assistantMessage.session = session
+        assistantMessage.fileAttachmentsData = try? JSONEncoder().encode([attachment])
+        context.insert(assistantMessage)
+
+        session.messages = [assistantMessage]
+        try? context.save()
+    }
+
     // MARK: - Streaming Stress Test Data
 
     @MainActor

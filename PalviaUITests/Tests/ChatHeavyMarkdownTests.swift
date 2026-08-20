@@ -256,3 +256,47 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
                       "scroll-to-bottom should hide after scrolling back to the bottom")
     }
 }
+
+/// End-to-end regression for opening a large source file returned by an agent.
+final class LargeLuaFilePreviewUITests: BaseTestCase {
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launchArguments += [LaunchArguments.uiTesting, LaunchArguments.seedLargeLuaPreview]
+        app.launch()
+    }
+
+    func testOpeningEightThousandLineLuaAttachmentRemainsResponsive() {
+        waitForAppReady()
+
+        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        if cellRow.waitForExistence(timeout: 8) {
+            cellRow.tap()
+        } else {
+            XCTAssertTrue(buttonRow.waitForExistence(timeout: 3), "Large Lua session should exist")
+            buttonRow.tap()
+        }
+
+        let attachment = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "modified-script.lua")
+        ).firstMatch
+        XCTAssertTrue(attachment.waitForExistence(timeout: 8), "Lua attachment should be visible")
+        attachment.tap()
+
+        // With the old single SwiftUI Text renderer, the main thread was busy
+        // laying out all 8,000 selectable lines and this button never became
+        // hittable within the timeout.
+        let closeButton = app.buttons[AccessibilityID.TextFilePreview.closeButton]
+        XCTAssertTrue(closeButton.waitForExistence(timeout: 5), "Large Lua preview should open promptly")
+        XCTAssertTrue(closeButton.isHittable, "Preview must remain interactive after opening")
+
+        let lineCount = app.staticTexts[AccessibilityID.TextFilePreview.lineCount]
+        XCTAssertTrue(lineCount.waitForExistence(timeout: 2))
+        XCTAssertEqual(lineCount.label, "8000 lines")
+
+        closeButton.tap()
+        XCTAssertFalse(closeButton.waitForExistence(timeout: 2), "Large Lua preview should close promptly")
+    }
+}

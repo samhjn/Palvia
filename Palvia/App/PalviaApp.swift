@@ -126,6 +126,9 @@ struct PalviaApp: App {
             if PalviaModelContainer.shouldSeedHeavyMarkdown {
                 seedHeavyMarkdownTestData(in: modelContainer)
             }
+            if PalviaModelContainer.shouldSeedLargeLuaPreview {
+                seedLargeLuaPreviewTestData(in: modelContainer)
+            }
             if PalviaModelContainer.shouldSimulateStreaming {
                 seedStreamingTestData(in: modelContainer)
             }
@@ -365,9 +368,17 @@ struct PalviaApp: App {
                 await BrowserService.shared.loadAgentFile(fileURL: fileURL, agentId: agentId)
             }
         } else if TextFilePreviewCoordinator.textExtensions.contains(ext) {
-            if let data = try? AgentFileManager.shared.readFile(agentId: agentId, name: filename),
-               let text = String(data: data, encoding: .utf8) {
-                TextFilePreviewCoordinator.shared.show(content: text, filename: filename)
+            let fileURL = AgentFileManager.shared.fileURL(agentId: agentId, name: filename)
+            Task {
+                guard let document = await TextFilePreviewDocument.load(
+                    fileURL: fileURL,
+                    filename: filename
+                ) else { return }
+                TextFilePreviewCoordinator.shared.show(
+                    content: document.content,
+                    filename: document.filename,
+                    lineCount: document.lineCount
+                )
             }
         } else {
             let fileURL = AgentFileManager.shared.fileURL(agentId: agentId, name: filename)
