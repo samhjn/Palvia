@@ -434,7 +434,12 @@ final class AgentFileManager {
     static let fileReferenceScheme = "agentfile"
 
     static func makeFileReference(agentId: UUID, filename: String) -> String {
-        "\(fileReferenceScheme)://\(agentId.uuidString)/\(filename)"
+        // Preserve directory separators, but escape URL delimiters and Markdown
+        // link delimiters. Encode '%' too so literal percent sequences round-trip.
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "%?#()[]*'")
+        let path = filename.addingPercentEncoding(withAllowedCharacters: allowed) ?? filename
+        return "\(fileReferenceScheme)://\(agentId.uuidString)/\(path)"
     }
 
     /// Parse `agentfile://<agentId>/<path>` → (agentId, path). Path may include subdirectories.
@@ -443,7 +448,10 @@ final class AgentFileManager {
         let path = String(ref.dropFirst("\(fileReferenceScheme)://".count))
         guard let slashIdx = path.firstIndex(of: "/") else { return nil }
         let idStr = String(path[..<slashIdx])
-        let filename = String(path[path.index(after: slashIdx)...])
+        let encodedFilename = String(path[path.index(after: slashIdx)...])
+        // Decode exactly once, before validating traversal and other unsafe paths.
+        // Keep legacy raw references containing a literal, unescaped '%' readable.
+        let filename = encodedFilename.removingPercentEncoding ?? encodedFilename
         guard let uuid = UUID(uuidString: idStr), !filename.isEmpty, isSafeRelativePath(filename) else { return nil }
         return (uuid, filename)
     }

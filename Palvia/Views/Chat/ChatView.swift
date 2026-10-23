@@ -939,6 +939,7 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
         private var contentSizeObservation: NSKeyValueObservation?
         private var displayLink: CADisplayLink?
         private var pendingNearBottom: Bool?
+        private var pendingUserDidScrollAway: Bool?
         private var pendingOverScrollClamp = false
         private var pendingStreamingBottomPin = false
         private weak var observedScrollView: UIScrollView?
@@ -978,16 +979,11 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                 // This prevents the deceleration-phase 200pt threshold from
                 // immediately resetting userDidScrollAway after it was just set.
                 let awayFromBottom = distance > ChatScrollGeometry.userScrollThreshold
-                if isUserDriven && awayFromBottom {
-                    if !self.scrollState.userDidScrollAway {
-                        DispatchQueue.main.async {
-                            self.scrollState.userDidScrollAway = true
-                        }
-                    }
-                } else if !awayFromBottom && self.scrollState.userDidScrollAway && isUserDriven {
-                    DispatchQueue.main.async {
-                        self.scrollState.userDidScrollAway = false
-                    }
+                if isUserDriven {
+                    // Keep the latest gesture, even when it matches the published
+                    // state: an older pending update may say the opposite.
+                    self.pendingUserDidScrollAway = awayFromBottom
+                    self.displayLink?.isPaused = false
                 }
 
                 if near != self.scrollState.isNearBottom {
@@ -1006,7 +1002,8 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
                     self.pendingOverScrollClamp = true
                     self.displayLink?.isPaused = false
                 }
-                guard !self.scrollState.userDidScrollAway, !isUserDriven else { return }
+                guard !(self.pendingUserDidScrollAway ?? self.scrollState.userDidScrollAway),
+                      !isUserDriven else { return }
 
                 // While streaming, pin once per display frame directly on the
                 // UIScrollView. The old path issued a SwiftUI scrollTo for every
@@ -1025,6 +1022,13 @@ struct ScrollViewOffsetObserver: UIViewRepresentable {
 
         @objc private func displayLinkFired() {
             displayLink?.isPaused = true
+            // Apply user intent before any correction scheduled by content growth.
+            if let away = pendingUserDidScrollAway {
+                pendingUserDidScrollAway = nil
+                if away != scrollState.userDidScrollAway {
+                    scrollState.userDidScrollAway = away
+                }
+            }
             if pendingStreamingBottomPin {
                 pendingStreamingBottomPin = false
                 if let sv = observedScrollView,
