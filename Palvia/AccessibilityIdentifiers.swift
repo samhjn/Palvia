@@ -40,6 +40,7 @@ enum AccessibilityID {
     }
 
     enum TextFilePreview {
+        static let shareButton = "textFilePreview.share"
         static let closeButton = "textFilePreview.close"
         static let lineCount = "textFilePreview.lineCount"
         static let content = "textFilePreview.content"

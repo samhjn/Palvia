@@ -273,7 +273,8 @@ private struct FileRowView: View {
                     TextFilePreviewCoordinator.shared.show(
                         content: document.content,
                         filename: document.filename,
-                        lineCount: document.lineCount
+                        lineCount: document.lineCount,
+                        fileURL: fileURL
                     )
                 }
             }

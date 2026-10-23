@@ -268,6 +268,36 @@ final class LargeLuaFilePreviewUITests: BaseTestCase {
     }
 
     func testOpeningEightThousandLineLuaAttachmentRemainsResponsive() {
+        openLargeLuaPreview()
+
+        let lineCount = app.staticTexts[AccessibilityID.TextFilePreview.lineCount]
+        XCTAssertTrue(lineCount.waitForExistence(timeout: 2))
+        XCTAssertEqual(lineCount.label, "8000 lines")
+
+        let closeButton = app.buttons[AccessibilityID.TextFilePreview.closeButton]
+        closeButton.tap()
+        XCTAssertFalse(closeButton.waitForExistence(timeout: 2), "Large Lua preview should close promptly")
+    }
+
+    func testTextPreviewOffersOriginalFileForExport() {
+        openLargeLuaPreview()
+        let shareButton = app.buttons[AccessibilityID.TextFilePreview.shareButton]
+        XCTAssertTrue(shareButton.waitForExistence(timeout: 3))
+        shareButton.tap()
+
+        let shareSheet = app.otherElements["ActivityListView"]
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 8))
+        // The system share extension uses the simulator's language and exposes
+        // actions as cells, independently of the app's language override.
+        let saveToFiles = shareSheet.cells.matching(NSPredicate(
+            format: "label IN %@", ["Save to Files", "存储到“文件”", "儲存到「檔案」"]
+        )).firstMatch
+        XCTAssertTrue(saveToFiles.waitForExistence(timeout: 8), "Text files must offer file export in the system share sheet")
+        // iOS hides the extension in its share-sheet title.
+        XCTAssertTrue(shareSheet.otherElements["modified-script"].exists, "The share sheet should identify the original file")
+    }
+
+    private func openLargeLuaPreview() {
         waitForAppReady()
 
         let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
@@ -291,12 +321,5 @@ final class LargeLuaFilePreviewUITests: BaseTestCase {
         let closeButton = app.buttons[AccessibilityID.TextFilePreview.closeButton]
         XCTAssertTrue(closeButton.waitForExistence(timeout: 5), "Large Lua preview should open promptly")
         XCTAssertTrue(closeButton.isHittable, "Preview must remain interactive after opening")
-
-        let lineCount = app.staticTexts[AccessibilityID.TextFilePreview.lineCount]
-        XCTAssertTrue(lineCount.waitForExistence(timeout: 2))
-        XCTAssertEqual(lineCount.label, "8000 lines")
-
-        closeButton.tap()
-        XCTAssertFalse(closeButton.waitForExistence(timeout: 2), "Large Lua preview should close promptly")
     }
 }
