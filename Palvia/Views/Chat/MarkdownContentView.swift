@@ -523,7 +523,7 @@ struct MarkdownContentView: View {
                 continue
             }
             let urlPart = afterBracket.dropFirst()
-            guard let closeParen = urlPart.firstIndex(of: ")") else {
+            guard let closeParen = Self.markdownDestinationEnd(in: urlPart) else {
                 segments.append(.text(String(remaining)))
                 return segments
             }
@@ -554,7 +554,7 @@ struct MarkdownContentView: View {
         let afterBracket = after[after.index(after: closeBracket)...]
         guard afterBracket.hasPrefix("(") else { return nil }
         let urlPart = afterBracket.dropFirst()
-        guard let closeParen = urlPart.firstIndex(of: ")") else { return nil }
+        guard let closeParen = Self.markdownDestinationEnd(in: urlPart) else { return nil }
         let url = String(urlPart[urlPart.startIndex..<closeParen])
         // Verify this is the entire line content (block-level image)
         let remaining = urlPart[urlPart.index(after: closeParen)...].trimmingCharacters(in: .whitespaces)
@@ -583,6 +583,56 @@ struct MarkdownContentView: View {
 
     // MARK: - Inline Parsing
 
+    /// The outer '(' has already been consumed. Parentheses inside a URL
+    /// belong to its path, so only a matching outer ')' ends the destination.
+    private static func markdownDestinationEnd(in text: Substring) -> String.Index? {
+        var depth = 0
+        for index in text.indices {
+            switch text[index] {
+            case "(": depth += 1
+            case ")":
+                if depth == 0 { return index }
+                depth -= 1
+            default: break
+            }
+        }
+        return nil
+    }
+
+    private static func bareLink(in text: Substring) -> (url: URL, end: String.Index)? {
+        guard let first = text.first, "hHaA".contains(first) else { return nil }
+        let prefix = text.prefix(12).lowercased()
+        guard prefix.hasPrefix("https://") || prefix.hasPrefix("http://") || prefix.hasPrefix("agentfile://") else {
+            return nil
+        }
+
+        var end = text.startIndex
+        var parentheses = 0
+        var brackets = 0
+        while end < text.endIndex {
+            let char = text[end]
+            if char.isWhitespace || "<>\"'`*\\，。！？；：（）【】".contains(char) { break }
+            if char == "(" { parentheses += 1 }
+            if char == ")" {
+                if parentheses == 0 { break }
+                parentheses -= 1
+            }
+            if char == "[" { brackets += 1 }
+            if char == "]" {
+                if brackets == 0 { break }
+                brackets -= 1
+            }
+            end = text.index(after: end)
+        }
+        while end > text.startIndex, ".,;:!?".contains(text[text.index(before: end)]) {
+            end = text.index(before: end)
+        }
+        let raw = String(text[..<end])
+        guard let url = URL(string: raw), let host = url.host, !host.isEmpty else { return nil }
+        if prefix.hasPrefix("agentfile://"), AgentFileManager.parseFileReference(raw) == nil { return nil }
+        return (url, end)
+    }
+
     func parseInlineMarkdown(_ text: String) -> AttributedString {
         Self.parseInlineMarkdown(text, isUserMessage: isUserMessage)
     }
@@ -600,6 +650,23 @@ struct MarkdownContentView: View {
         }
 
         while !remaining.isEmpty {
+            // Consume the entire URL before interpreting underscores or other
+            // Markdown markers in its path. Code spans are consumed atomically
+            // below, and fenced code blocks never reach this inline parser.
+            let previous = remaining.startIndex == text.startIndex
+                ? nil : text[text.index(before: remaining.startIndex)]
+            let startsInsideWord = previous.map { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_") } ?? false
+            if !startsInsideWord, let link = bareLink(in: remaining) {
+                flushPlain()
+                var attr = AttributedString(String(remaining[..<link.end]))
+                attr.link = link.url
+                attr.foregroundColor = .blue
+                attr.underlineStyle = .single
+                result.append(attr)
+                remaining = remaining[link.end...]
+                continue
+            }
+
             // Image inline: ![alt](url) → render as [🖼 alt] link
             if remaining.hasPrefix("![") {
                 let after = remaining.dropFirst(2)
@@ -608,7 +675,7 @@ struct MarkdownContentView: View {
                     let afterBracket = after[after.index(after: closeBracket)...]
                     if afterBracket.hasPrefix("(") {
                         let urlPart = afterBracket.dropFirst()
-                        if let closeParen = urlPart.firstIndex(of: ")") {
+                        if let closeParen = markdownDestinationEnd(in: urlPart) {
                             flushPlain()
                             let urlStr = String(urlPart[urlPart.startIndex..<closeParen])
                             var attr = AttributedString("🖼 \(altText.isEmpty ? urlStr : altText)")
@@ -706,7 +773,7 @@ struct MarkdownContentView: View {
                     let afterBracket = after[after.index(after: closeBracket)...]
                     if afterBracket.hasPrefix("(") {
                         let urlPart = afterBracket.dropFirst()
-                        if let closeParen = urlPart.firstIndex(of: ")") {
+                        if let closeParen = markdownDestinationEnd(in: urlPart) {
                             flushPlain()
                             let urlStr = String(urlPart[urlPart.startIndex..<closeParen])
                             var attr = AttributedString(linkText)

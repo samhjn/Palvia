@@ -9,16 +9,18 @@ final class TextFilePreviewCoordinator {
 
     private(set) var content: String?
     private(set) var filename: String = ""
+    private(set) var fileURL: URL?
     private(set) var lineCount: Int = 0
     private(set) var isMarkdown: Bool = false
     private(set) var isPresented = false
 
-    func show(content: String, filename: String, lineCount: Int? = nil) {
+    func show(content: String, filename: String, lineCount: Int? = nil, fileURL: URL? = nil) {
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil
         )
         self.content = content
         self.filename = filename
+        self.fileURL = fileURL
         self.lineCount = lineCount ?? TextFilePreviewDocument.countLines(in: content)
         self.isMarkdown = Self.markdownExtensions.contains(
             (filename as NSString).pathExtension.lowercased()
@@ -37,9 +39,11 @@ final class TextFilePreviewCoordinator {
             isPresented = false
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            self?.content = nil
-            self?.filename = ""
-            self?.lineCount = 0
+            guard let self, !self.isPresented else { return }
+            self.content = nil
+            self.filename = ""
+            self.fileURL = nil
+            self.lineCount = 0
         }
     }
 
@@ -66,6 +70,7 @@ struct TextFilePreviewRootModifier: ViewModifier {
                 TextFilePreviewOverlay(
                     content: text,
                     filename: coordinator.filename,
+                    fileURL: coordinator.fileURL,
                     lineCount: coordinator.lineCount,
                     isMarkdown: coordinator.isMarkdown
                 )
@@ -86,6 +91,7 @@ extension View {
 private struct TextFilePreviewOverlay: View {
     let content: String
     let filename: String
+    let fileURL: URL?
     let lineCount: Int
     let isMarkdown: Bool
 
@@ -146,6 +152,16 @@ private struct TextFilePreviewOverlay: View {
             }
 
             Spacer()
+
+            if let fileURL {
+                ShareLink(item: fileURL) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel(L10n.Chat.share)
+                .accessibilityIdentifier(AccessibilityID.TextFilePreview.shareButton)
+            }
 
             Button {
                 UIPasteboard.general.string = content

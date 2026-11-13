@@ -155,6 +155,42 @@ final class TextFilePreviewTests: XCTestCase {
 
     // MARK: - Integration: File read + preview
 
+    @MainActor
+    func testPreviewKeepsOriginalFileForSharing() async throws {
+        let filename = "中文 report(1).txt"
+        let data = Data("\u{FEFF}First line\r\n第二行\r\n".utf8)
+        let fm = AgentFileManager.shared
+        try fm.writeFile(agentId: testAgentId, name: filename, data: data)
+        let fileURL = fm.fileURL(agentId: testAgentId, name: filename)
+        let loaded = await TextFilePreviewDocument.load(fileURL: fileURL, filename: filename)
+        let document = try XCTUnwrap(loaded)
+        let coordinator = TextFilePreviewCoordinator()
+        coordinator.show(content: document.content, filename: filename, lineCount: document.lineCount, fileURL: fileURL)
+
+        let shareURL = try XCTUnwrap(coordinator.fileURL)
+        XCTAssertEqual(shareURL.lastPathComponent, filename)
+        XCTAssertEqual(try Data(contentsOf: shareURL), data, "Sharing must retain original bytes, including BOM and line endings")
+        coordinator.close(animated: false)
+    }
+
+    @MainActor
+    func testClosingThenOpeningAnotherFilePreservesNewPreview() async throws {
+        let coordinator = TextFilePreviewCoordinator()
+        let secondURL = URL(fileURLWithPath: "/tmp/second.txt")
+        coordinator.show(content: "first", filename: "first.txt", fileURL: URL(fileURLWithPath: "/tmp/first.txt"))
+        coordinator.close(animated: false)
+        coordinator.show(content: "second", filename: "second.txt", fileURL: secondURL)
+        try await Task.sleep(for: .milliseconds(300))
+
+        XCTAssertTrue(coordinator.isPresented)
+        XCTAssertEqual(coordinator.content, "second")
+        XCTAssertEqual(coordinator.fileURL, secondURL)
+        coordinator.close(animated: false)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertNil(coordinator.fileURL)
+        XCTAssertNil(coordinator.content)
+    }
+
     func testTextFileCanBeReadAndPreviewed() throws {
         let content = "Line 1\nLine 2\nLine 3"
         try AgentFileManager.shared.writeFile(agentId: testAgentId, name: "notes.txt", data: Data(content.utf8))

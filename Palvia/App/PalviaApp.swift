@@ -377,7 +377,8 @@ struct PalviaApp: App {
                 TextFilePreviewCoordinator.shared.show(
                     content: document.content,
                     filename: document.filename,
-                    lineCount: document.lineCount
+                    lineCount: document.lineCount,
+                    fileURL: fileURL
                 )
             }
         } else {

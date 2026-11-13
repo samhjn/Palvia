@@ -468,6 +468,70 @@ final class ScrollObserverGrowthGatingTests: XCTestCase {
     }
 }
 
+private final class GestureTestScrollView: UIScrollView {
+    var gestureActive = false
+    override var isTracking: Bool { gestureActive }
+    override var isDragging: Bool { gestureActive }
+}
+
+@MainActor
+final class ScrollObserverGestureRaceTests: XCTestCase {
+    private func makeObservedPair(away: Bool) -> (ChatScrollState, ScrollViewOffsetObserver.Coordinator, GestureTestScrollView) {
+        let state = ChatScrollState()
+        state.userDidScrollAway = away
+        state.isGenerationActive = true
+        let scrollView = GestureTestScrollView(frame: CGRect(x: 0, y: 0, width: 375, height: 800))
+        scrollView.contentSize = CGSize(width: 375, height: 1800)
+        scrollView.contentOffset.y = away ? 700 : 980
+        state.scrollView = scrollView
+        let coordinator = ScrollViewOffsetObserver(scrollState: state).makeCoordinator()
+        coordinator.observe(scrollView)
+        return (state, coordinator, scrollView)
+    }
+
+    func testReturnToHistoryBeforeNextFrameDoesNotResumeFollowing() async throws {
+        let (state, coordinator, sv) = makeObservedPair(away: true)
+        sv.gestureActive = true
+        // Both callbacks arrive before the deferred near-bottom state publishes.
+        sv.contentOffset.y = 980
+        sv.contentOffset.y = 700
+        sv.gestureActive = false
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(state.userDidScrollAway)
+
+        sv.contentSize.height = 2000
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(sv.contentOffset.y, 700, accuracy: 1)
+        withExtendedLifetime(coordinator) {}
+    }
+
+    func testReturnToBottomBeforeNextFrameResumesFollowing() async throws {
+        let (state, coordinator, sv) = makeObservedPair(away: false)
+        sv.gestureActive = true
+        sv.contentOffset.y = 700
+        sv.contentOffset.y = 980
+        sv.gestureActive = false
+        // Growth arrives before the last gesture state has been published.
+        sv.contentSize.height = 2000
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertFalse(state.userDidScrollAway)
+        XCTAssertEqual(ChatScrollGeometry.distanceToBottom(sv), 0, accuracy: 1)
+        withExtendedLifetime(coordinator) {}
+    }
+
+    func testUserScrollingAwayCancelsAlreadyScheduledStreamingPin() async throws {
+        let (state, coordinator, sv) = makeObservedPair(away: false)
+        sv.contentSize.height = 2000
+        sv.gestureActive = true
+        sv.contentOffset.y = 700
+        sv.gestureActive = false
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertTrue(state.userDidScrollAway)
+        XCTAssertEqual(sv.contentOffset.y, 700, accuracy: 1)
+        withExtendedLifetime(coordinator) {}
+    }
+}
+
 // MARK: - Streaming Markdown Cadence Tests
 
 final class MarkdownStreamingCadenceTests: XCTestCase {

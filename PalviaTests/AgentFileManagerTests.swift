@@ -220,6 +220,35 @@ final class AgentFileManagerTests: XCTestCase {
         XCTAssertNil(AgentFileManager.parseFileReference("agentfile://\(UUID().uuidString)/../etc"))
     }
 
+    func testFileReferencesRoundTripThroughURLAndResolveOriginalFile() throws {
+        let filenames = [
+            "中文 报告.txt", "docs/report(1).txt", "notes [copy] #1?.txt",
+            "literal%20name.txt", "100% complete.txt", "notes 'copy'*.txt",
+        ]
+        for filename in filenames {
+            let data = Data(filename.utf8)
+            try fm.writeFile(agentId: testAgentId, name: filename, data: data)
+            let ref = AgentFileManager.makeFileReference(agentId: testAgentId, filename: filename)
+            let url = try XCTUnwrap(URL(string: ref))
+            let parsed = try XCTUnwrap(AgentFileManager.parseFileReference(url.absoluteString))
+            XCTAssertEqual(parsed.0, testAgentId)
+            XCTAssertEqual(parsed.1, filename)
+            XCTAssertNil(url.query)
+            XCTAssertNil(url.fragment)
+            XCTAssertEqual(try fm.readFile(agentId: parsed.0, name: parsed.1), data)
+        }
+    }
+
+    func testPercentDecodedReferencesStillRejectUnsafePaths() {
+        for path in ["%2e%2e/secret", "docs/%2E%2E/secret", "%2Fetc/passwd", "docs%2F..%2Fsecret", "docs%5Csecret", "file%00.txt"] {
+            XCTAssertNil(AgentFileManager.parseFileReference("agentfile://\(testAgentId.uuidString)/\(path)"), path)
+        }
+        // A literal percent sequence is decoded once and remains a filename.
+        let ref = AgentFileManager.makeFileReference(agentId: testAgentId, filename: "%2e%2e.txt")
+        XCTAssertEqual(AgentFileManager.parseFileReference(ref)?.1, "%2e%2e.txt")
+        XCTAssertEqual(AgentFileManager.parseFileReference("agentfile://\(testAgentId.uuidString)/100%.txt")?.1, "100%.txt")
+    }
+
     // MARK: - Image Save and Load
 
     func testSaveAndLoadImage() {

@@ -359,6 +359,55 @@ final class AgentFileReferenceTests: XCTestCase {
 
         let fullText = String(result.characters)
         XCTAssertTrue(fullText.contains("the report"), "Link text should appear")
+        XCTAssertEqual(result.runs.compactMap { $0.link }, [URL(string: ref)!])
+    }
+
+    func testBareWebLinksPreserveQueryAndExcludeSentencePunctuation() {
+        let urls = ["https://example.com/a_b?q=c_d&lang=zh", "http://example.com/report(1)"]
+        let text = "查看：\(urls[0])。另见 (\(urls[1]))."
+        let result = MarkdownContentView.parseInlineMarkdown(text, isUserMessage: false)
+        XCTAssertEqual(String(result.characters), text)
+        XCTAssertEqual(result.runs.compactMap { $0.link?.absoluteString }, urls)
+    }
+
+    func testBareAgentFileLinkResolvesEncodedFilename() throws {
+        let filename = "中文 报告(1) [copy] #100% 'final'*.txt"
+        let data = Data("原始文件".utf8)
+        try AgentFileManager.shared.writeFile(agentId: testAgentId, name: filename, data: data)
+        let ref = AgentFileManager.makeFileReference(agentId: testAgentId, filename: filename)
+        let text = "下载：\(ref)。"
+        let result = MarkdownContentView.parseInlineMarkdown(text, isUserMessage: false)
+        let links = result.runs.compactMap { $0.link }
+        XCTAssertEqual(String(result.characters), text)
+        XCTAssertEqual(links.count, 1)
+        let link = try XCTUnwrap(links.first)
+        let parsed = try XCTUnwrap(AgentFileManager.parseFileReference(link.absoluteString))
+        XCTAssertEqual(parsed.1, filename)
+        XCTAssertEqual(try AgentFileManager.shared.readFile(agentId: parsed.0, name: parsed.1), data)
+    }
+
+    func testURLsInsideCodeSpansAndWordsAreNotLinked() {
+        let text = "`https://example.com/a_b` and prefixhttps://example.com"
+        let result = MarkdownContentView.parseInlineMarkdown(text, isUserMessage: false)
+        XCTAssertTrue(result.runs.compactMap { $0.link }.isEmpty)
+        XCTAssertEqual(String(result.characters), "https://example.com/a_b and prefixhttps://example.com")
+        let blocks = MarkdownContentView("```text\nhttps://example.com/a_b\n```").parseBlocks()
+        guard case .codeBlock = blocks.first else { return XCTFail("URL in a code fence must remain code") }
+    }
+
+    func testMarkdownDestinationsPreserveBalancedParentheses() {
+        // Older messages may contain raw parentheses rather than encoded paths.
+        let ref = "agentfile://\(testAgentId.uuidString)/report(1).txt"
+        let result = MarkdownContentView.parseInlineMarkdown("[报告](\(ref))", isUserMessage: false)
+        XCTAssertEqual(String(result.characters), "报告")
+        XCTAssertEqual(result.runs.compactMap { $0.link?.absoluteString }, [ref])
+
+        let imageRef = "agentfile://\(testAgentId.uuidString)/chart(1).png"
+        let blocks = MarkdownContentView("![图表](\(imageRef))").parseBlocks()
+        guard case .image(_, let url) = blocks.first else { return XCTFail("Expected image block") }
+        XCTAssertEqual(url, imageRef)
+        let inline = MarkdownContentView.parseInlineMarkdown("See ![图表](\(imageRef))", isUserMessage: false)
+        XCTAssertEqual(inline.runs.compactMap { $0.link?.absoluteString }, [imageRef])
     }
 
     // MARK: - End-to-end: extract → resolve cycle
