@@ -1,0 +1,19 @@
+name: "iClaw CodeQL Config"
+
+# Use the default set of queries plus security-extended and security-and-quality
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+# Paths to analyze — focus on app source code
+paths:
+  - iClaw
+  - iClawWidgets
+
+# Paths to exclude from analysis
+paths-ignore:
+  - iClawTests
+  - "**/*.xcassets"
+  - "**/Generated"
+  - "scripts"
+  - "ci_scripts"
