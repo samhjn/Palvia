@@ -358,6 +358,9 @@ extension PalviaApp {
         }
 
         session.messages = allMessages
+        if PalviaModelContainer.shouldSeedHeavyMarkdownInHistory {
+            session.lastViewedMessageId = allMessages.first?.id
+        }
         try? context.save()
     }
 

@@ -13,12 +13,15 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments += [LaunchArguments.uiTesting, LaunchArguments.seedHeavyMarkdown]
-        app.launch()
     }
 
     // MARK: - Helpers
 
-    private func enterSession() -> ChatPage {
+    private func enterSession(startInHistory: Bool = false) -> ChatPage {
+        if startInHistory {
+            app.launchArguments += [LaunchArguments.seedHeavyMarkdownInHistory]
+        }
+        app.launch()
         waitForAppReady()
 
         let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
@@ -59,6 +62,32 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
             RunLoop.current.run(until: Date().addingTimeInterval(0.3))
         }
         return false
+    }
+
+    private func finalParagraphVisibility(in scrollView: XCUIElement) -> NSPredicate {
+        let tail = scrollView.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "以上就是完整的 Swift 最佳实践文档的全部内容。")
+        ).firstMatch
+        return NSPredicate { _, _ in
+            guard tail.exists else { return false }
+            let frame = tail.frame
+            return scrollView.frame.contains(CGPoint(x: frame.midX, y: frame.midY))
+        }
+    }
+
+    private func tapScrollToBottom(_ button: XCUIElement, expecting tailVisible: NSPredicate) {
+        button.tapWhenReady()
+        XCTAssertTrue(button.waitForNonExistence(timeout: 5), "Tapping scroll-to-bottom should dismiss the button")
+
+        let visible = XCTNSPredicateExpectation(predicate: tailVisible, object: nil)
+        let result = XCTWaiter.wait(for: [visible], timeout: 15)
+        if result != .completed {
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Chat after tapping scroll-to-bottom"
+            add(screenshot)
+        }
+        XCTAssertEqual(result, .completed,
+                       "Tapping scroll-to-bottom should bring the final paragraph into view")
     }
 
     // MARK: - Initial Scroll Position & False Bottom (Bug #2 + #3)
@@ -139,38 +168,16 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         }
     }
 
-    /// Complementary test: after entering AND interacting (scrolling up then
-    /// tapping scroll-to-bottom), verify we actually reach the real bottom.
-    /// This catches the case where even the scroll-to-bottom action fails to
-    /// reach the actual bottom due to ongoing markdown height changes.
+    /// From a saved position in history, tapping scroll-to-bottom should
+    /// reveal the last paragraph even as the long Markdown rows lay out.
     func test_scrollToBottom_reachesRealBottom() {
-        let chat = enterSession()
-        let scrollView = app.scrollViews.firstMatch
-        let tail = scrollView.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS %@", "以上就是完整的 Swift 最佳实践文档的全部内容。")
-        ).firstMatch
+        let chat = enterSession(startInHistory: true)
+        let scrollView = app.scrollViews.matching(identifier: AccessibilityID.Chat.messageList).firstMatch
         XCTAssertTrue(scrollView.waitUntilHittable(), "The chat history should be ready to scroll")
 
-        // Drag in the trailing gutter so a nested code-block scroll view does not receive the gesture.
-        let start = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.25))
-        let end = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.8))
-        start.press(forDuration: 0.05, thenDragTo: end, withVelocity: .fast, thenHoldForDuration: 0)
-
-        let tailVisible = NSPredicate { _, _ in
-            guard tail.exists else { return false }
-            let frame = tail.frame
-            return scrollView.frame.contains(CGPoint(x: frame.midX, y: frame.midY))
-        }
-        XCTAssertFalse(tailVisible.evaluate(with: nil), "Scrolling away should move the final paragraph out of view")
-
-        let scrollBtn = chat.scrollToBottomButton
-        XCTAssertTrue(scrollBtn.waitForExistence(timeout: 5), "Scrolling away should reveal the scroll-to-bottom button")
-        // XCTest can report the visible SwiftUI overlay button as non-hittable.
-        scrollBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-
-        let visible = XCTNSPredicateExpectation(predicate: tailVisible, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [visible], timeout: 15), .completed,
-                       "Tapping scroll-to-bottom should bring the final paragraph into view")
+        let tailVisible = finalParagraphVisibility(in: scrollView)
+        XCTAssertFalse(tailVisible.evaluate(with: nil), "The saved position in history should open above the final paragraph")
+        tapScrollToBottom(chat.scrollToBottomButton, expecting: tailVisible)
     }
 
     // MARK: - Scroll-to-Bottom Button (Bug #3)
@@ -223,11 +230,11 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
 
     /// Rapid scroll up and down should not break the scroll-to-bottom button.
     func test_scrollToBottom_survivesRapidScrolling() {
-        _ = enterSession()
+        let chat = enterSession()
 
         RunLoop.current.run(until: Date().addingTimeInterval(2))
 
-        let scrollView = app.scrollViews.firstMatch
+        let scrollView = app.scrollViews.matching(identifier: AccessibilityID.Chat.messageList).firstMatch
         guard scrollView.waitForExistence(timeout: 5) else {
             XCTFail("Scroll view should exist")
             return
@@ -238,20 +245,9 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         for _ in 0..<2 { scrollView.swipeUp() }
         for _ in 0..<3 { scrollView.swipeDown() }
 
-        // We're away from bottom — button should appear
-        let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        XCTAssertTrue(scrollBtn.waitForExistence(timeout: 5),
-                      "scroll-to-bottom should appear after aggressive scrolling away from bottom")
-
-        // Scroll all the way back down
-        for _ in 0..<10 { scrollView.swipeUp() }
-
-        // Button should hide once we're back at bottom
-        let gone = NSPredicate(format: "exists == false OR isHittable == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: scrollBtn)
-        let buttonHid = XCTWaiter().wait(for: [exp], timeout: 5) == .completed
-        XCTAssertTrue(buttonHid,
-                      "scroll-to-bottom should hide after scrolling back to the bottom")
+        let tailVisible = finalParagraphVisibility(in: scrollView)
+        XCTAssertFalse(tailVisible.evaluate(with: nil), "Rapid scrolling should leave the final paragraph out of view")
+        tapScrollToBottom(chat.scrollToBottomButton, expecting: tailVisible)
     }
 }
 
