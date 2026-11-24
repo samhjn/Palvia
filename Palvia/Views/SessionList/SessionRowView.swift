@@ -63,6 +63,7 @@ struct SessionRowView: View {
             }
         }
         .padding(.vertical, 4)
+        .contentShape(.interaction, Rectangle())
     }
 }
 
