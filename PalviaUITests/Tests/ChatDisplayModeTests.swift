@@ -20,7 +20,6 @@ final class ChatDisplayModeTests: BaseTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = Self.sharedApp
-        navigateToSessionListIfNeeded()
     }
 
     override func tearDownWithError() throws {
@@ -32,25 +31,6 @@ final class ChatDisplayModeTests: BaseTestCase {
         sharedApp?.terminate()
         sharedApp = nil
         super.tearDown()
-    }
-
-    /// Navigate back to session list if currently in a chat view.
-    private func navigateToSessionListIfNeeded() {
-        let sessionRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-        if sessionRow.waitForExistence(timeout: 2) { return }
-
-        // Also check as button (iPad / different iOS versions)
-        let sessionBtn = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-        if sessionBtn.exists { return }
-
-        // We're in chat view — tap the navigation back button
-        let backButton = app.navigationBars.buttons.firstMatch
-        if backButton.waitForExistence(timeout: 3) {
-            backButton.tap()
-            // Wait for session list to appear
-            _ = sessionRow.waitForExistence(timeout: 5)
-                || sessionBtn.waitForExistence(timeout: 3)
-        }
     }
 
     /// Reset display mode to verbose so the next test starts cleanly.
@@ -83,36 +63,35 @@ final class ChatDisplayModeTests: BaseTestCase {
         app = freshApp
     }
 
-    private func enterSeededSession() -> ChatPage {
-        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-        let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-
-        if cellRow.waitForExistence(timeout: 8) {
-            cellRow.tap()
-        } else if buttonRow.waitForExistence(timeout: 3) {
-            buttonRow.tap()
-        } else {
-            let anyRow = app.descendants(matching: .any)
-                .matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-            if anyRow.waitForExistence(timeout: 3) {
-                anyRow.tap()
-            } else {
-                XCTFail("Seeded session row should appear in the list")
-                return ChatPage(app: app)
-            }
+    private func enterSeededSession(file: StaticString = #filePath, line: UInt = #line) -> ChatPage {
+        let chat = ChatPage(app: app)
+        // The system back button has a localized label on iOS 18.
+        let back = app.navigationBars["Markdown Test Session"].buttons.matching(NSPredicate(
+            format: "NOT (identifier IN %@)", [AccessibilityID.Chat.menuButton, AccessibilityID.Chat.displayModeCapsule]
+        )).firstMatch
+        if back.exists {
+            back.tap()
         }
 
-        let chat = ChatPage(app: app)
-        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        let capsule = app.buttons[AccessibilityID.Chat.displayModeCapsule]
+        // NavigationSplitView can expose the same link as a button or a cell.
+        let row = app.descendants(matching: .any)
+            .matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        guard row.waitForExistence(timeout: 8) else {
+            XCTFail("The seeded session row did not appear", file: file, line: line)
+            return chat
+        }
+        // On iPhone the center can fall in the gap between the metadata and preview.
+        row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
-        // Wait for navigation to leave the session list before asserting chat controls.
-        let listGone = NSPredicate(format: "exists == false")
-        let listGoneExp = XCTNSPredicateExpectation(predicate: listGone, object: cellRow)
-        _ = XCTWaiter().wait(for: [listGoneExp], timeout: 5)
-
-        let loaded = sendBtn.waitForExistence(timeout: 10) || capsule.waitForExistence(timeout: 5)
-        XCTAssertTrue(loaded, "Chat view should be displayed (sendButton or displayModeCapsule)")
+        let chatControl = app.buttons.matching(NSPredicate(
+            format: "identifier IN %@", [AccessibilityID.Chat.sendButton, AccessibilityID.Chat.displayModeCapsule]
+        )).firstMatch
+        if !chatControl.waitForExistence(timeout: 15) {
+            let hierarchy = XCTAttachment(string: app.debugDescription)
+            hierarchy.name = "Interface after opening the seeded session"
+            add(hierarchy)
+            XCTFail("Tapped the seeded session but no chat controls appeared", file: file, line: line)
+        }
         return chat
     }
 
@@ -288,14 +267,20 @@ final class ChatDisplayModeTests: BaseTestCase {
     }
 
     func test_longMarkdownContent_codeBlocksRendered() {
-        let chat = enterSeededSession()
+        let messages = app.scrollViews[AccessibilityID.Chat.messageList]
+        if !messages.exists {
+            _ = enterSeededSession()
+        }
+        let scrollToBottom = app.buttons[AccessibilityID.Chat.scrollToBottom]
+        if scrollToBottom.exists {
+            scrollToBottom.tap()
+        }
 
         XCTContext.runActivity(named: "Verify code blocks are present in markdown") { _ in
-            chat.verifyMarkdownContentExists()
-
-            let found = waitForAnyKeyword(["swift", "func", "struct", "class"], timeout: 5)
-            XCTAssertTrue(found,
-                          "Markdown with Swift code blocks should render code-related text")
+            let code = messages.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH %@", "func parse(_ input: String)")
+            ).firstMatch
+            XCTAssertTrue(code.waitForExistence(timeout: 5), "The final fenced Swift example should render its function")
         }
     }
 

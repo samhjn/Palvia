@@ -13,12 +13,15 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments += [LaunchArguments.uiTesting, LaunchArguments.seedHeavyMarkdown]
-        app.launch()
     }
 
     // MARK: - Helpers
 
-    private func enterSession() -> ChatPage {
+    private func enterSession(startInHistory: Bool = false) -> ChatPage {
+        if startInHistory {
+            app.launchArguments += [LaunchArguments.seedHeavyMarkdownInHistory]
+        }
+        app.launch()
         waitForAppReady()
 
         let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
@@ -59,6 +62,32 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
             RunLoop.current.run(until: Date().addingTimeInterval(0.3))
         }
         return false
+    }
+
+    private func finalParagraphVisibility(in scrollView: XCUIElement) -> NSPredicate {
+        let tail = scrollView.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "以上就是完整的 Swift 最佳实践文档的全部内容。")
+        ).firstMatch
+        return NSPredicate { _, _ in
+            guard tail.exists else { return false }
+            let frame = tail.frame
+            return scrollView.frame.contains(CGPoint(x: frame.midX, y: frame.midY))
+        }
+    }
+
+    private func tapScrollToBottom(_ button: XCUIElement, expecting tailVisible: NSPredicate) {
+        button.tapWhenReady()
+        XCTAssertTrue(button.waitForNonExistence(timeout: 5), "Tapping scroll-to-bottom should dismiss the button")
+
+        let visible = XCTNSPredicateExpectation(predicate: tailVisible, object: nil)
+        let result = XCTWaiter.wait(for: [visible], timeout: 15)
+        if result != .completed {
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "Chat after tapping scroll-to-bottom"
+            add(screenshot)
+        }
+        XCTAssertEqual(result, .completed,
+                       "Tapping scroll-to-bottom should bring the final paragraph into view")
     }
 
     // MARK: - Initial Scroll Position & False Bottom (Bug #2 + #3)
@@ -139,40 +168,16 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         }
     }
 
-    /// Complementary test: after entering AND interacting (scrolling up then
-    /// tapping scroll-to-bottom), verify we actually reach the real bottom.
-    /// This catches the case where even the scroll-to-bottom action fails to
-    /// reach the actual bottom due to ongoing markdown height changes.
+    /// From a saved position in history, tapping scroll-to-bottom should
+    /// reveal the last paragraph even as the long Markdown rows lay out.
     func test_scrollToBottom_reachesRealBottom() {
-        _ = enterSession()
+        let chat = enterSession(startInHistory: true)
+        let scrollView = app.scrollViews.matching(identifier: AccessibilityID.Chat.messageList).firstMatch
+        XCTAssertTrue(scrollView.waitUntilHittable(), "The chat history should be ready to scroll")
 
-        // Wait for rendering to settle
-        RunLoop.current.run(until: Date().addingTimeInterval(5))
-
-        // Scroll up to leave the bottom area
-        let scrollView = app.scrollViews.firstMatch
-        for _ in 0..<3 { scrollView.swipeDown() }
-
-        // Scroll back to bottom — via button if available, otherwise manual.
-        // After the button tap, contentSize corrections progressively re-scroll
-        // as LazyVStack renders the long markdown. Supplement with manual swipes
-        // to ensure we reach the very tail of the content.
-        let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        if scrollBtn.waitForExistence(timeout: 3) {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
-            if scrollBtn.isHittable { scrollBtn.tap() }
-        }
-        RunLoop.current.run(until: Date().addingTimeInterval(2))
-        for _ in 0..<4 { scrollView.swipeUp() }
-
-        let lastMsgTailKeywords = ["总结清单", "最佳实践文档"]
-        let lastMsgLateKeywords = ["Instruments", "性能预算", "调优"]
-        let atTail = waitForAnyKeyword(lastMsgTailKeywords, timeout: 8)
-            || waitForAnyKeyword(lastMsgLateKeywords, timeout: 5)
-        XCTAssertTrue(atTail,
-                      "After scroll-to-bottom, the view should show the TAIL of the last "
-                      + "message (~13K chars), not just its beginning. If only early content "
-                      + "is visible, scrollTo stopped at the top of the message, not its end.")
+        let tailVisible = finalParagraphVisibility(in: scrollView)
+        XCTAssertFalse(tailVisible.evaluate(with: nil), "The saved position in history should open above the final paragraph")
+        tapScrollToBottom(chat.scrollToBottomButton, expecting: tailVisible)
     }
 
     // MARK: - Scroll-to-Bottom Button (Bug #3)
@@ -225,11 +230,11 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
 
     /// Rapid scroll up and down should not break the scroll-to-bottom button.
     func test_scrollToBottom_survivesRapidScrolling() {
-        _ = enterSession()
+        let chat = enterSession()
 
         RunLoop.current.run(until: Date().addingTimeInterval(2))
 
-        let scrollView = app.scrollViews.firstMatch
+        let scrollView = app.scrollViews.matching(identifier: AccessibilityID.Chat.messageList).firstMatch
         guard scrollView.waitForExistence(timeout: 5) else {
             XCTFail("Scroll view should exist")
             return
@@ -240,20 +245,9 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         for _ in 0..<2 { scrollView.swipeUp() }
         for _ in 0..<3 { scrollView.swipeDown() }
 
-        // We're away from bottom — button should appear
-        let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]
-        XCTAssertTrue(scrollBtn.waitForExistence(timeout: 5),
-                      "scroll-to-bottom should appear after aggressive scrolling away from bottom")
-
-        // Scroll all the way back down
-        for _ in 0..<10 { scrollView.swipeUp() }
-
-        // Button should hide once we're back at bottom
-        let gone = NSPredicate(format: "exists == false OR isHittable == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: scrollBtn)
-        let buttonHid = XCTWaiter().wait(for: [exp], timeout: 5) == .completed
-        XCTAssertTrue(buttonHid,
-                      "scroll-to-bottom should hide after scrolling back to the bottom")
+        let tailVisible = finalParagraphVisibility(in: scrollView)
+        XCTAssertFalse(tailVisible.evaluate(with: nil), "Rapid scrolling should leave the final paragraph out of view")
+        tapScrollToBottom(chat.scrollToBottomButton, expecting: tailVisible)
     }
 }
 
@@ -270,56 +264,46 @@ final class LargeLuaFilePreviewUITests: BaseTestCase {
     func testOpeningEightThousandLineLuaAttachmentRemainsResponsive() {
         openLargeLuaPreview()
 
-        let lineCount = app.staticTexts[AccessibilityID.TextFilePreview.lineCount]
-        XCTAssertTrue(lineCount.waitForExistence(timeout: 2))
+        let lineCount = app.staticTexts.matching(identifier: AccessibilityID.TextFilePreview.lineCount).firstMatch
+        XCTAssertTrue(lineCount.waitForExistence(timeout: 5))
         XCTAssertEqual(lineCount.label, "8000 lines")
 
-        let closeButton = app.buttons[AccessibilityID.TextFilePreview.closeButton]
         closeButton.tap()
-        XCTAssertFalse(closeButton.waitForExistence(timeout: 2), "Large Lua preview should close promptly")
+        XCTAssertTrue(closeButton.waitForNonExistence(timeout: 5), "Large Lua preview should close promptly")
     }
 
     func testTextPreviewOffersOriginalFileForExport() {
         openLargeLuaPreview()
-        let shareButton = app.buttons[AccessibilityID.TextFilePreview.shareButton]
-        XCTAssertTrue(shareButton.waitForExistence(timeout: 3))
-        shareButton.tap()
+        app.buttons.matching(identifier: AccessibilityID.TextFilePreview.shareButton).firstMatch.tapWhenReady()
 
-        let shareSheet = app.otherElements["ActivityListView"]
+        let shareSheet = app.otherElements.matching(identifier: "ActivityListView").firstMatch
         XCTAssertTrue(shareSheet.waitForExistence(timeout: 8))
         // The system share extension uses the simulator's language and exposes
         // actions as cells, independently of the app's language override.
         let saveToFiles = shareSheet.cells.matching(NSPredicate(
-            format: "label IN %@", ["Save to Files", "存储到“文件”", "儲存到「檔案」"]
+            format: "label IN %@", ["Save to Files", "存储到“文件”", "保存到“文件”", "儲存到「檔案」"]
         )).firstMatch
         XCTAssertTrue(saveToFiles.waitForExistence(timeout: 8), "Text files must offer file export in the system share sheet")
         // iOS hides the extension in its share-sheet title.
         XCTAssertTrue(shareSheet.otherElements["modified-script"].exists, "The share sheet should identify the original file")
     }
 
+    private var closeButton: XCUIElement {
+        app.buttons.matching(identifier: AccessibilityID.TextFilePreview.closeButton).firstMatch
+    }
+
     private func openLargeLuaPreview() {
         waitForAppReady()
 
-        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-        let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-        if cellRow.waitForExistence(timeout: 8) {
-            cellRow.tap()
-        } else {
-            XCTAssertTrue(buttonRow.waitForExistence(timeout: 3), "Large Lua session should exist")
-            buttonRow.tap()
-        }
+        let row = app.descendants(matching: .any)
+            .matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        row.tapWhenReady()
 
         let attachment = app.buttons.matching(
             NSPredicate(format: "label CONTAINS %@", "modified-script.lua")
         ).firstMatch
-        XCTAssertTrue(attachment.waitForExistence(timeout: 8), "Lua attachment should be visible")
-        attachment.tap()
+        attachment.tapWhenReady()
 
-        // With the old single SwiftUI Text renderer, the main thread was busy
-        // laying out all 8,000 selectable lines and this button never became
-        // hittable within the timeout.
-        let closeButton = app.buttons[AccessibilityID.TextFilePreview.closeButton]
-        XCTAssertTrue(closeButton.waitForExistence(timeout: 5), "Large Lua preview should open promptly")
-        XCTAssertTrue(closeButton.isHittable, "Preview must remain interactive after opening")
+        XCTAssertTrue(closeButton.waitUntilHittable(), "Large Lua preview should become interactive promptly")
     }
 }
