@@ -1,0 +1,58 @@
+name: Diagnose first UI test launch
+on:
+  push:
+    branches: [codex/diagnose-launch-45382154691]
+permissions:
+  contents: read
+jobs:
+  launch:
+    runs-on: macos-26
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [default, bootstatus]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      BOOT_MODE: ${{ matrix.mode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build UI test products
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p probe
+          xcodebuild -version
+          sysctl hw.logicalcpu hw.memsize
+          command -v xcodegen || brew install xcodegen
+          xcodegen generate
+          xcodebuild build-for-testing -project Palvia.xcodeproj -scheme Palvia -testPlan PalviaUITests \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/PalviaDD" \
+            CODE_SIGNING_ALLOWED=NO > "$RUNNER_TEMP/build.log" 2>&1 || { tail -100 "$RUNNER_TEMP/build.log"; exit 1; }
+      - name: Run first UI test
+        shell: bash
+        run: |
+          set -euo pipefail
+          device=$(xcrun simctl list devices available --json | jq -er '.devices["com.apple.CoreSimulator.SimRuntime.iOS-26-5"][] | select(.name == "iPhone 17") | .udid' | head -1)
+          xcrun simctl list devices | grep "$device" | tee probe/device-before.txt
+          if [[ "$BOOT_MODE" == bootstatus ]]; then
+            xcrun simctl bootstatus "$device" -b > probe/bootstatus.log
+          fi
+          python3 scripts/diagnose-first-launch.py probe &
+          monitor=$!
+          trap 'touch probe/done; wait "$monitor" || true' EXIT
+          export NSUnbufferedIO=YES
+          xcodebuild test-without-building -project Palvia.xcodeproj -scheme Palvia -testPlan PalviaUITests \
+            -destination "platform=iOS Simulator,id=$device" -derivedDataPath "$RUNNER_TEMP/PalviaDD" \
+            -parallel-testing-enabled NO -resultBundlePath "$RUNNER_TEMP/Launch.xcresult" \
+            -only-testing:PalviaUITests/AgentManagementTests/test_agentList_createAgent_appearsInList \
+            CODE_SIGNING_ALLOWED=NO > probe/xcode.log 2>&1 || { tail -100 probe/xcode.log; exit 1; }
+          tail -15 probe/xcode.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: launch-${{ matrix.mode }}
+          path: probe/
+          retention-days: 3
