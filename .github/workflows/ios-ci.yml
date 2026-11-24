@@ -104,8 +104,10 @@ jobs:
           echo "SIMULATOR=$SIMULATOR" >> "$GITHUB_ENV"
 
       - name: Run UI Tests
+        shell: bash
         run: |
-          xcodebuild test \
+          set -o pipefail
+          python3 scripts/diagnose_ui_launch.py "$RUNNER_TEMP/ui-launch" test \
             -project Palvia.xcodeproj \
             -scheme Palvia \
             -testPlan PalviaUITests \
@@ -113,7 +115,7 @@ jobs:
             -resultBundlePath UITestResults \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO | xcpretty --color && exit ${PIPESTATUS[0]}
+            CODE_SIGNING_ALLOWED=NO | xcpretty --color
 
       - name: Upload UI Test Results
         uses: actions/upload-artifact@v4
@@ -121,3 +123,11 @@ jobs:
         with:
           name: UITestResults
           path: UITestResults.xcresult
+
+      - name: Upload UI launch diagnostics
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: UILaunchDiagnostics
+          path: ${{ runner.temp }}/ui-launch
+          if-no-files-found: ignore
