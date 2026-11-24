@@ -18,16 +18,9 @@ final class ChatStreamingTests: BaseTestCase {
     /// sequentially. Streaming can finish between two `waitForExistence`
     /// calls, replacing stop with send and making both waits report false.
     private func waitForChatActionButton(timeout: TimeInterval = 10) -> Bool {
-        let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        let stopBtn = app.buttons[AccessibilityID.Chat.stopButton]
-        let deadline = Date().addingTimeInterval(timeout)
-
-        repeat {
-            if sendBtn.exists || stopBtn.exists { return true }
-            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
-        } while Date() < deadline
-
-        return sendBtn.exists || stopBtn.exists
+        let identifiers = [AccessibilityID.Chat.sendButton, AccessibilityID.Chat.stopButton]
+        let action = app.buttons.matching(NSPredicate(format: "identifier IN %@", identifiers)).firstMatch
+        return action.waitForExistence(timeout: timeout)
     }
 
     private func enterStreamingSession() -> ChatPage {
@@ -441,9 +434,10 @@ final class ChatStreamingTests: BaseTestCase {
             scrollView.swipeUp()
         }
 
-        // After aggressive scrolling, the app should remain responsive
-        let responsive = waitForChatActionButton(timeout: 8)
-        XCTAssertTrue(responsive,
+        // The toolbar remains available through the streaming-to-saved transition.
+        let mode = app.navigationBars.buttons
+            .matching(identifier: AccessibilityID.Chat.displayModeCapsule).firstMatch
+        XCTAssertTrue(mode.waitUntilHittable(timeout: 8),
                       "App should remain responsive after rapid scrolling during fast streaming.")
 
         let scrollBtn = app.buttons[AccessibilityID.Chat.scrollToBottom]

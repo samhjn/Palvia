@@ -218,7 +218,16 @@ struct PlainTextFileView: UIViewRepresentable {
     static let codeFont = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
 
     func makeUIView(context: Context) -> UITextView {
-        Self.makeTextView(content: content)
+        let textView = Self.makeTextView(content: content)
+        #if DEBUG
+        if PalviaModelContainer.isUITesting && PalviaModelContainer.shouldSeedLargeLuaPreview {
+            // The regression test drives the preview toolbar while TextKit lays out
+            // the file. Keep the giant text value out of XCTest's AX snapshots.
+            textView.isAccessibilityElement = false
+            textView.accessibilityElementsHidden = true
+        }
+        #endif
+        return textView
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
