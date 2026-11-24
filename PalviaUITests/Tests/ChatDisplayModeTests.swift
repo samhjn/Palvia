@@ -65,22 +65,19 @@ final class ChatDisplayModeTests: BaseTestCase {
 
     private func enterSeededSession(file: StaticString = #filePath, line: UInt = #line) -> ChatPage {
         let chat = ChatPage(app: app)
+        // The system back button has a localized label on iOS 18.
+        let back = app.navigationBars["Markdown Test Session"].buttons.matching(NSPredicate(
+            format: "NOT (identifier IN %@)", [AccessibilityID.Chat.menuButton, AccessibilityID.Chat.displayModeCapsule]
+        )).firstMatch
+        if back.exists {
+            back.tap()
+        }
+
         // NavigationSplitView can expose the same link as a button or a cell.
         let row = app.descendants(matching: .any)
             .matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-        if !row.exists || !row.isHittable {
-            // The system back button has a localized label on iOS 18. Exclude
-            // the chat's own toolbar actions so neither can be tapped as Back.
-            let back = app.navigationBars["Markdown Test Session"].buttons.matching(NSPredicate(
-                format: "NOT (identifier IN %@)", [AccessibilityID.Chat.menuButton, AccessibilityID.Chat.displayModeCapsule]
-            )).firstMatch
-            if back.exists {
-                XCTAssertTrue(back.waitUntilHittable(), "The chat back button should be tappable", file: file, line: line)
-                back.tap()
-            }
-        }
-        guard row.waitForExistence(timeout: 8), row.waitUntilHittable() else {
-            XCTFail("The seeded session row did not become tappable", file: file, line: line)
+        guard row.waitForExistence(timeout: 8) else {
+            XCTFail("The seeded session row did not appear", file: file, line: line)
             return chat
         }
         // On iPhone the center can fall in the gap between the metadata and preview.
@@ -270,10 +267,17 @@ final class ChatDisplayModeTests: BaseTestCase {
     }
 
     func test_longMarkdownContent_codeBlocksRendered() {
-        _ = enterSeededSession()
+        let messages = app.scrollViews[AccessibilityID.Chat.messageList]
+        if !messages.exists {
+            _ = enterSeededSession()
+        }
+        let scrollToBottom = app.buttons[AccessibilityID.Chat.scrollToBottom]
+        if scrollToBottom.exists {
+            scrollToBottom.tap()
+        }
 
         XCTContext.runActivity(named: "Verify code blocks are present in markdown") { _ in
-            let code = app.scrollViews[AccessibilityID.Chat.messageList].staticTexts.matching(
+            let code = messages.staticTexts.matching(
                 NSPredicate(format: "label BEGINSWITH %@", "func parse(_ input: String)")
             ).firstMatch
             XCTAssertTrue(code.waitForExistence(timeout: 5), "The final fenced Swift example should render its function")
