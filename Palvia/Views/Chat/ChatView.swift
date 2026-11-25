@@ -251,6 +251,9 @@ final class ChatScrollState {
 
 private struct ChatContentView: View {
     private static let returnToBottomAnchor = "chat.returnToBottom"
+    // Keep nearby rows measured when a flick crosses the live reply boundary.
+    // Bound the eager work even for sessions with thousands of messages.
+    private static let measuredTailCount = 12
 
     @Bindable var vm: ChatViewModel
     @State private var scrollPosition: String?
@@ -307,15 +310,16 @@ private struct ChatContentView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(spacing: 12) {
-                        // Only history uses estimated heights. Measure the tail and its
-                        // anchor together throughout the live-to-persisted transition.
-                        LazyVStack(spacing: 12) {
-                            ForEach(displayMessages.dropLast(), id: \.id) { message in
-                                messageRow(message)
+                        let history = displayMessages.dropLast(Self.measuredTailCount)
+                        if !history.isEmpty {
+                            LazyVStack(spacing: 12) {
+                                ForEach(history, id: \.id) { message in
+                                    messageRow(message)
+                                }
                             }
                         }
-                        if let last = displayMessages.last {
-                            messageRow(last)
+                        ForEach(displayMessages.suffix(Self.measuredTailCount), id: \.id) { message in
+                            messageRow(message)
                         }
 
                         if hasVisibleStreamingBubble {
