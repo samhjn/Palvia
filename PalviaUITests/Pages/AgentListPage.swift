@@ -87,16 +87,20 @@ final class AgentListPage {
     }
 
     @discardableResult
-    func verifyAgentCount(_ count: Int) -> Self {
-        if count > 0 {
-            let firstRow = agentRows.firstMatch
-            if !firstRow.waitForExistence(timeout: 5) {
-                _ = agentRowButtons.firstMatch.waitForExistence(timeout: 3)
-            }
-        }
-        let cellCount = agentRows.count
-        let buttonCount = agentRowButtons.count
-        let matchCount = max(cellCount, buttonCount)
+    func verifyAgentCount(_ count: Int, timeout: TimeInterval = 5) -> Self {
+        let deadline = Date().addingTimeInterval(timeout)
+        var cellCount = 0
+        var buttonCount = 0
+        var matchCount = 0
+
+        repeat {
+            cellCount = agentRows.count
+            buttonCount = agentRowButtons.count
+            matchCount = max(cellCount, buttonCount)
+            if matchCount == count { break }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+        } while Date() < deadline
+
         XCTAssertEqual(matchCount, count, "Expected \(count) agents, found \(matchCount) (cells=\(cellCount), buttons=\(buttonCount))")
         return self
     }

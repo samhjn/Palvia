@@ -10,7 +10,7 @@ extension XCUIElement {
     /// when the tap that should have triggered navigation or a sheet is lost.
     func tapWhenReady(timeout: TimeInterval = 10, file: StaticString = #file, line: UInt = #line) {
         guard waitForExistence(timeout: timeout) else {
-            XCTFail("Element \(identifier) did not appear within \(timeout)s", file: file, line: line)
+            XCTFail("Element \(description) did not appear within \(timeout)s", file: file, line: line)
             return
         }
         if !isHittable {
@@ -25,6 +25,24 @@ extension XCUIElement {
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: self)
         let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
         return result == .completed
+    }
+
+    /// Poll a list of candidate elements concurrently and return the first one
+    /// that appears before `timeout` elapses. Avoids wasting a full sequential
+    /// timeout on an older iOS element type (e.g. `Cell` vs `Button`).
+    static func waitForFirstExisting(
+        _ candidates: [XCUIElement],
+        timeout: TimeInterval = 10
+    ) -> XCUIElement? {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            for candidate in candidates where candidate.exists {
+                return candidate
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
+        } while Date() < deadline
+
+        return candidates.first(where: { $0.exists })
     }
 
     /// Type text into the element after tapping it, clearing existing content first.

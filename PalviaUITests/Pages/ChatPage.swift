@@ -38,8 +38,41 @@ final class ChatPage {
         app.navigationBars.firstMatch
     }
 
+    static let silentModeLabels = ["Silent", "静默", "靜默", "サイレント", "무음"]
+    static let verboseModeLabels = ["Verbose", "详细", "詳細", "상세"]
+
     var displayModeCapsule: XCUIElement {
         app.buttons[AccessibilityID.Chat.displayModeCapsule]
+    }
+
+    /// SwiftUI `Menu` action buttons inside a `Section` may drop their
+    /// `.accessibilityIdentifier` on newer iOS versions, exposing only their
+    /// localized label. Match either the identifier or the localized menu label
+    /// while excluding the trigger capsule itself.
+    var silentMenuOption: XCUIElement {
+        app.buttons.matching(NSPredicate(
+            format: "identifier == %@ OR (identifier != %@ AND label IN %@)",
+            AccessibilityID.Chat.silentOption,
+            AccessibilityID.Chat.displayModeCapsule,
+            Self.silentModeLabels
+        )).firstMatch
+    }
+
+    var verboseMenuOption: XCUIElement {
+        app.buttons.matching(NSPredicate(
+            format: "identifier == %@ OR (identifier != %@ AND label IN %@)",
+            AccessibilityID.Chat.verboseOption,
+            AccessibilityID.Chat.displayModeCapsule,
+            Self.verboseModeLabels
+        )).firstMatch
+    }
+
+    static func isSilentLabel(_ label: String) -> Bool {
+        silentModeLabels.contains { label.localizedCaseInsensitiveContains($0) }
+    }
+
+    static func isVerboseLabel(_ label: String) -> Bool {
+        verboseModeLabels.contains { label.localizedCaseInsensitiveContains($0) }
     }
 
     var markdownContentViews: XCUIElementQuery {
@@ -94,17 +127,32 @@ final class ChatPage {
     @discardableResult
     func switchToSilentMode() -> Self {
         tapDisplayModeCapsule()
-        let silentButton = app.buttons[AccessibilityID.Chat.silentOption]
-        silentButton.tapWhenReady()
+        silentMenuOption.tapWhenReady()
         return self
     }
 
     @discardableResult
     func switchToVerboseMode() -> Self {
         tapDisplayModeCapsule()
-        let verboseButton = app.buttons[AccessibilityID.Chat.verboseOption]
-        verboseButton.tapWhenReady()
+        verboseMenuOption.tapWhenReady()
         return self
+    }
+
+    @discardableResult
+    func waitForSilentMode(timeout: TimeInterval = 5) -> Bool {
+        waitForDisplayMode(labels: Self.silentModeLabels, timeout: timeout)
+    }
+
+    @discardableResult
+    func waitForVerboseMode(timeout: TimeInterval = 5) -> Bool {
+        waitForDisplayMode(labels: Self.verboseModeLabels, timeout: timeout)
+    }
+
+    private func waitForDisplayMode(labels: [String], timeout: TimeInterval) -> Bool {
+        let predicates = labels.map { NSPredicate(format: "label CONTAINS[c] %@", $0) }
+        let compound = NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
+        let exp = XCTNSPredicateExpectation(predicate: compound, object: displayModeCapsule)
+        return XCTWaiter().wait(for: [exp], timeout: timeout) == .completed
     }
 
     @discardableResult

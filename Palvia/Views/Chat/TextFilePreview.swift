@@ -218,16 +218,7 @@ struct PlainTextFileView: UIViewRepresentable {
     static let codeFont = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = Self.makeTextView(content: content)
-        #if DEBUG
-        if PalviaModelContainer.isUITesting && PalviaModelContainer.shouldSeedLargeLuaPreview {
-            // The regression test drives the preview toolbar while TextKit lays out
-            // the file. Keep the giant text value out of XCTest's AX snapshots.
-            textView.isAccessibilityElement = false
-            textView.accessibilityElementsHidden = true
-        }
-        #endif
-        return textView
+        Self.makeTextView(content: content)
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
@@ -248,7 +239,7 @@ struct PlainTextFileView: UIViewRepresentable {
     /// Kept internal so the regression test can verify the real UIKit viewer
     /// without needing to manufacture a `UIViewRepresentable.Context`.
     static func makeTextView(content: String) -> UITextView {
-        let textView = UITextView(usingTextLayoutManager: true)
+        let textView = BoundedAccessibilityTextView(usingTextLayoutManager: true)
         textView.text = content
         textView.font = codeFont
         textView.textColor = .label
@@ -267,6 +258,24 @@ struct PlainTextFileView: UIViewRepresentable {
 
         textView.accessibilityIdentifier = AccessibilityID.TextFilePreview.content
         return textView
+    }
+}
+
+/// Prevents VoiceOver and XCTest accessibility snapshots from serializing
+/// hundreds of kilobytes of source text on every query while keeping the full
+/// document rendered and selectable in TextKit 2.
+private final class BoundedAccessibilityTextView: UITextView {
+    private static let accessibilityValueLimit = 4_000
+
+    override var accessibilityValue: String? {
+        get {
+            guard let fullText = text else { return nil }
+            guard fullText.count > Self.accessibilityValueLimit else { return fullText }
+            return String(fullText.prefix(Self.accessibilityValueLimit))
+        }
+        set {
+            super.accessibilityValue = newValue
+        }
     }
 }
 
