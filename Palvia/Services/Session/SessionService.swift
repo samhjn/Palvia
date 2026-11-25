@@ -52,14 +52,12 @@ final class SessionService {
     }
 
     func addMessage(to session: Session, role: MessageRole, content: String?, toolCallsData: Data? = nil, toolCallId: String? = nil, name: String? = nil) -> Message {
-        let tokenEstimate = estimateTokens(content ?? "")
         let message = Message(
             role: role,
             content: content,
             toolCallsData: toolCallsData,
             toolCallId: toolCallId,
-            name: name,
-            tokenEstimate: tokenEstimate
+            name: name
         )
         modelContext.insert(message)
         session.messages.append(message)
@@ -306,10 +304,6 @@ final class SessionService {
         var seen = Set<String>()
         return words.filter { seen.insert($0).inserted }
     }
-
-    private func estimateTokens(_ text: String) -> Int {
-        max(1, text.count / 4)
-    }
 }
 
 // MARK: - Session RAG Types
@@ -350,12 +344,12 @@ struct SessionContextSnapshot {
 
         if !recentMessages.isEmpty {
             parts.append("\n## Messages (offset=\(offset), showing \(recentMessages.count) of \(totalMessages))")
-            var tokenEstimate = parts.joined(separator: "\n").count / 4
+            var tokenEstimate = TokenEstimator.estimate(parts.joined(separator: "\n"))
 
             for msg in recentMessages {
                 let roleName = msg.toolName.map { "\(msg.role) (\($0))" } ?? msg.role
                 let entry = "[\(roleName)] \(msg.content)"
-                let entryTokens = entry.count / 4
+                let entryTokens = TokenEstimator.estimate(entry)
 
                 if tokenEstimate + entryTokens > maxTokens {
                     parts.append("... (token limit reached)")

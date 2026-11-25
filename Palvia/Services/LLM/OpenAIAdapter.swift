@@ -80,6 +80,7 @@ final class OpenAIAdapter: LLMAPIAdapter, @unchecked Sendable {
         capabilities: ModelCapabilities,
         thinkingLevel: ThinkingLevel
     ) throws -> URLRequest {
+        toolAccum = ToolCallAccumulator()
         let modalities: [String]? = capabilities.imageGenerationMode == .chatInline ? ["image", "text"] : nil
         let (effortValue, thinkingSwitch) = openAIEffortFields(model: model, level: thinkingLevel)
         let request = LLMChatRequest(
@@ -146,8 +147,7 @@ final class OpenAIAdapter: LLMAPIAdapter, @unchecked Sendable {
             }
         }
 
-        if let usage = chunk.usage,
-           (usage.promptTokens != nil || usage.completionTokens != nil || usage.totalTokens != nil) {
+        if let usage = chunk.usage, usage.hasAnyValue {
             chunks.append(.usage(usage))
         }
 

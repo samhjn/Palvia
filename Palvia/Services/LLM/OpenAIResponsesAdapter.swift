@@ -105,7 +105,7 @@ final class OpenAIResponsesAdapter: LLMAPIAdapter, @unchecked Sendable {
             return []
         case "response.completed":
             var chunks: [StreamChunk] = []
-            if let usage = event.response?.usage?.asLLMUsage {
+            if let usage = event.response?.usage?.asLLMUsage, usage.hasAnyValue {
                 chunks.append(.usage(usage))
             }
             chunks.append(.finishReason(.stop))
@@ -113,7 +113,7 @@ final class OpenAIResponsesAdapter: LLMAPIAdapter, @unchecked Sendable {
             return chunks
         case "response.incomplete":
             var chunks: [StreamChunk] = []
-            if let usage = event.response?.usage?.asLLMUsage {
+            if let usage = event.response?.usage?.asLLMUsage, usage.hasAnyValue {
                 chunks.append(.usage(usage))
             }
             let reason = event.response?.incompleteDetails?.reason ?? event.type
@@ -355,15 +355,39 @@ private struct OpenAIResponsesUsage: Decodable {
     let inputTokens: Int?
     let outputTokens: Int?
     let totalTokens: Int?
+    let inputTokensDetails: InputTokensDetails?
+
+    struct InputTokensDetails: Decodable {
+        let cachedTokens: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case cachedTokens = "cached_tokens"
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
         case inputTokens = "input_tokens"
         case outputTokens = "output_tokens"
         case totalTokens = "total_tokens"
+        case inputTokensDetails = "input_tokens_details"
     }
 
     var asLLMUsage: LLMUsage {
-        LLMUsage(promptTokens: inputTokens, completionTokens: outputTokens, totalTokens: totalTokens)
+        let resolvedPrompt: Int?
+        let resolvedCompletion: Int?
+        if let totalTokens {
+            resolvedPrompt = inputTokens ?? outputTokens.flatMap { totalTokens >= $0 ? totalTokens - $0 : nil }
+            resolvedCompletion = outputTokens ?? inputTokens.flatMap { totalTokens >= $0 ? totalTokens - $0 : nil }
+        } else {
+            resolvedPrompt = inputTokens
+            resolvedCompletion = outputTokens
+        }
+        return LLMUsage(
+            promptTokens: resolvedPrompt,
+            completionTokens: resolvedCompletion,
+            totalTokens: totalTokens,
+            cacheReadInputTokens: inputTokensDetails?.cachedTokens
+        )
     }
 }
 

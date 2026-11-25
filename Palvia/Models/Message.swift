@@ -63,25 +63,26 @@ final class Message {
         if tokenEstimate > 0 {
             self.tokenEstimate = tokenEstimate
         } else {
-            self.tokenEstimate = Self.computeTokenEstimate(
-                content: content,
-                toolCallsData: toolCallsData,
-                name: name,
-                imageAttachmentsData: nil,
-                videoAttachmentsData: nil
-            )
+            self.tokenEstimate = TokenEstimator.estimateMessage(self)
         }
     }
 
-    /// Recompute and persist the token estimate (e.g. after adding image attachments).
+    /// Recompute and persist the token estimate (e.g. after adding attachments or thinking content).
     func recalculateTokenEstimate() {
-        tokenEstimate = Self.computeTokenEstimate(
-            content: content,
-            toolCallsData: toolCallsData,
-            name: name,
-            imageAttachmentsData: imageAttachmentsData,
-            videoAttachmentsData: videoAttachmentsData
-        )
+        tokenEstimate = TokenEstimator.estimateMessage(self)
+    }
+
+    /// Persist vendor-reported token counts on this message and align
+    /// `tokenEstimate` with API-reported completion tokens when available.
+    func applyAPIUsage(_ usage: LLMUsage?) {
+        guard let usage else { return }
+        apiPromptTokens = usage.promptTokens
+        apiCompletionTokens = usage.completionTokens
+        apiCacheReadTokens = usage.cacheReadInputTokens
+        apiCacheWriteTokens = usage.cacheCreationInputTokens
+        if let completionTokens = usage.completionTokens, completionTokens > 0 {
+            tokenEstimate = completionTokens
+        }
     }
 
     // MARK: - Inline Image Extraction
@@ -147,58 +148,5 @@ final class Message {
         }
 
         return (result as String, images)
-    }
-
-    private static func computeTokenEstimate(
-        content: String?,
-        toolCallsData: Data?,
-        name: String?,
-        imageAttachmentsData: Data?,
-        videoAttachmentsData: Data?
-    ) -> Int {
-        let overhead = 4
-        var total = overhead
-
-        if let content {
-            if content.contains(";base64,") {
-                let (stripped, imageCount) = TokenEstimator.stripBase64ForEstimation(content)
-                total += TokenEstimator.estimate(stripped)
-                total += imageCount * TokenEstimator.estimateImageTokens(width: 512, height: 512)
-            } else {
-                total += TokenEstimator.estimate(content)
-            }
-        }
-
-        if let toolData = toolCallsData {
-            if let calls = try? JSONDecoder().decode([LLMToolCall].self, from: toolData) {
-                for call in calls {
-                    total += TokenEstimator.estimate(call.function.name)
-                    total += TokenEstimator.estimate(call.function.arguments)
-                    total += 8
-                }
-            }
-        }
-
-        if let name {
-            total += TokenEstimator.estimate(name) + 1
-        }
-
-        if let imgData = imageAttachmentsData,
-           let images = try? JSONDecoder().decode([ImageAttachment].self, from: imgData) {
-            for img in images {
-                total += TokenEstimator.estimateImageTokens(width: img.width, height: img.height)
-            }
-        }
-
-        if let vidData = videoAttachmentsData,
-           let videos = try? JSONDecoder().decode([VideoAttachment].self, from: vidData) {
-            for vid in videos {
-                // Gemini charges ~258 tokens per second of video at 1 FPS sampling.
-                // Use this as a reasonable cross-provider estimate.
-                total += TokenEstimator.estimateVideoTokens(duration: vid.duration, width: vid.width, height: vid.height)
-            }
-        }
-
-        return total
     }
 }

@@ -504,28 +504,54 @@ struct LLMUsage: Codable {
         case cacheCreationInputTokens = "cache_creation_input_tokens"
         case cacheReadInputTokens = "cache_read_input_tokens"
         case promptTokensDetails = "prompt_tokens_details"
+        case inputTokensDetails = "input_tokens_details"
     }
 
-    // Custom decoder: merge Anthropic (`cache_read_input_tokens`) and
-    // OpenAI (`prompt_tokens_details.cached_tokens`) into one field.
+    /// True when at least one usage counter is present.
+    var hasAnyValue: Bool {
+        promptTokens != nil
+            || completionTokens != nil
+            || totalTokens != nil
+            || cacheCreationInputTokens != nil
+            || cacheReadInputTokens != nil
+    }
+
+    // Custom decoder: merge Anthropic (`cache_read_input_tokens`),
+    // OpenAI Chat Completions (`prompt_tokens_details.cached_tokens`),
+    // OpenAI Responses (`input_tokens_details.cached_tokens`), and
+    // Gemini (`cached_content_token_count`) into one field.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        promptTokens = try c.decodeIfPresent(Int.self, forKey: .promptTokens)
+        let rawPrompt = try c.decodeIfPresent(Int.self, forKey: .promptTokens)
             ?? c.decodeIfPresent(Int.self, forKey: .inputTokens)
             ?? c.decodeIfPresent(Int.self, forKey: .promptTokenCount)
-        completionTokens = try c.decodeIfPresent(Int.self, forKey: .completionTokens)
+        let rawCompletion = try c.decodeIfPresent(Int.self, forKey: .completionTokens)
             ?? c.decodeIfPresent(Int.self, forKey: .outputTokens)
             ?? c.decodeIfPresent(Int.self, forKey: .candidatesTokenCount)
-        totalTokens = try c.decodeIfPresent(Int.self, forKey: .totalTokens)
+        let rawTotal = try c.decodeIfPresent(Int.self, forKey: .totalTokens)
             ?? c.decodeIfPresent(Int.self, forKey: .totalTokenCount)
+
+        if let rawTotal {
+            promptTokens = rawPrompt ?? rawCompletion.flatMap { rawTotal >= $0 ? rawTotal - $0 : nil }
+            completionTokens = rawCompletion ?? rawPrompt.flatMap { rawTotal >= $0 ? rawTotal - $0 : nil }
+        } else {
+            promptTokens = rawPrompt
+            completionTokens = rawCompletion
+        }
+        totalTokens = rawTotal
         cacheCreationInputTokens = try c.decodeIfPresent(Int.self, forKey: .cacheCreationInputTokens)
 
         // Anthropic puts it at `cache_read_input_tokens`
         var cacheRead = try c.decodeIfPresent(Int.self, forKey: .cacheReadInputTokens)
 
-        // OpenAI nests it inside `prompt_tokens_details.cached_tokens`
+        // OpenAI Chat Completions nests it inside `prompt_tokens_details.cached_tokens`
         if cacheRead == nil,
            let details = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .promptTokensDetails) {
+            cacheRead = details.cachedTokens
+        }
+        // OpenAI Responses-style gateways nest it inside `input_tokens_details.cached_tokens`
+        if cacheRead == nil,
+           let details = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .inputTokensDetails) {
             cacheRead = details.cachedTokens
         }
         if cacheRead == nil {
@@ -556,18 +582,39 @@ struct LLMUsage: Codable {
     /// Combine a newer usage payload onto this one, preferring the newer value
     /// per field when present and otherwise keeping the existing one.
     ///
-    /// Necessary because some providers spread a single turn's usage across
-    /// multiple stream events. Anthropic reports `input_tokens` and the cache
-    /// counts in `message_start`, but the final `output_tokens` only in
-    /// `message_delta` (where input/cache are absent). Overwriting with the last
-    /// chunk alone would drop the prompt and cache figures entirely, so we merge.
+    /// Within a single streaming request, token counters are monotonic: if an
+    /// earlier event already delivered a positive count and a later summary
+    /// chunk emits a zero placeholder (`0` instead of `null`), keep the
+    /// earlier positive value so prompt/cache counts are never wiped out.
     func merging(_ newer: LLMUsage) -> LLMUsage {
-        LLMUsage(
-            promptTokens: newer.promptTokens ?? promptTokens,
-            completionTokens: newer.completionTokens ?? completionTokens,
-            totalTokens: newer.totalTokens ?? totalTokens,
-            cacheCreationInputTokens: newer.cacheCreationInputTokens ?? cacheCreationInputTokens,
-            cacheReadInputTokens: newer.cacheReadInputTokens ?? cacheReadInputTokens
+        func mergeCount(_ existing: Int?, _ incoming: Int?) -> Int? {
+            switch (existing, incoming) {
+            case let (old?, new?) where new == 0 && old > 0:
+                return old
+            case let (_, new?):
+                return new
+            case let (old?, nil):
+                return old
+            case (nil, nil):
+                return nil
+            }
+        }
+
+        let mergedPrompt = mergeCount(promptTokens, newer.promptTokens)
+        let mergedCompletion = mergeCount(completionTokens, newer.completionTokens)
+        var mergedTotal = mergeCount(totalTokens, newer.totalTokens)
+        if let currentTotal = mergedTotal,
+           let mergedPrompt,
+           let mergedCompletion {
+            mergedTotal = max(currentTotal, mergedPrompt + mergedCompletion)
+        }
+
+        return LLMUsage(
+            promptTokens: mergedPrompt,
+            completionTokens: mergedCompletion,
+            totalTokens: mergedTotal,
+            cacheCreationInputTokens: mergeCount(cacheCreationInputTokens, newer.cacheCreationInputTokens),
+            cacheReadInputTokens: mergeCount(cacheReadInputTokens, newer.cacheReadInputTokens)
         )
     }
 
@@ -919,6 +966,64 @@ struct AnthropicUsage: Decodable {
         case outputTokens = "output_tokens"
         case cacheCreationInputTokens = "cache_creation_input_tokens"
         case cacheReadInputTokens = "cache_read_input_tokens"
+    }
+
+    var hasAnyValue: Bool {
+        inputTokens != nil
+            || outputTokens != nil
+            || cacheCreationInputTokens != nil
+            || cacheReadInputTokens != nil
+    }
+
+    /// Merge raw Anthropic stream usage payloads before normalizing into
+    /// `LLMUsage`, keeping previously reported positive fields if a later
+    /// event omits them or sends a `0` placeholder.
+    func merging(_ newer: AnthropicUsage) -> AnthropicUsage {
+        func mergeCount(_ existing: Int?, _ incoming: Int?) -> Int? {
+            switch (existing, incoming) {
+            case let (old?, new?) where new == 0 && old > 0:
+                return old
+            case let (_, new?):
+                return new
+            case let (old?, nil):
+                return old
+            case (nil, nil):
+                return nil
+            }
+        }
+
+        return AnthropicUsage(
+            inputTokens: mergeCount(inputTokens, newer.inputTokens),
+            outputTokens: mergeCount(outputTokens, newer.outputTokens),
+            cacheCreationInputTokens: mergeCount(cacheCreationInputTokens, newer.cacheCreationInputTokens),
+            cacheReadInputTokens: mergeCount(cacheReadInputTokens, newer.cacheReadInputTokens)
+        )
+    }
+
+    /// Normalize Anthropic usage into provider-agnostic `LLMUsage`.
+    ///
+    /// Unlike OpenAI and Gemini (where `prompt_tokens` / `input_tokens`
+    /// already includes cached tokens), Anthropic reports `input_tokens` as
+    /// *uncached* input only — total input is:
+    /// `input_tokens + cache_creation_input_tokens + cache_read_input_tokens`.
+    var asLLMUsage: LLMUsage {
+        let hasInput = inputTokens != nil || cacheCreationInputTokens != nil || cacheReadInputTokens != nil
+        let normalizedInput: Int? = hasInput
+            ? (inputTokens ?? 0) + (cacheCreationInputTokens ?? 0) + (cacheReadInputTokens ?? 0)
+            : nil
+        let normalizedTotal: Int? = if let normalizedInput, let outputTokens {
+            normalizedInput + outputTokens
+        } else {
+            nil
+        }
+
+        return LLMUsage(
+            promptTokens: normalizedInput,
+            completionTokens: outputTokens,
+            totalTokens: normalizedTotal,
+            cacheCreationInputTokens: cacheCreationInputTokens,
+            cacheReadInputTokens: cacheReadInputTokens
+        )
     }
 }
 

@@ -16,7 +16,9 @@ final class ContextManager {
     ) -> [LLMChatMessage] {
         var messages: [LLMChatMessage] = []
 
-        let hasCompressed = session.compressedUpToIndex > 0
+        let allSorted = session.sortedMessages
+        let effectiveCompressedCount = min(max(session.compressedUpToIndex, 0), allSorted.count)
+        let hasCompressed = effectiveCompressedCount > 0
         let compressed = session.compressedContext ?? ""
 
         var fullSystemPrompt = systemPrompt
@@ -33,7 +35,8 @@ final class ContextManager {
         let systemTokens = TokenEstimator.estimate(fullSystemPrompt)
         var availableTokens = maxContextTokens - systemTokens
 
-        let sorted = session.sortedMessages.filter { $0.role != .system }
+        let sorted = allSorted.filter { $0.role != .system }
+        let uncompressedNonSystem = allSorted.dropFirst(effectiveCompressedCount).filter { $0.role != .system }
 
         var anchoredIds = Set<UUID>()
 
@@ -50,8 +53,8 @@ final class ContextManager {
         }
 
         let recentMessages = selectRecentMessages(
-            from: sorted,
-            startingAfterIndex: session.compressedUpToIndex,
+            from: uncompressedNonSystem,
+            startingAfterIndex: 0,
             maxTokens: availableTokens
         )
 
@@ -247,13 +250,15 @@ final class ContextManager {
     /// compressed summary + messages after `compressedUpToIndex`.
     func activeContextTokens(session: Session) -> Int {
         var total = 0
+        let allSorted = session.sortedMessages
+        let effectiveCompressedCount = min(max(session.compressedUpToIndex, 0), allSorted.count)
 
-        if let compressed = session.compressedContext, !compressed.isEmpty {
+        if session.compressedUpToIndex > 0,
+           let compressed = session.compressedContext, !compressed.isEmpty {
             total += TokenEstimator.estimate(compressed)
         }
 
-        let sorted = session.sortedMessages.filter { $0.role != .system }
-        let active = sorted.dropFirst(session.compressedUpToIndex)
+        let active = allSorted.dropFirst(effectiveCompressedCount).filter { $0.role != .system }
         for msg in active {
             let est = msg.tokenEstimate
             total += est > 0 ? est : TokenEstimator.estimateMessage(msg)
@@ -494,6 +499,10 @@ enum TokenEstimator {
             } else {
                 total += estimate(content)
             }
+        }
+
+        if let thinking = message.thinkingContent, !thinking.isEmpty {
+            total += estimate(thinking)
         }
 
         if let toolData = message.toolCallsData {

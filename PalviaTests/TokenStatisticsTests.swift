@@ -290,4 +290,227 @@ final class TokenStatisticsTests: XCTestCase {
         XCTAssertEqual(stats.compressedMessageCount, 0)
         XCTAssertEqual(stats.compressedSummaryTokens, 0)
     }
+
+    // MARK: - Bug fixes & edge cases
+
+    func testAverageOutputPerTurnExcludesPromptOnlyTurnsFromDenominator() {
+        let messages = [
+            message(.user, estimate: 10),
+            message(.assistant, estimate: 20, prompt: 100, completion: 80),
+            message(.user, estimate: 10),
+            message(.assistant, estimate: 30, prompt: 200, completion: nil),
+        ]
+        let stats = TokenStatistics.compute(from: messages)
+
+        XCTAssertEqual(stats.turnsWithUsage, 2)
+        XCTAssertEqual(stats.turnsWithOutputUsage, 1)
+        XCTAssertEqual(stats.billedOutputTokens, 80)
+        XCTAssertEqual(stats.averageOutputPerTurn, 80,
+                       "Turns missing completion usage must not dilute averageOutputPerTurn")
+    }
+
+    func testAnthropicUsageIncludesCacheTokensInNormalizedPromptTokens() throws {
+        let adapter = AnthropicAdapter(
+            context: LLMAdapterContext(baseURL: "https://api.anthropic.com/v1", apiKey: "test")
+        )
+        let responseJSON = """
+        {
+            "id": "msg_cache_1",
+            "type": "message",
+            "role": "assistant",
+            "content": [{"type": "text", "text": "Hello"}],
+            "model": "claude-sonnet-4-20250514",
+            "stop_reason": "end_turn",
+            "usage": {
+                "input_tokens": 50,
+                "output_tokens": 200,
+                "cache_creation_input_tokens": 1000,
+                "cache_read_input_tokens": 8000
+            }
+        }
+        """
+        let response = try adapter.parseChatResponse(data: Data(responseJSON.utf8))
+        let usage = try XCTUnwrap(response.usage)
+
+        XCTAssertEqual(usage.promptTokens, 9050,
+                       "Anthropic total input must equal input_tokens + cache_creation + cache_read")
+        XCTAssertEqual(usage.completionTokens, 200)
+        XCTAssertEqual(usage.totalTokens, 9250)
+        XCTAssertEqual(usage.cacheCreationInputTokens, 1000)
+        XCTAssertEqual(usage.cacheReadInputTokens, 8000)
+    }
+
+    func testAnthropicStreamMergesStartAndDeltaWithoutDroppingCacheFromTotalInput() {
+        let adapter = AnthropicAdapter(
+            context: LLMAdapterContext(baseURL: "https://api.anthropic.com/v1", apiKey: "test")
+        )
+
+        let startChunks = adapter.processStreamEvent(.message(data: """
+        {
+            "type": "message_start",
+            "message": {
+                "id": "msg_stream_1",
+                "role": "assistant",
+                "model": "claude-sonnet-4-20250514",
+                "usage": {
+                    "input_tokens": 25,
+                    "output_tokens": 1,
+                    "cache_creation_input_tokens": 500,
+                    "cache_read_input_tokens": 4000
+                }
+            }
+        }
+        """))
+        // Simulate a proxy that repeats input_tokens (or sends 0 for cache) on message_delta.
+        let deltaChunks = adapter.processStreamEvent(.message(data: """
+        {
+            "type": "message_delta",
+            "delta": {"type": "message_delta", "stop_reason": "end_turn"},
+            "usage": {
+                "input_tokens": 25,
+                "output_tokens": 350,
+                "cache_read_input_tokens": 0
+            }
+        }
+        """))
+
+        var merged: LLMUsage?
+        for chunk in startChunks + deltaChunks {
+            if case .usage(let usage) = chunk {
+                merged = merged?.merging(usage) ?? usage
+            }
+        }
+
+        XCTAssertEqual(merged?.promptTokens, 4525)
+        XCTAssertEqual(merged?.completionTokens, 350)
+        XCTAssertEqual(merged?.totalTokens, 4875)
+        XCTAssertEqual(merged?.cacheCreationInputTokens, 500)
+        XCTAssertEqual(merged?.cacheReadInputTokens, 4000)
+    }
+
+    func testAnthropicResponseWithoutUsageReturnsNilUsage() throws {
+        let adapter = AnthropicAdapter(
+            context: LLMAdapterContext(baseURL: "https://api.anthropic.com/v1", apiKey: "test")
+        )
+        let responseJSON = """
+        {
+            "id": "msg_no_usage",
+            "type": "message",
+            "role": "assistant",
+            "content": [{"type": "text", "text": "Hi"}],
+            "stop_reason": "end_turn"
+        }
+        """
+        let response = try adapter.parseChatResponse(data: Data(responseJSON.utf8))
+        XCTAssertNil(response.usage)
+    }
+
+    func testUsageMergeIgnoresZeroPlaceholdersOverExistingPositiveCounts() {
+        let initial = LLMUsage(
+            promptTokens: 1200,
+            completionTokens: 0,
+            totalTokens: 1200,
+            cacheCreationInputTokens: 200,
+            cacheReadInputTokens: 900
+        )
+        let trailing = LLMUsage(
+            promptTokens: 0,
+            completionTokens: 180,
+            totalTokens: 180,
+            cacheCreationInputTokens: 0,
+            cacheReadInputTokens: 0
+        )
+
+        let merged = initial.merging(trailing)
+        XCTAssertEqual(merged.promptTokens, 1200)
+        XCTAssertEqual(merged.completionTokens, 180)
+        XCTAssertEqual(merged.totalTokens, 1380)
+        XCTAssertEqual(merged.cacheCreationInputTokens, 200)
+        XCTAssertEqual(merged.cacheReadInputTokens, 900)
+    }
+
+    func testUsageDecodingDerivesMissingFieldFromTotalAndParsesInputTokenDetails() throws {
+        let missingCompletion = #"{"prompt_tokens": 400, "total_tokens": 520, "input_tokens_details": {"cached_tokens": 300}}"#
+        let decoded1 = try JSONDecoder().decode(LLMUsage.self, from: Data(missingCompletion.utf8))
+        XCTAssertEqual(decoded1.promptTokens, 400)
+        XCTAssertEqual(decoded1.completionTokens, 120)
+        XCTAssertEqual(decoded1.cacheReadInputTokens, 300)
+
+        let missingPrompt = #"{"completion_tokens": 80, "total_tokens": 500}"#
+        let decoded2 = try JSONDecoder().decode(LLMUsage.self, from: Data(missingPrompt.utf8))
+        XCTAssertEqual(decoded2.promptTokens, 420)
+        XCTAssertEqual(decoded2.completionTokens, 80)
+    }
+
+    func testCompressedSessionFallbackInputUsesSummaryInsteadOfDroppedHistory() {
+        let messages = [
+            message(.user, estimate: 100),       // idx 0 (pinned first user)
+            message(.assistant, estimate: 500, prompt: 100, completion: 500), // idx 1 (compressed)
+            message(.user, estimate: 1000),      // idx 2 (compressed)
+            message(.assistant, estimate: 1000, prompt: 1600, completion: 1000), // idx 3 (compressed)
+            message(.user, estimate: 50),        // idx 4 (uncompressed tail)
+            message(.assistant, estimate: 40),   // idx 5 (uncompressed, no API usage)
+        ]
+
+        let stats = TokenStatistics.compute(
+            from: messages,
+            compressedUpToIndex: 4,
+            compressedSummaryTokens: 200
+        )
+
+        // Post-compression turn sees: summary (200) + pinned first user (100) + tail user (50) = 350
+        XCTAssertEqual(stats.fallbackInputTokens, 350)
+        XCTAssertEqual(stats.fallbackOutputTokens, 40)
+        // Role composition still covers full conversation history.
+        XCTAssertEqual(stats.userTokens, 1150)
+        XCTAssertEqual(stats.assistantTokens, 1540)
+    }
+
+    @MainActor
+    func testActiveContextTokensAlignsCompressedIndexWithSystemMessages() throws {
+        let schema = Schema([Agent.self, LLMProvider.self, Session.self, AgentConfig.self,
+                             CodeSnippet.self, CronJob.self, InstalledSkill.self, Skill.self,
+                             Message.self, SessionEmbedding.self])
+        let container = try ModelContainer(for: schema,
+                                           configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+
+        let session = Session(title: "S")
+        let t0 = Date(timeIntervalSince1970: 100)
+        let m0 = Message(role: .system, content: "sys", tokenEstimate: 100); m0.timestamp = t0
+        let m1 = Message(role: .user, content: "u1", tokenEstimate: 50); m1.timestamp = t0.addingTimeInterval(1)
+        let m2 = Message(role: .assistant, content: "a1", tokenEstimate: 60); m2.timestamp = t0.addingTimeInterval(2)
+        let m3 = Message(role: .user, content: "u2", tokenEstimate: 70); m3.timestamp = t0.addingTimeInterval(3)
+        session.messages = [m0, m1, m2, m3]
+        session.compressedUpToIndex = 2 // m0 and m1 compressed; m2 and m3 active
+        session.compressedContext = "summary"
+        context.insert(session)
+        try context.save()
+
+        let active = ContextManager().activeContextTokens(session: session)
+        let expectedSummary = TokenEstimator.estimate("summary")
+        XCTAssertEqual(active, expectedSummary + 60 + 70)
+    }
+
+    func testTokenEstimatorIncludesThinkingContent() {
+        let msg = Message(role: .assistant, content: "Short answer.")
+        let withoutThinking = msg.tokenEstimate
+        msg.thinkingContent = String(repeating: "reasoning step ", count: 30)
+        msg.recalculateTokenEstimate()
+
+        XCTAssertGreaterThan(msg.tokenEstimate, withoutThinking)
+        XCTAssertEqual(msg.tokenEstimate, TokenEstimator.estimateMessage(msg))
+    }
+
+    func testCompressionStatsFormatsMillionsConsistently() {
+        let stats = CompressionStats(
+            activeTokens: 1_250_000,
+            threshold: 2_000_000,
+            totalMessages: 10,
+            compressedCount: 0,
+            pendingCount: 7
+        )
+        XCTAssertEqual(stats.activeFormatted, "1.2M")
+        XCTAssertEqual(stats.thresholdFormatted, "2.0M")
+    }
 }
