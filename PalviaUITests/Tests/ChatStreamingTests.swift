@@ -58,18 +58,15 @@ final class ChatStreamingTests: BaseTestCase {
         return sendBtn.exists
     }
 
-    /// Polls until streaming completes (bubble disappears OR send button returns).
+    /// Polls until streaming completes (send button returns and streaming bubble is gone).
+    /// Checking `sendButton` avoids falsely treating the pre-first-chunk window
+    /// (when `stopButton` is visible and `streamingBubble` has not appeared yet)
+    /// as completion.
     private func waitForStreamingComplete(timeout: TimeInterval = 15) -> Bool {
-        let bubble = app.descendants(matching: .any)[AccessibilityID.Chat.streamingBubble]
-        if !bubble.exists {
-            let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-            if sendBtn.exists { return true }
-        }
-        let gone = NSPredicate(format: "exists == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: bubble)
-        if XCTWaiter().wait(for: [exp], timeout: timeout) == .completed { return true }
         let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        return sendBtn.waitForExistence(timeout: 5)
+        let bubble = app.descendants(matching: .any)[AccessibilityID.Chat.streamingBubble]
+        guard sendBtn.waitForExistence(timeout: timeout) else { return false }
+        return bubble.waitForNonExistence(timeout: 5)
     }
 
     private var isScrollToBottomVisible: Bool {
