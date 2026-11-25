@@ -155,14 +155,23 @@ final class SubAgentManager {
         for _ in 0..<maxRounds {
             guard !Task.isCancelled else { throw CancellationError() }
 
-            let systemPrompt = promptBuilder.buildSystemPrompt(for: subAgent, isSubAgent: true)
+            let promptSections = promptBuilder.systemPromptSections(for: subAgent, isSubAgent: true)
+            let systemPrompt = promptSections.map(\.text).joined(separator: "\n\n---\n\n")
             var messages = contextManager.buildContextWindow(session: session, systemPrompt: systemPrompt)
             ChatViewModel.stripUnsupportedModalities(from: &messages, capabilities: caps)
+
+            let toolDefs = ToolDefinitions.tools(for: subAgent, supportsVision: caps.supportsVision)
+            TokenStatistics.recordPerTurnOverhead(
+                on: session,
+                promptSections: promptSections,
+                systemPrompt: systemPrompt,
+                tools: toolDefs
+            )
 
             let (response, _) = try await router.chatCompletionWithFailover(
                 agent: subAgent,
                 messages: messages,
-                tools: ToolDefinitions.tools(for: subAgent, supportsVision: caps.supportsVision)
+                tools: toolDefs
             )
 
             guard !Task.isCancelled else { throw CancellationError() }
@@ -177,8 +186,14 @@ final class SubAgentManager {
                     content: msg.content,
                     toolCallsData: try? JSONEncoder().encode(toolCalls)
                 )
+                if let reasoning = msg.reasoningContent, !reasoning.isEmpty {
+                    assistantMsg.thinkingContent = reasoning
+                    assistantMsg.thinkingSignature = msg.thinkingSignature
+                    assistantMsg.recalculateTokenEstimate()
+                }
                 let rootAgentId = AgentFileManager.shared.resolveAgentId(for: subAgent)
                 assistantMsg.extractAndStoreInlineImages(agentId: rootAgentId)
+                assistantMsg.applyAPIUsage(response.usage)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
 
@@ -205,8 +220,14 @@ final class SubAgentManager {
 
             if let content = msg.content, !content.isEmpty {
                 let assistantMsg = Message(role: .assistant, content: content)
+                if let reasoning = msg.reasoningContent, !reasoning.isEmpty {
+                    assistantMsg.thinkingContent = reasoning
+                    assistantMsg.thinkingSignature = msg.thinkingSignature
+                    assistantMsg.recalculateTokenEstimate()
+                }
                 let rootAgentId = AgentFileManager.shared.resolveAgentId(for: subAgent)
                 assistantMsg.extractAndStoreInlineImages(agentId: rootAgentId)
+                assistantMsg.applyAPIUsage(response.usage)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 session.updatedAt = Date()

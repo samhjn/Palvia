@@ -396,6 +396,11 @@ final class TextFilePreviewTests: XCTestCase {
         textView.layoutIfNeeded()
 
         XCTAssertEqual(textView.text, content)
+        XCTAssertLessThanOrEqual(
+            textView.accessibilityValue?.count ?? 0,
+            4_000,
+            "Large text previews must bound accessibilityValue to avoid AX snapshot stalls"
+        )
         XCTAssertNotNil(textView.textLayoutManager, "Viewer must use TextKit 2 viewport layout")
         XCTAssertTrue(textView.isScrollEnabled)
         XCTAssertTrue(textView.isSelectable)

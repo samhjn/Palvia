@@ -35,16 +35,26 @@ final class ChatDisplayModeTests: BaseTestCase {
 
     /// Reset display mode to verbose so the next test starts cleanly.
     private func ensureVerboseMode() {
-        let capsule = app.buttons[AccessibilityID.Chat.displayModeCapsule]
+        dismissPopoverIfPresent()
+
+        let chat = ChatPage(app: app)
+        let capsule = chat.displayModeCapsule
         guard capsule.exists else { return }
-        let label = capsule.label
-        if label.localizedCaseInsensitiveContains("Silent")
-            || label.localizedCaseInsensitiveContains("静默") {
+        if ChatPage.isSilentLabel(capsule.label) {
             capsule.tap()
-            let verboseBtn = app.buttons[AccessibilityID.Chat.verboseOption]
+            let verboseBtn = chat.verboseMenuOption
             if verboseBtn.waitForExistence(timeout: 3) {
                 verboseBtn.tap()
+                _ = chat.waitForVerboseMode(timeout: 3)
             }
+        }
+    }
+
+    private func dismissPopoverIfPresent() {
+        let popoverDismiss = app.otherElements["PopoverDismissRegion"]
+        if popoverDismiss.exists {
+            popoverDismiss.tap()
+            _ = popoverDismiss.waitForNonExistence(timeout: 2)
         }
     }
 
@@ -64,6 +74,7 @@ final class ChatDisplayModeTests: BaseTestCase {
     }
 
     private func enterSeededSession(file: StaticString = #filePath, line: UInt = #line) -> ChatPage {
+        dismissPopoverIfPresent()
         let chat = ChatPage(app: app)
         // The system back button has a localized label on iOS 18.
         let back = app.navigationBars["Markdown Test Session"].buttons.matching(NSPredicate(
@@ -93,14 +104,6 @@ final class ChatDisplayModeTests: BaseTestCase {
             XCTFail("Tapped the seeded session but no chat controls appeared", file: file, line: line)
         }
         return chat
-    }
-
-    /// Wait for display mode capsule to reflect the given mode keyword.
-    private func waitForMode(_ keyword: String, chat: ChatPage, timeout: TimeInterval = 5) {
-        let capsule = chat.displayModeCapsule
-        let pred = NSPredicate(format: "label CONTAINS[c] %@", keyword)
-        let exp = XCTNSPredicateExpectation(predicate: pred, object: capsule)
-        _ = XCTWaiter().wait(for: [exp], timeout: timeout)
     }
 
     /// Wait for any of the given keywords to appear in staticTexts.
@@ -139,7 +142,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch to silent mode") { _ in
             chat.switchToSilentMode()
-            waitForMode("静", chat: chat)
+            _ = chat.waitForSilentMode()
         }
 
         XCTContext.runActivity(named: "Verify capsule shows silent mode") { _ in
@@ -156,7 +159,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch to silent mode") { _ in
             chat.switchToSilentMode()
-            waitForMode("静", chat: chat)
+            _ = chat.waitForSilentMode()
             let label = chat.displayModeCapsule.label
             XCTAssertTrue(
                 label.localizedCaseInsensitiveContains("Silent") || label.localizedCaseInsensitiveContains("静默"),
@@ -166,7 +169,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch back to verbose mode") { _ in
             chat.switchToVerboseMode()
-            waitForMode("详", chat: chat)
+            _ = chat.waitForVerboseMode()
         }
 
         XCTContext.runActivity(named: "Verify verbose mode is restored") { _ in
@@ -204,7 +207,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch to silent mode") { _ in
             chat.switchToSilentMode()
-            waitForMode("静", chat: chat)
+            _ = chat.waitForSilentMode()
         }
 
         XCTContext.runActivity(named: "Scroll up and back down") { _ in
@@ -372,7 +375,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch to silent mode") { _ in
             chat.switchToSilentMode()
-            waitForMode("静", chat: chat)
+            _ = chat.waitForSilentMode()
         }
 
         XCTContext.runActivity(named: "Verify silent mode active and content remains") { _ in
@@ -420,7 +423,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch to silent mode while scrolled") { _ in
             chat.switchToSilentMode()
-            waitForMode("静", chat: chat)
+            _ = chat.waitForSilentMode()
         }
 
         XCTContext.runActivity(named: "Verify chat remains stable") { _ in
@@ -430,7 +433,7 @@ final class ChatDisplayModeTests: BaseTestCase {
 
         XCTContext.runActivity(named: "Switch back to verbose mode") { _ in
             chat.switchToVerboseMode()
-            waitForMode("详", chat: chat)
+            _ = chat.waitForVerboseMode()
             chat.verifyIsDisplayed()
             chat.verifyDisplayModeCapsuleExists()
         }
@@ -449,7 +452,7 @@ final class ChatDisplayModeTests: BaseTestCase {
                       "Last round content should be visible at bottom before switch")
 
         chat.switchToSilentMode()
-        waitForMode("静", chat: chat)
+        _ = chat.waitForSilentMode()
 
         // The mode switch keeps the same long-message content visible.
         // No manual swipe should be needed after the filtered list update.
@@ -499,7 +502,7 @@ final class ChatDisplayModeTests: BaseTestCase {
         }
 
         chat.switchToSilentMode()
-        waitForMode("静", chat: chat)
+        _ = chat.waitForSilentMode()
 
         // The mode switch should keep the same message content visible without nudging.
         XCTAssertTrue(waitForAnyKeyword(midKeywords, timeout: 5),
@@ -522,7 +525,7 @@ final class ChatDisplayModeTests: BaseTestCase {
         }
 
         chat.switchToSilentMode()
-        waitForMode("静", chat: chat)
+        _ = chat.waitForSilentMode()
 
         XCTAssertTrue(waitForAnyKeyword(topKeywords, timeout: 5),
                       "After Verbose→Silent at top, first round content should remain visible.")

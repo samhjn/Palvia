@@ -238,7 +238,7 @@ final class ChatScrollState {
             }
             // The user grabbed the view mid-settle; their position wins.
             guard !ChatScrollGeometry.isUserDriven(sv) else { return }
-            if ChatScrollGeometry.distanceToBottom(sv) > ChatScrollGeometry.bottomTolerance {
+            if abs(ChatScrollGeometry.distanceToBottom(sv)) > ChatScrollGeometry.bottomTolerance {
                 self.bottomCorrectionTick &+= 1
                 self.scheduleSettlePass(generation: generation,
                                         remaining: remaining - 1,
@@ -260,6 +260,7 @@ private struct ChatContentView: View {
     @State private var displayMessages: [Message] = []
     @State private var lastKnownMessageCount = 0
     @State private var laysOutTailForReturn = false
+    @State private var animateTailReturn = false
 
     /// Compute the filtered message list from current view-model state.
     /// The result is stored in `displayMessages` (`@State`) so that SwiftUI
@@ -301,6 +302,7 @@ private struct ChatContentView: View {
         if !vm.isLoading, displayMessages.last != nil {
             // Align the actual newest row with the end marker during an explicit return.
             // Estimated lazy rows can otherwise leave empty space below the conversation.
+            animateTailReturn = true
             laysOutTailForReturn = true
             DispatchQueue.main.async {
                 guard laysOutTailForReturn, !scrollState.userDidScrollAway else { return }
@@ -374,6 +376,13 @@ private struct ChatContentView: View {
                                 .frame(height: 4)
                                 .accessibilityHidden(true)
                                 .id(Self.returnToBottomAnchor)
+                                .onAppear {
+                                    guard laysOutTailForReturn,
+                                          !animateTailReturn,
+                                          !scrollState.userDidScrollAway else { return }
+                                    proxy.scrollTo(Self.returnToBottomAnchor, anchor: .bottom)
+                                    scrollState.requestBottomSettle(attempts: 12, initialDelay: 0.25, interval: 0.2)
+                                }
                         }
                         .padding(.horizontal, 16)
                     }
@@ -391,7 +400,12 @@ private struct ChatContentView: View {
                     // can race with an in-flight animation completion.
                     if updated.map(\.id) != displayMessages.map(\.id) {
                         displayMessages = updated
-                        lastKnownMessageCount = updated.count
+                        // Sync baseline count only before initial scroll restoration
+                        // so initial load doesn't fight `lastViewedMessageId` restore,
+                        // while subsequent appends still trigger `displayMessages.count`.
+                        if !hasRestoredScroll {
+                            lastKnownMessageCount = updated.count
+                        }
                     }
                 }
                 .onChange(of: vm.isVerbose) {
@@ -504,15 +518,18 @@ private struct ChatContentView: View {
                     if newValue { laysOutTailForReturn = false }
                     // Streaming end: the expanded streaming bubble is removed and
                     // replaced by a persisted message whose thinking block starts
-                    // collapsed, so the content height collapses sharply. None of
-                    // the other triggers fire after that shrink, so re-anchor to
-                    // the last message once the structural update has landed.
+                    // collapsed, so the content height collapses sharply. Eagerly
+                    // lay out the newest message beside the end anchor so LazyVStack
+                    // estimation cannot strand the viewport in blank space.
                     guard oldValue, !newValue, !scrollState.userDidScrollAway else { return }
-                    guard let lastId = displayMessages.last?.id else { return }
+                    guard displayMessages.last != nil else { return }
+                    animateTailReturn = false
+                    laysOutTailForReturn = true
                     DispatchQueue.main.async {
-                        proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                        guard laysOutTailForReturn, !scrollState.userDidScrollAway else { return }
+                        proxy.scrollTo(Self.returnToBottomAnchor, anchor: .bottom)
                     }
-                    scrollState.requestBottomSettle()
+                    scrollState.requestBottomSettle(attempts: 12, initialDelay: 0.25, interval: 0.2)
                 }
 
                 .onDisappear {

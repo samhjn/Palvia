@@ -108,7 +108,12 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
               "arguments": "{\"query\":\"x\"}"
             }
           ],
-          "usage": { "input_tokens": 10, "output_tokens": 5, "total_tokens": 15 }
+          "usage": {
+            "input_tokens": 10,
+            "input_tokens_details": { "cached_tokens": 6 },
+            "output_tokens": 5,
+            "total_tokens": 15
+          }
         }
         """#.data(using: .utf8)!
 
@@ -120,6 +125,7 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
         XCTAssertEqual(response.usage?.promptTokens, 10)
         XCTAssertEqual(response.usage?.completionTokens, 5)
         XCTAssertEqual(response.usage?.totalTokens, 15)
+        XCTAssertEqual(response.usage?.cacheReadInputTokens, 6)
     }
 
     func testProcessResponsesStreamEvents() throws {
@@ -138,12 +144,15 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
         XCTAssertEqual(toolCall.id, "call_1")
         XCTAssertEqual(toolCall.function.name, "lookup")
 
-        let doneChunks = adapter.processStreamEvent(.message(data: #"{"type":"response.completed","response":{"id":"resp_1","output":[],"usage":{"input_tokens":1,"output_tokens":2,"total_tokens":3}}}"#))
+        let doneChunks = adapter.processStreamEvent(.message(data: #"{"type":"response.completed","response":{"id":"resp_1","output":[],"usage":{"input_tokens":10,"input_tokens_details":{"cached_tokens":7},"output_tokens":2,"total_tokens":12}}}"#))
         XCTAssertEqual(doneChunks.count, 3)
         guard case .usage(let usage) = doneChunks[0] else {
             return XCTFail("Expected usage chunk")
         }
-        XCTAssertEqual(usage.totalTokens, 3)
+        XCTAssertEqual(usage.promptTokens, 10)
+        XCTAssertEqual(usage.completionTokens, 2)
+        XCTAssertEqual(usage.totalTokens, 12)
+        XCTAssertEqual(usage.cacheReadInputTokens, 7)
         guard case .finishReason(.stop) = doneChunks[1] else {
             return XCTFail("Expected stop finish reason")
         }

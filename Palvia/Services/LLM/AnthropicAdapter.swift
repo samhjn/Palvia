@@ -10,6 +10,10 @@ final class AnthropicAdapter: LLMAPIAdapter, @unchecked Sendable {
     private var toolAccum = ToolCallAccumulator()
     /// Tracks block types during streaming for thinking vs text disambiguation.
     private var activeBlockTypes: [Int: String] = [:]
+    /// Accumulates raw Anthropic usage across `message_start` and `message_delta`
+    /// so total input (`input + cache_creation + cache_read`) is computed over
+    /// the complete usage payload rather than overwritten by partial deltas.
+    private var streamUsage: AnthropicUsage?
 
     init(context: LLMAdapterContext) {
         self.context = context
@@ -53,6 +57,7 @@ final class AnthropicAdapter: LLMAPIAdapter, @unchecked Sendable {
         // Reset per-stream state
         toolAccum = ToolCallAccumulator()
         activeBlockTypes = [:]
+        streamUsage = nil
 
         let anthropicReq = buildAnthropicBody(
             model: model, messages: messages, tools: tools,
@@ -106,15 +111,10 @@ final class AnthropicAdapter: LLMAPIAdapter, @unchecked Sendable {
 
         switch streamEvent.type {
         case "message_start":
-            if let msgUsage = streamEvent.message?.usage,
-               (msgUsage.inputTokens != nil || msgUsage.outputTokens != nil) {
-                chunks.append(.usage(LLMUsage(
-                    promptTokens: msgUsage.inputTokens,
-                    completionTokens: msgUsage.outputTokens,
-                    totalTokens: nil,
-                    cacheCreationInputTokens: msgUsage.cacheCreationInputTokens,
-                    cacheReadInputTokens: msgUsage.cacheReadInputTokens
-                )))
+            if let msgUsage = streamEvent.message?.usage, msgUsage.hasAnyValue {
+                let merged = streamUsage?.merging(msgUsage) ?? msgUsage
+                streamUsage = merged
+                chunks.append(.usage(merged.asLLMUsage))
             }
 
         case "content_block_start":
@@ -159,15 +159,10 @@ final class AnthropicAdapter: LLMAPIAdapter, @unchecked Sendable {
             break
 
         case "message_delta":
-            if let usage = streamEvent.usage,
-               (usage.inputTokens != nil || usage.outputTokens != nil) {
-                chunks.append(.usage(LLMUsage(
-                    promptTokens: usage.inputTokens,
-                    completionTokens: usage.outputTokens,
-                    totalTokens: nil,
-                    cacheCreationInputTokens: usage.cacheCreationInputTokens,
-                    cacheReadInputTokens: usage.cacheReadInputTokens
-                )))
+            if let usage = streamEvent.usage, usage.hasAnyValue {
+                let merged = streamUsage?.merging(usage) ?? usage
+                streamUsage = merged
+                chunks.append(.usage(merged.asLLMUsage))
             }
             if let stopReason = streamEvent.delta?.stopReason {
                 if (stopReason == "tool_use" || stopReason == "tool_calls"),
@@ -536,13 +531,7 @@ final class AnthropicAdapter: LLMAPIAdapter, @unchecked Sendable {
             thinkingSignature: thinkingSignature
         )
         let choice = LLMChoice(index: 0, message: message, delta: nil, finishReason: resp.stopReason)
-        let usage = LLMUsage(
-            promptTokens: resp.usage?.inputTokens,
-            completionTokens: resp.usage?.outputTokens,
-            totalTokens: nil,
-            cacheCreationInputTokens: resp.usage?.cacheCreationInputTokens,
-            cacheReadInputTokens: resp.usage?.cacheReadInputTokens
-        )
+        let usage = resp.usage.flatMap { $0.hasAnyValue ? $0.asLLMUsage : nil }
         return LLMChatResponse(id: resp.id, choices: [choice], usage: usage)
     }
 

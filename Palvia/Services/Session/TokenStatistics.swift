@@ -28,6 +28,10 @@ struct TokenStatistics: Equatable {
     var cacheWriteTokens: Int = 0
     /// Number of assistant turns that carried API usage.
     var turnsWithUsage: Int = 0
+    /// Number of assistant turns that carried API output (`completion`) usage.
+    /// Used as the denominator for `averageOutputPerTurn` so prompt-only
+    /// usage records do not dilute the average.
+    var turnsWithOutputUsage: Int = 0
 
     /// Local fallback for calls where the provider omitted all or part of the
     /// usage payload. Kept separate so estimates are never presented as billed.
@@ -100,9 +104,9 @@ struct TokenStatistics: Equatable {
     /// True when at least one assistant request needed a local usage estimate.
     var hasEstimatedUsage: Bool { turnsWithEstimatedUsage > 0 }
 
-    /// Average billed output tokens per assistant turn.
+    /// Average billed output tokens per assistant turn with reported output usage.
     var averageOutputPerTurn: Int {
-        turnsWithUsage > 0 ? billedOutputTokens / turnsWithUsage : 0
+        turnsWithOutputUsage > 0 ? billedOutputTokens / turnsWithOutputUsage : 0
     }
 
     /// True when the provider reported any prompt-cache activity.
@@ -128,12 +132,29 @@ struct TokenStatistics: Equatable {
 
     /// Aggregate statistics from a set of messages. Pure and SwiftData-agnostic
     /// so it is trivially unit-testable.
-    static func compute(from messages: [Message]) -> TokenStatistics {
+    ///
+    /// When `compressedUpToIndex > 0`, locally-estimated input counts for turns
+    /// after the compression boundary reflect the compressed summary (plus the
+    /// pinned initial user message, if any) instead of re-counting messages that
+    /// were already folded away.
+    static func compute(
+        from messages: [Message],
+        compressedUpToIndex: Int = 0,
+        compressedSummaryTokens: Int = 0
+    ) -> TokenStatistics {
         var stats = TokenStatistics()
         stats.messageCount = messages.count
+
+        let effectiveCompressedCount = min(max(compressedUpToIndex, 0), messages.count)
+        var pinnedFirstUserTokens = 0
+        var hasCapturedFirstUser = false
         var runningContextTokens = 0
 
-        for message in messages {
+        for (index, message) in messages.enumerated() {
+            if effectiveCompressedCount > 0 && index == effectiveCompressedCount {
+                runningContextTokens = compressedSummaryTokens + pinnedFirstUserTokens
+            }
+
             let estimate = message.tokenEstimate > 0
                 ? message.tokenEstimate
                 : TokenEstimator.estimateMessage(message)
@@ -144,6 +165,12 @@ struct TokenStatistics: Equatable {
             case .user:
                 stats.userTokens += estimate
                 stats.userMessageCount += 1
+                if !hasCapturedFirstUser {
+                    hasCapturedFirstUser = true
+                    if index < effectiveCompressedCount {
+                        pinnedFirstUserTokens = estimate
+                    }
+                }
             case .assistant:
                 stats.assistantTokens += estimate
                 stats.assistantMessageCount += 1
@@ -170,6 +197,7 @@ struct TokenStatistics: Equatable {
             }
             if let completion = message.apiCompletionTokens {
                 stats.billedOutputTokens += completion
+                stats.turnsWithOutputUsage += 1
             }
             if let cacheRead = message.apiCacheReadTokens {
                 stats.cacheReadTokens += cacheRead
@@ -181,7 +209,11 @@ struct TokenStatistics: Equatable {
                 stats.turnsWithUsage += 1
             }
 
-            runningContextTokens += estimate
+            // Stored `.system` messages are not replayed in `ContextManager`
+            // (system prompt overhead is accounted for via `perTurnOverheadTokens`).
+            if message.role != .system {
+                runningContextTokens += estimate
+            }
         }
 
         return stats
@@ -196,7 +228,19 @@ struct TokenStatistics: Equatable {
     /// relationships off the send path — expensive, and unsafe with a
     /// generation possibly mutating the context.
     static func compute(for session: Session, contextManager: ContextManager = ContextManager()) -> TokenStatistics {
-        var stats = compute(from: session.sortedMessages)
+        let compressedMessageCount = max(session.compressedUpToIndex, 0)
+        let compressedSummaryTokens: Int
+        if compressedMessageCount > 0, let compressed = session.compressedContext, !compressed.isEmpty {
+            compressedSummaryTokens = TokenEstimator.estimate(compressed)
+        } else {
+            compressedSummaryTokens = 0
+        }
+
+        var stats = compute(
+            from: session.sortedMessages,
+            compressedUpToIndex: compressedMessageCount,
+            compressedSummaryTokens: compressedSummaryTokens
+        )
         stats.activeContextTokens = contextManager.activeContextTokens(session: session)
         stats.contextThreshold = session.agent?.effectiveCompressionThreshold ?? ContextManager.compressionThreshold
         stats.systemPromptTokens = session.lastSystemPromptTokens ?? 0
@@ -207,11 +251,38 @@ struct TokenStatistics: Equatable {
         // to locally-estimated calls; provider-reported input already includes it.
         stats.fallbackInputTokens += stats.perTurnOverheadTokens * stats.turnsWithEstimatedInputUsage
 
-        stats.compressedMessageCount = session.compressedUpToIndex
-        if let compressed = session.compressedContext, !compressed.isEmpty {
-            stats.compressedSummaryTokens = TokenEstimator.estimate(compressed)
-        }
+        stats.compressedMessageCount = compressedMessageCount
+        stats.compressedSummaryTokens = compressedSummaryTokens
         return stats
+    }
+
+    /// Estimate the token cost of the tool/function JSON schemas sent with a
+    /// request. Serializes the definitions the way they go over the wire and
+    /// runs the same tokenizer used elsewhere; returns 0 when there are none.
+    static func estimateToolSchemaTokens(_ tools: [LLMToolDefinition]) -> Int {
+        guard !tools.isEmpty else { return 0 }
+        guard let data = try? JSONEncoder().encode(tools),
+              let json = String(data: data, encoding: .utf8) else { return 0 }
+        return TokenEstimator.estimate(json)
+    }
+
+    /// Capture the per-turn fixed overhead (system prompt + config/skills
+    /// attribution + tool schemas) on the session at send time. Shared by
+    /// interactive chat, sub-agents, and cron executions.
+    static func recordPerTurnOverhead(
+        on session: Session,
+        promptSections: [PromptBuilder.SystemPromptSection],
+        systemPrompt: String,
+        tools: [LLMToolDefinition]
+    ) {
+        session.lastSystemPromptTokens = TokenEstimator.estimate(systemPrompt)
+        session.lastToolSchemaTokens = estimateToolSchemaTokens(tools)
+        session.lastConfigMarkdownTokens = promptSections
+            .filter { $0.kind == .config }
+            .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
+        session.lastSkillsTokens = promptSections
+            .filter { $0.kind == .skills }
+            .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
     }
 
     // MARK: Formatting

@@ -35,7 +35,7 @@ final class SessionFlowTests: BaseTestCase {
         sessionList.dismissNewSessionSheet()
 
         let cancelButton = app.buttons[AccessibilityID.NewSessionSheet.cancelButton]
-        XCTAssertFalse(cancelButton.exists, "Sheet should be dismissed")
+        XCTAssertTrue(cancelButton.waitForNonExistence(timeout: 5), "Sheet should be dismissed")
     }
 
     func test_sessionList_createSession_withAgent() throws {

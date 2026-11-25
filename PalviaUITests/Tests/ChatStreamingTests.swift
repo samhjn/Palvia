@@ -26,27 +26,21 @@ final class ChatStreamingTests: BaseTestCase {
     private func enterStreamingSession() -> ChatPage {
         waitForAppReady()
 
-        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
         let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
         let anyRow = app.descendants(matching: .any).matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        let sessionText = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS[c] %@", "Streaming Test")
+        ).firstMatch
 
-        if cellRow.waitForExistence(timeout: 8) {
-            cellRow.tap()
-        } else if buttonRow.waitForExistence(timeout: 3) {
-            buttonRow.tap()
-        } else if anyRow.waitForExistence(timeout: 3) {
-            anyRow.tap()
-        } else {
-            let sessionText = app.staticTexts.containing(
-                NSPredicate(format: "label CONTAINS[c] %@", "Streaming Test")
-            ).firstMatch
-            if sessionText.waitForExistence(timeout: 3) {
-                sessionText.tap()
-            } else {
-                XCTFail("Streaming test session should appear in the list")
-                return ChatPage(app: app)
-            }
+        guard let row = XCUIElement.waitForFirstExisting(
+            [buttonRow, cellRow, anyRow, sessionText],
+            timeout: 10
+        ) else {
+            XCTFail("Streaming test session should appear in the list")
+            return ChatPage(app: app)
         }
+        row.tap()
 
         let chat = ChatPage(app: app)
         let appeared = waitForChatActionButton()
@@ -64,18 +58,15 @@ final class ChatStreamingTests: BaseTestCase {
         return sendBtn.exists
     }
 
-    /// Polls until streaming completes (bubble disappears OR send button returns).
+    /// Polls until streaming completes (send button returns and streaming bubble is gone).
+    /// Checking `sendButton` avoids falsely treating the pre-first-chunk window
+    /// (when `stopButton` is visible and `streamingBubble` has not appeared yet)
+    /// as completion.
     private func waitForStreamingComplete(timeout: TimeInterval = 15) -> Bool {
-        let bubble = app.descendants(matching: .any)[AccessibilityID.Chat.streamingBubble]
-        if !bubble.exists {
-            let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-            if sendBtn.exists { return true }
-        }
-        let gone = NSPredicate(format: "exists == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: bubble)
-        if XCTWaiter().wait(for: [exp], timeout: timeout) == .completed { return true }
         let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
-        return sendBtn.waitForExistence(timeout: 5)
+        let bubble = app.descendants(matching: .any)[AccessibilityID.Chat.streamingBubble]
+        guard sendBtn.waitForExistence(timeout: timeout) else { return false }
+        return bubble.waitForNonExistence(timeout: 5)
     }
 
     private var isScrollToBottomVisible: Bool {
@@ -275,10 +266,7 @@ final class ChatStreamingTests: BaseTestCase {
         chat.switchToSilentMode()
 
         // Wait for mode capsule to reflect change
-        let capsule = chat.displayModeCapsule
-        let silentPred = NSPredicate(format: "label CONTAINS[c] %@", "静")
-        let exp = XCTNSPredicateExpectation(predicate: silentPred, object: capsule)
-        _ = XCTWaiter().wait(for: [exp], timeout: 3)
+        _ = chat.waitForSilentMode(timeout: 3)
 
         let thinkingBubbles = app.descendants(matching: .any).matching(identifier: AccessibilityID.Chat.thinkingBubble)
         XCTAssertEqual(thinkingBubbles.count, 0,
@@ -297,15 +285,10 @@ final class ChatStreamingTests: BaseTestCase {
         guard waitForStreamingActive() else { XCTFail("Streaming did not start"); return }
 
         chat.switchToSilentMode()
-
-        let capsule = chat.displayModeCapsule
-        let silentPred = NSPredicate(format: "label CONTAINS[c] %@", "静")
-        _ = XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: silentPred, object: capsule)], timeout: 3)
+        _ = chat.waitForSilentMode(timeout: 3)
 
         chat.switchToVerboseMode()
-
-        let verbosePred = NSPredicate(format: "label CONTAINS[c] %@", "详")
-        _ = XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: verbosePred, object: capsule)], timeout: 3)
+        _ = chat.waitForVerboseMode(timeout: 3)
 
         XCTAssertFalse(isScrollToBottomVisible,
                        "After mode toggle during stream, auto-scroll should resume. " +

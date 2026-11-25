@@ -24,28 +24,21 @@ final class ChatHeavyMarkdownTests: BaseTestCase {
         app.launch()
         waitForAppReady()
 
-        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
         let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        let cellRow = app.cells.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
+        let anyRow = app.descendants(matching: .any)
+            .matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
 
-        if cellRow.waitForExistence(timeout: 8) {
-            cellRow.tap()
-        } else if buttonRow.waitForExistence(timeout: 3) {
-            buttonRow.tap()
-        } else {
-            let anyRow = app.descendants(matching: .any)
-                .matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
-            if anyRow.waitForExistence(timeout: 3) {
-                anyRow.tap()
-            } else {
-                XCTFail("Heavy markdown session row should appear in the list")
-                return ChatPage(app: app)
-            }
+        guard let row = XCUIElement.waitForFirstExisting([buttonRow, cellRow, anyRow], timeout: 10) else {
+            XCTFail("Heavy markdown session row should appear in the list")
+            return ChatPage(app: app)
         }
+        row.tap()
 
         let chat = ChatPage(app: app)
         let sendBtn = app.buttons[AccessibilityID.Chat.sendButton]
         let capsule = app.buttons[AccessibilityID.Chat.displayModeCapsule]
-        let loaded = sendBtn.waitForExistence(timeout: 15) || capsule.waitForExistence(timeout: 5)
+        let loaded = XCUIElement.waitForFirstExisting([sendBtn, capsule], timeout: 15) != nil
         XCTAssertTrue(loaded, "Chat view should be displayed")
         return chat
     }
@@ -281,11 +274,21 @@ final class LargeLuaFilePreviewUITests: BaseTestCase {
         // The system share extension uses the simulator's language and exposes
         // actions as cells, independently of the app's language override.
         let saveToFiles = shareSheet.cells.matching(NSPredicate(
-            format: "label IN %@", ["Save to Files", "存储到“文件”", "保存到“文件”", "儲存到「檔案」"]
+            format: "label IN %@", [
+                "Save to Files",
+                "存储到“文件”",
+                "保存到“文件”",
+                "儲存到「檔案」",
+                "“ファイル”に保存",
+                "파일에 저장",
+            ]
         )).firstMatch
         XCTAssertTrue(saveToFiles.waitForExistence(timeout: 8), "Text files must offer file export in the system share sheet")
         // iOS hides the extension in its share-sheet title.
-        XCTAssertTrue(shareSheet.otherElements["modified-script"].exists, "The share sheet should identify the original file")
+        XCTAssertTrue(
+            shareSheet.otherElements["modified-script"].waitForExistence(timeout: 5),
+            "The share sheet should identify the original file"
+        )
     }
 
     private var closeButton: XCUIElement {

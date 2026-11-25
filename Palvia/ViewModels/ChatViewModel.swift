@@ -1002,14 +1002,12 @@ final class ChatViewModel {
             // on the main actor, rather than re-deriving them in the stats path.
             // The system prompt is also split into its user-authored config and
             // skills components for attribution.
-            session.lastSystemPromptTokens = TokenEstimator.estimate(systemPrompt)
-            session.lastToolSchemaTokens = Self.estimateToolSchemaTokens(toolDefs)
-            session.lastConfigMarkdownTokens = promptSections
-                .filter { $0.kind == .config }
-                .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
-            session.lastSkillsTokens = promptSections
-                .filter { $0.kind == .skills }
-                .reduce(0) { $0 + TokenEstimator.estimate($1.text) }
+            TokenStatistics.recordPerTurnOverhead(
+                on: session,
+                promptSections: promptSections,
+                systemPrompt: systemPrompt,
+                tools: toolDefs
+            )
 
             var fullContent = continuation?.content ?? ""
             var fullThinking = continuation?.thinking ?? ""
@@ -1017,6 +1015,15 @@ final class ChatViewModel {
             var pendingToolCalls: [LLMToolCall] = []
             var requestUsage: LLMUsage?
             var finishReason: StreamFinishReason?
+
+            func combinedRequestUsage() -> LLMUsage? {
+                switch (continuation?.usage, requestUsage) {
+                case let (existing?, latest?): return existing.adding(latest)
+                case let (existing?, nil): return existing
+                case let (nil, latest?): return latest
+                case (nil, nil): return nil
+                }
+            }
 
             if continuation != nil {
                 streamingContent = fullContent
@@ -1037,13 +1044,18 @@ final class ChatViewModel {
 
             for await chunk in stream {
             if Task.isCancelled || cancelled {
-                if !fullContent.isEmpty || !pendingToolImageAttachments.isEmpty || !pendingToolVideoAttachments.isEmpty {
+                if !fullContent.isEmpty || !fullThinking.isEmpty || !pendingToolImageAttachments.isEmpty || !pendingToolVideoAttachments.isEmpty {
                     let partialMsg = Message(
                         role: .assistant,
                         content: fullContent.isEmpty ? nil : fullContent + L10n.Chat.aborted
                     )
+                    if !fullThinking.isEmpty {
+                        partialMsg.thinkingContent = fullThinking
+                        partialMsg.recalculateTokenEstimate()
+                    }
                     partialMsg.extractAndStoreInlineImages(agentId: agentId)
                     attachPendingToolMedia(to: partialMsg)
+                    Self.applyAPIUsage(combinedRequestUsage(), to: partialMsg)
                     modelContext.insert(partialMsg)
                     session.messages.append(partialMsg)
                     session.updatedAt = Date()
@@ -1096,13 +1108,18 @@ final class ChatViewModel {
             session.pendingStreamingContent = nil
 
             if Task.isCancelled || cancelled {
-                if !fullContent.isEmpty || !pendingToolImageAttachments.isEmpty || !pendingToolVideoAttachments.isEmpty {
+                if !fullContent.isEmpty || !fullThinking.isEmpty || !pendingToolImageAttachments.isEmpty || !pendingToolVideoAttachments.isEmpty {
                     let partialMsg = Message(
                         role: .assistant,
                         content: fullContent.isEmpty ? nil : fullContent + L10n.Chat.aborted
                     )
+                    if !fullThinking.isEmpty {
+                        partialMsg.thinkingContent = fullThinking
+                        partialMsg.recalculateTokenEstimate()
+                    }
                     partialMsg.extractAndStoreInlineImages(agentId: agentId)
                     attachPendingToolMedia(to: partialMsg)
+                    Self.applyAPIUsage(combinedRequestUsage(), to: partialMsg)
                     modelContext.insert(partialMsg)
                     session.messages.append(partialMsg)
                     session.updatedAt = Date()
@@ -1113,14 +1130,7 @@ final class ChatViewModel {
                 return
             }
 
-            let combinedUsage: LLMUsage? = {
-                switch (continuation?.usage, requestUsage) {
-                case let (existing?, latest?): return existing.adding(latest)
-                case let (existing?, nil): return existing
-                case let (nil, latest?): return latest
-                case (nil, nil): return nil
-                }
-            }()
+            let combinedUsage = combinedRequestUsage()
 
             if Self.shouldAutomaticallyContinue(
                 after: finishReason,
@@ -1168,6 +1178,9 @@ final class ChatViewModel {
                 )
                 assistantMsg.thinkingContent = combinedThinking
                 assistantMsg.thinkingSignature = thinkingSignature
+                if combinedThinking != nil {
+                    assistantMsg.recalculateTokenEstimate()
+                }
                 assistantMsg.extractAndStoreInlineImages(agentId: agentId)
                 Self.applyAPIUsage(combinedUsage, to: assistantMsg)
                 modelContext.insert(assistantMsg)
@@ -1180,6 +1193,9 @@ final class ChatViewModel {
                 let assistantMsg = Message(role: .assistant, content: finalContent.isEmpty ? nil : finalContent)
                 assistantMsg.thinkingContent = combinedThinking
                 assistantMsg.thinkingSignature = thinkingSignature
+                if combinedThinking != nil {
+                    assistantMsg.recalculateTokenEstimate()
+                }
                 assistantMsg.extractAndStoreInlineImages(agentId: agentId)
                 attachPendingToolMedia(to: assistantMsg)
                 Self.applyAPIUsage(combinedUsage, to: assistantMsg)
@@ -1674,6 +1690,10 @@ final class ChatViewModel {
 
         monitoringTask = Task { @MainActor [weak self] in
             defer {
+                // Reload persisted messages synchronously before clearing
+                // `isLoading` so the streaming-bubble removal and final
+                // message insertion land in the same UI update.
+                self?.loadMessages(immediate: true)
                 self?.isLoading = false
                 self?.streamingContent = ""
                 self?.streamingThinking = ""
@@ -1681,7 +1701,6 @@ final class ChatViewModel {
                 if let self, !self.session.isCompressingContext {
                     self.isCompressing = false
                 }
-                self?.loadMessages()
                 self?.checkActiveSessionLock()
                 self?.recoverRetryState()
                 self?.monitoringTask = nil
@@ -1931,27 +1950,8 @@ final class ChatViewModel {
 
     // MARK: - API Usage
 
-    /// Store vendor-reported token counts on the message and update the token
-    /// estimate to the API-reported completion tokens when available.
-    /// Estimate the token cost of the tool/function JSON schemas sent with a
-    /// request. Serializes the definitions the way they go over the wire and
-    /// runs the same tokenizer used elsewhere; returns 0 when there are none.
-    private static func estimateToolSchemaTokens(_ tools: [LLMToolDefinition]) -> Int {
-        guard !tools.isEmpty else { return 0 }
-        guard let data = try? JSONEncoder().encode(tools),
-              let json = String(data: data, encoding: .utf8) else { return 0 }
-        return TokenEstimator.estimate(json)
-    }
-
     private static func applyAPIUsage(_ usage: LLMUsage?, to message: Message) {
-        guard let usage else { return }
-        message.apiPromptTokens = usage.promptTokens
-        message.apiCompletionTokens = usage.completionTokens
-        message.apiCacheReadTokens = usage.cacheReadInputTokens
-        message.apiCacheWriteTokens = usage.cacheCreationInputTokens
-        if let completionTokens = usage.completionTokens, completionTokens > 0 {
-            message.tokenEstimate = completionTokens
-        }
+        message.applyAPIUsage(usage)
     }
 
     // MARK: - Info
@@ -2116,16 +2116,12 @@ struct CompressionStats {
     /// Messages eligible for the next compression pass.
     let pendingCount: Int
 
-    var activeFormatted: String { Self.fmt(activeTokens) }
-    var thresholdFormatted: String { Self.fmt(threshold) }
+    var activeFormatted: String { TokenStatistics.format(activeTokens) }
+    var thresholdFormatted: String { TokenStatistics.format(threshold) }
 
     var tokenRatio: Double {
         guard threshold > 0 else { return 0 }
         return Double(activeTokens) / Double(threshold)
-    }
-
-    private static func fmt(_ n: Int) -> String {
-        n >= 1000 ? String(format: "%.1fk", Double(n) / 1000.0) : "\(n)"
     }
 }
 

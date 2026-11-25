@@ -257,6 +257,21 @@ final class ChatScrollStateSettleTests: XCTestCase {
         withExtendedLifetime(sv) {}
     }
 
+    func testSettleTicksWhenOverScrolledPastBottom() async throws {
+        let state = ChatScrollState()
+        let sv = makeScrollView(contentHeight: 2000, offsetY: 0)
+        // Simulate blank space past the bottom after streaming bubble collapse.
+        sv.contentOffset = CGPoint(x: 0, y: ChatScrollGeometry.maxOffsetY(sv) + 300)
+        state.scrollView = sv
+
+        state.requestBottomSettle(attempts: 3, initialDelay: 0.03, interval: 0.03)
+        try await Task.sleep(for: .milliseconds(400))
+
+        XCTAssertEqual(state.bottomCorrectionTick, 3,
+            "Over-scrolled viewport must also trigger bottom settle corrections")
+        withExtendedLifetime(sv) {}
+    }
+
     func testSettleStopsOnceBottomIsReached() async throws {
         let state = ChatScrollState()
         let sv = makeScrollView(contentHeight: 2000, offsetY: 0)
