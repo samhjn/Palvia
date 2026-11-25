@@ -1690,6 +1690,10 @@ final class ChatViewModel {
 
         monitoringTask = Task { @MainActor [weak self] in
             defer {
+                // Reload persisted messages synchronously before clearing
+                // `isLoading` so the streaming-bubble removal and final
+                // message insertion land in the same UI update.
+                self?.loadMessages(immediate: true)
                 self?.isLoading = false
                 self?.streamingContent = ""
                 self?.streamingThinking = ""
@@ -1697,7 +1701,6 @@ final class ChatViewModel {
                 if let self, !self.session.isCompressingContext {
                     self.isCompressing = false
                 }
-                self?.loadMessages()
                 self?.checkActiveSessionLock()
                 self?.recoverRetryState()
                 self?.monitoringTask = nil

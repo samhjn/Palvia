@@ -391,7 +391,12 @@ private struct ChatContentView: View {
                     // can race with an in-flight animation completion.
                     if updated.map(\.id) != displayMessages.map(\.id) {
                         displayMessages = updated
-                        lastKnownMessageCount = updated.count
+                        // Sync baseline count only before initial scroll restoration
+                        // so initial load doesn't fight `lastViewedMessageId` restore,
+                        // while subsequent appends still trigger `displayMessages.count`.
+                        if !hasRestoredScroll {
+                            lastKnownMessageCount = updated.count
+                        }
                     }
                 }
                 .onChange(of: vm.isVerbose) {
@@ -504,13 +509,15 @@ private struct ChatContentView: View {
                     if newValue { laysOutTailForReturn = false }
                     // Streaming end: the expanded streaming bubble is removed and
                     // replaced by a persisted message whose thinking block starts
-                    // collapsed, so the content height collapses sharply. None of
-                    // the other triggers fire after that shrink, so re-anchor to
-                    // the last message once the structural update has landed.
+                    // collapsed, so the content height collapses sharply. Eagerly
+                    // lay out the newest message beside the end anchor so LazyVStack
+                    // estimation cannot strand the viewport in blank space.
                     guard oldValue, !newValue, !scrollState.userDidScrollAway else { return }
-                    guard let lastId = displayMessages.last?.id else { return }
+                    guard displayMessages.last != nil else { return }
+                    laysOutTailForReturn = true
                     DispatchQueue.main.async {
-                        proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                        guard laysOutTailForReturn, !scrollState.userDidScrollAway else { return }
+                        proxy.scrollTo(Self.returnToBottomAnchor, anchor: .bottom)
                     }
                     scrollState.requestBottomSettle()
                 }
