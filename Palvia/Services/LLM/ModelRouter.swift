@@ -173,7 +173,7 @@ final class ModelRouter {
         agent: Agent,
         messages: [LLMChatMessage],
         tools: [LLMToolDefinition]?
-    ) async throws -> (response: LLMChatResponse, providerName: String) {
+    ) async throws -> (response: LLMChatResponse, providerName: String, capabilities: ModelCapabilities) {
         let chain = resolveProviderChainWithModels(for: agent)
         guard !chain.isEmpty else { throw emptyChainError(for: agent) }
 
@@ -191,7 +191,7 @@ final class ModelRouter {
                 let providerName = "\(entry.provider.name) (\(effectiveModel))"
                 lastUsedProviderName = providerName
                 failoverOccurred = index > 0
-                return (response, providerName)
+                return (response, providerName, caps)
             } catch is CancellationError {
                 throw CancellationError()
             } catch let urlError as URLError where urlError.code == .cancelled {

@@ -1,6 +1,7 @@
 #if DEBUG
 import Foundation
 import SwiftData
+import notify
 
 /// UI test seed data — separated from PalviaApp to keep the main app file clean.
 /// Contains all markdown fixtures and streaming simulation logic.
@@ -453,6 +454,8 @@ extension PalviaApp {
 
         ChatViewModel._simulateActiveGeneration(for: session.id)
         let relay = ChatViewModel._simulateStreamingRelay(for: session.id)
+        let checkpoint = ProcessInfo.processInfo.environment[StreamingUITestCheckpoint.environmentKey]
+            .flatMap(UUID.init(uuidString:))
 
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
@@ -467,8 +470,24 @@ extension PalviaApp {
                 if let thinking = step.thinking {
                     thinkingAccumulated += thinking
                 }
+                let firstAnswerChunk = accumulated.isEmpty && !step.content.isEmpty
                 accumulated += step.content
-                relay.send(content: accumulated, thinking: thinkingAccumulated)
+                if firstAnswerChunk, let checkpoint {
+                    // Register before exposing the checkpoint. The runner may
+                    // resume as soon as it observes the first answer.
+                    await withCheckedContinuation { (resume: CheckedContinuation<Void, Never>) in
+                        var token: Int32 = 0
+                        let status = notify_register_dispatch(StreamingUITestCheckpoint.resumeNotification(checkpoint),
+                                                              &token, .main) { registeredToken in
+                            notify_cancel(registeredToken)
+                            resume.resume()
+                        }
+                        precondition(status == NOTIFY_STATUS_OK)
+                        relay.send(content: accumulated, thinking: thinkingAccumulated)
+                    }
+                } else {
+                    relay.send(content: accumulated, thinking: thinkingAccumulated)
+                }
 
                 if i % 8 == 0 || i == steps.count - 1 {
                     session.pendingStreamingContent = accumulated
@@ -478,7 +497,7 @@ extension PalviaApp {
             try? await Task.sleep(for: .milliseconds(200))
             let finalMsg = Message(role: .assistant, content: accumulated)
             finalMsg.thinkingContent = thinkingAccumulated
-            finalMsg.session = session
+            if let checkpoint { finalMsg.id = checkpoint }
             finalMsg.timestamp = Date()
             context.insert(finalMsg)
             session.messages.append(finalMsg)

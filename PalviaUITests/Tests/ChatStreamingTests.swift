@@ -1,4 +1,5 @@
 import XCTest
+import notify
 
 /// Stress tests for streaming output with very long markdown content,
 /// rapid updates, and multi-round conversations (4+ rounds of 1000+ char history).
@@ -9,21 +10,29 @@ final class ChatStreamingTests: BaseTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchArguments += [LaunchArguments.uiTesting, LaunchArguments.simulateStreaming]
-        app.launch()
     }
 
     // MARK: - Helpers
 
-    /// Wait for either mutually-exclusive input action without checking them
-    /// sequentially. Streaming can finish between two `waitForExistence`
-    /// calls, replacing stop with send and making both waits report false.
-    private func waitForChatActionButton(timeout: TimeInterval = 10) -> Bool {
-        let identifiers = [AccessibilityID.Chat.sendButton, AccessibilityID.Chat.stopButton]
-        let action = app.buttons.matching(NSPredicate(format: "identifier IN %@", identifiers)).firstMatch
-        return action.waitForExistence(timeout: timeout)
+    private let checkpoint = UUID()
+
+    private func firstHeading(in bubble: XCUIElement) -> XCUIElement {
+        bubble.staticTexts.matching(NSPredicate(format: "label == %@", "Swift 项目架构最佳实践完整指南")).firstMatch
     }
 
-    private func enterStreamingSession() -> ChatPage {
+    private func finalBubble(in viewport: XCUIElement) -> XCUIElement {
+        viewport.descendants(matching: .other).matching(identifier: AccessibilityID.Chat.messageBubble(checkpoint)).firstMatch
+    }
+
+    private func resumeStream() {
+        XCTAssertEqual(notify_post(StreamingUITestCheckpoint.resumeNotification(checkpoint)), UInt32(NOTIFY_STATUS_OK))
+    }
+
+    private func enterStreamingSession(pauseAtFirstAnswer: Bool = false) -> ChatPage {
+        if pauseAtFirstAnswer {
+            app.launchEnvironment[StreamingUITestCheckpoint.environmentKey] = checkpoint.uuidString
+        }
+        app.launch()
         waitForAppReady()
 
         let buttonRow = app.buttons.matching(identifier: AccessibilityID.SessionList.sessionRow).firstMatch
@@ -43,8 +52,11 @@ final class ChatStreamingTests: BaseTestCase {
         row.tap()
 
         let chat = ChatPage(app: app)
-        let appeared = waitForChatActionButton()
-        XCTAssertTrue(appeared, "Chat view should be displayed (send or stop button visible)")
+        let toolbar = app.navigationBars.buttons[AccessibilityID.Chat.displayModeCapsule]
+        XCTAssertTrue(toolbar.waitForExistence(timeout: 10), "The chat toolbar should appear")
+        if pauseAtFirstAnswer {
+            XCTAssertTrue(firstHeading(in: chat.streamingBubble).waitForExistence(timeout: 10), "The live reply should render its first heading")
+        }
         return chat
     }
 
@@ -107,8 +119,9 @@ final class ChatStreamingTests: BaseTestCase {
     // MARK: - Streaming Bubble Presence
 
     func test_streaming_bubbleAppearsWithContent() {
-        _ = enterStreamingSession()
-        XCTAssertTrue(waitForStreamingActive(), "Streaming bubble should appear after entering session")
+        let chat = enterStreamingSession(pauseAtFirstAnswer: true)
+        XCTAssertTrue(chat.stopButton.exists, "The response should still be streaming while its content is visible")
+        resumeStream()
     }
 
     // MARK: - Auto-Scroll During Rapid Streaming
@@ -139,33 +152,36 @@ final class ChatStreamingTests: BaseTestCase {
     // MARK: - Verbose Reasoning Layout Stability
 
     func test_streaming_verboseReasoningIsBoundedAndCollapsesWithoutLosingBottom() {
-        _ = enterStreamingSession()
-        guard waitForStreamingActive(timeout: 15) else {
-            XCTFail("Streaming did not start")
-            return
-        }
+        let chat = enterStreamingSession(pauseAtFirstAnswer: true)
 
-        let thinking = app.descendants(matching: .any)
+        let thinking = chat.streamingBubble.descendants(matching: .any)
             .matching(identifier: AccessibilityID.Chat.thinkingBubble)
             .firstMatch
         XCTAssertTrue(thinking.waitForExistence(timeout: 5),
                       "Verbose streaming should expose the active reasoning card")
 
-        // 280pt content window + header, divider and border/padding.
-        XCTAssertLessThanOrEqual(thinking.frame.height, 340,
+        // Clipped Markdown descendants extend the accessibility container beyond
+        // the card. The header and the following answer move with its actual layout.
+        let liveHeight = firstHeading(in: chat.streamingBubble).frame.minY - thinking.buttons.firstMatch.frame.minY
+        XCTAssertGreaterThan(liveHeight, 80, "Active long reasoning should be expanded")
+        XCTAssertLessThanOrEqual(liveHeight, 340,
                                  "A long streaming CoT must not continuously grow the outer chat row")
 
+        resumeStream()
         guard waitForStreamingComplete(timeout: 20) else {
             XCTFail("Streaming did not complete in time")
             return
         }
 
-        let collapsedThinking = app.descendants(matching: .any)
+        let reply = finalBubble(in: app.scrollViews[AccessibilityID.Chat.messageList])
+        let collapsedThinking = reply.descendants(matching: .any)
             .matching(identifier: AccessibilityID.Chat.thinkingBubble)
             .firstMatch
         XCTAssertTrue(collapsedThinking.waitForExistence(timeout: 5),
                       "The persisted message should retain its reasoning card")
-        XCTAssertLessThan(collapsedThinking.frame.height, 80,
+        let collapsedHeight = firstHeading(in: reply).frame.minY - collapsedThinking.buttons.firstMatch.frame.minY
+        XCTAssertGreaterThan(collapsedHeight, 0)
+        XCTAssertLessThan(collapsedHeight, 80,
                           "Persisted reasoning should settle directly into its collapsed height")
         XCTAssertTrue(waitForScrollToBottomHidden(timeout: 5),
                       "Automatic CoT collapse must keep the conversation pinned at the bottom")
@@ -476,30 +492,22 @@ final class ChatStreamingTests: BaseTestCase {
     /// the end of the content with no auto-recovery. Keyword `exists` checks
     /// don't catch this (off-screen elements still exist), so this test
     /// asserts the final message container's frame actually intersects the
-    /// window. The production view exposes each message as an accessibility
+    /// chat viewport. The production view exposes each message as an accessibility
     /// container so this query does not expand into every Markdown child.
     func test_streaming_noBlankScreenAfterCompletion() {
-        _ = enterStreamingSession()
-        guard waitForStreamingActive(timeout: 15) else {
-            XCTFail("Streaming did not start")
-            return
-        }
+        _ = enterStreamingSession(pauseAtFirstAnswer: true)
+        resumeStream()
         guard waitForStreamingComplete(timeout: 20) else {
             XCTFail("Streaming did not complete in time")
             return
         }
 
-        let bubbles = app.scrollViews.descendants(matching: .other)
-            .matching(identifier: AccessibilityID.Chat.messageBubble)
-        XCTAssertTrue(bubbles.firstMatch.waitForExistence(timeout: 5),
-                      "Persisted message bubbles should exist after streaming completes")
-
-        let window = app.windows.firstMatch
+        let viewport = app.scrollViews[AccessibilityID.Chat.messageList]
+        let reply = finalBubble(in: viewport)
+        XCTAssertTrue(reply.waitForExistence(timeout: 5), "The persisted final reply should be accessible")
         let lastBubbleOnScreen = NSPredicate { _, _ in
-            let count = bubbles.count
-            guard count > 0 else { return false }
-            let lastBubble = bubbles.element(boundBy: count - 1)
-            return lastBubble.exists && lastBubble.frame.intersects(window.frame)
+            let intersection = reply.frame.intersection(viewport.frame)
+            return !intersection.isEmpty
         }
         let exp = XCTNSPredicateExpectation(predicate: lastBubbleOnScreen, object: nil)
         XCTAssertEqual(XCTWaiter().wait(for: [exp], timeout: 5), .completed,

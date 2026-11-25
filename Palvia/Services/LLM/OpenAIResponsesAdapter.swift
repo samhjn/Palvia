@@ -105,7 +105,7 @@ final class OpenAIResponsesAdapter: LLMAPIAdapter, @unchecked Sendable {
             return []
         case "response.completed":
             var chunks: [StreamChunk] = []
-            if let usage = event.response?.usage?.asLLMUsage, usage.hasAnyValue {
+            if let usage = event.response?.usage, usage.hasAnyValue {
                 chunks.append(.usage(usage))
             }
             chunks.append(.finishReason(.stop))
@@ -113,7 +113,7 @@ final class OpenAIResponsesAdapter: LLMAPIAdapter, @unchecked Sendable {
             return chunks
         case "response.incomplete":
             var chunks: [StreamChunk] = []
-            if let usage = event.response?.usage?.asLLMUsage, usage.hasAnyValue {
+            if let usage = event.response?.usage, usage.hasAnyValue {
                 chunks.append(.usage(usage))
             }
             let reason = event.response?.incompleteDetails?.reason ?? event.type
@@ -291,7 +291,7 @@ private enum OpenAIResponsesInputMapper {
 private struct OpenAIResponsesResponse: Decodable {
     let id: String?
     let output: [OpenAIResponsesOutputItem]?
-    let usage: OpenAIResponsesUsage?
+    let usage: LLMUsage?
     let incompleteDetails: OpenAIResponsesIncompleteDetails?
 
     enum CodingKeys: String, CodingKey {
@@ -318,7 +318,7 @@ private struct OpenAIResponsesResponse: Decodable {
         )
         let finishReason = toolCalls.isEmpty ? "stop" : "tool_calls"
         let choice = LLMChoice(index: 0, message: message, delta: nil, finishReason: finishReason)
-        return LLMChatResponse(id: id, choices: [choice], usage: usage?.asLLMUsage)
+        return LLMChatResponse(id: id, choices: [choice], usage: usage)
     }
 }
 
@@ -349,46 +349,6 @@ private struct OpenAIResponsesOutputItem: Decodable {
 private struct OpenAIResponsesOutputContent: Decodable {
     let type: String?
     let text: String?
-}
-
-private struct OpenAIResponsesUsage: Decodable {
-    let inputTokens: Int?
-    let outputTokens: Int?
-    let totalTokens: Int?
-    let inputTokensDetails: InputTokensDetails?
-
-    struct InputTokensDetails: Decodable {
-        let cachedTokens: Int?
-
-        enum CodingKeys: String, CodingKey {
-            case cachedTokens = "cached_tokens"
-        }
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case inputTokens = "input_tokens"
-        case outputTokens = "output_tokens"
-        case totalTokens = "total_tokens"
-        case inputTokensDetails = "input_tokens_details"
-    }
-
-    var asLLMUsage: LLMUsage {
-        let resolvedPrompt: Int?
-        let resolvedCompletion: Int?
-        if let totalTokens {
-            resolvedPrompt = inputTokens ?? outputTokens.flatMap { totalTokens >= $0 ? totalTokens - $0 : nil }
-            resolvedCompletion = outputTokens ?? inputTokens.flatMap { totalTokens >= $0 ? totalTokens - $0 : nil }
-        } else {
-            resolvedPrompt = inputTokens
-            resolvedCompletion = outputTokens
-        }
-        return LLMUsage(
-            promptTokens: resolvedPrompt,
-            completionTokens: resolvedCompletion,
-            totalTokens: totalTokens,
-            cacheReadInputTokens: inputTokensDetails?.cachedTokens
-        )
-    }
 }
 
 private struct OpenAIResponsesIncompleteDetails: Decodable {

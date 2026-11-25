@@ -104,18 +104,16 @@ final class CronExecutor {
             ChatViewModel.stripUnsupportedModalities(from: &messages, capabilities: caps)
 
             let toolDefs = ToolDefinitions.tools(for: agent, supportsVision: caps.supportsVision)
-            TokenStatistics.recordPerTurnOverhead(
-                on: session,
-                promptSections: promptSections,
-                systemPrompt: systemPrompt,
-                tools: toolDefs
-            )
 
             do {
-                let (response, _) = try await router.chatCompletionWithFailover(
+                let (response, _, capabilities) = try await router.chatCompletionWithFailover(
                     agent: agent,
                     messages: messages,
                     tools: toolDefs
+                )
+                TokenStatistics.recordPerTurnOverhead(
+                    on: session, promptSections: promptSections, systemPrompt: systemPrompt,
+                    tools: capabilities.supportsToolUse ? toolDefs : []
                 )
 
                 guard let choice = response.choices.first, let msg = choice.message else { break }

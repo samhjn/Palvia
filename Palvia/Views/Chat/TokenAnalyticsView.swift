@@ -39,19 +39,25 @@ struct TokenAnalyticsView: View {
 
     private var billedSection: some View {
         Section {
-            statRow(label: L10n.TokenStats.input,
-                    value: stats.billedInputTokens,
-                    systemImage: "arrow.down.circle",
-                    tint: .blue)
-            statRow(label: L10n.TokenStats.output,
-                    value: stats.billedOutputTokens,
-                    systemImage: "arrow.up.circle",
-                    tint: .green)
-            statRow(label: L10n.TokenStats.total,
-                    value: stats.billedTotalTokens,
-                    systemImage: "sum",
-                    tint: .primary,
-                    emphasized: true)
+            if stats.turnsWithInputUsage > 0 {
+                statRow(label: L10n.TokenStats.input,
+                        value: stats.billedInputTokens,
+                        systemImage: "arrow.down.circle",
+                        tint: .blue)
+            }
+            if stats.turnsWithOutputUsage > 0 {
+                statRow(label: L10n.TokenStats.output,
+                        value: stats.billedOutputTokens,
+                        systemImage: "arrow.up.circle",
+                        tint: .green)
+            }
+            if let total = stats.knownBilledTotal {
+                statRow(label: L10n.TokenStats.total,
+                        value: total,
+                        systemImage: "sum",
+                        tint: .primary,
+                        emphasized: true)
+            }
 
             if stats.hasCacheActivity {
                 statRow(label: L10n.TokenStats.cacheRead,
@@ -64,8 +70,10 @@ struct TokenAnalyticsView: View {
                         tint: .orange)
             }
 
-            plainRow(label: L10n.TokenStats.avgOutputPerTurn,
-                     value: TokenStatistics.format(stats.averageOutputPerTurn))
+            if stats.turnsWithOutputUsage > 0 {
+                plainRow(label: L10n.TokenStats.avgOutputPerTurn,
+                         value: TokenStatistics.format(stats.averageOutputPerTurn))
+            }
         } header: {
             Text(L10n.TokenStats.sectionBilled)
         } footer: {

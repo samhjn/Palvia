@@ -110,7 +110,7 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
           ],
           "usage": {
             "input_tokens": 10,
-            "input_tokens_details": { "cached_tokens": 6 },
+            "input_tokens_details": { "cached_tokens": 6, "cache_write_tokens": 2 },
             "output_tokens": 5,
             "total_tokens": 15
           }
@@ -126,6 +126,7 @@ final class OpenAIResponsesAdapterTests: XCTestCase {
         XCTAssertEqual(response.usage?.completionTokens, 5)
         XCTAssertEqual(response.usage?.totalTokens, 15)
         XCTAssertEqual(response.usage?.cacheReadInputTokens, 6)
+        XCTAssertEqual(response.usage?.cacheCreationInputTokens, 2)
     }
 
     func testProcessResponsesStreamEvents() throws {

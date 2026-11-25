@@ -606,6 +606,24 @@ final class AnthropicRequestCacheTests: XCTestCase {
 
 final class AnthropicStreamCacheUsageTests: XCTestCase {
 
+    func testCachedInputIsCountedOnceAcrossStreamUpdatesAndNonStreaming() throws {
+        let adapter = AnthropicAdapter(context: .init(baseURL: "https://example.com", apiKey: ""))
+        let start = adapter.processStreamEvent(.message(data: #"{"type":"message_start","message":{"usage":{"input_tokens":10,"cache_read_input_tokens":80,"cache_creation_input_tokens":20,"output_tokens":1}}}"#))
+        let delta = adapter.processStreamEvent(.message(data: #"{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"input_tokens":12,"output_tokens":8}}"#))
+        guard case .usage(let first) = start.first, case .usage(let last) = delta.first else {
+            return XCTFail("Expected usage from both stream events")
+        }
+        let merged = first.merging(last)
+        XCTAssertEqual(first.promptTokens, 110)
+        XCTAssertEqual(merged.promptTokens, 112)
+        XCTAssertEqual(merged.completionTokens, 8)
+
+        let response = try adapter.parseChatResponse(data: Data(#"{"content":[],"usage":{"input_tokens":12,"cache_read_input_tokens":80,"cache_creation_input_tokens":20,"output_tokens":8}}"#.utf8))
+        XCTAssertEqual(response.usage?.promptTokens, 112)
+        XCTAssertEqual(merged.cacheReadInputTokens, response.usage?.cacheReadInputTokens)
+        XCTAssertEqual(merged.cacheCreationInputTokens, response.usage?.cacheCreationInputTokens)
+    }
+
     func testMessageStartWithCacheUsage() throws {
         let json = """
         {
