@@ -28,8 +28,11 @@ struct MarkdownContentView: View {
     }
 
     var body: some View {
+        // A lazy history row needs its real content on its first layout pass.
+        // An empty placeholder can leave the viewport before onAppear runs.
+        let blocks = cachedContent.isEmpty ? cachedOrParsedBlocks(content) : cachedBlocks
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(Array(cachedBlocks.enumerated()), id: \.offset) { _, block in
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                 renderBlock(block)
             }
         }
