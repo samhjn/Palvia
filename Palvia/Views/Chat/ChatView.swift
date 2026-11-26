@@ -205,46 +205,44 @@ final class ChatScrollState {
     /// animated `scrollTo` computes its target from the current layout and can
     /// land short once lazy rows materialize; each settle pass that still finds
     /// a residual gap bumps `bottomCorrectionTick`, which the SwiftUI layer
-    /// answers with a non-animated `scrollTo`. The loop stops as soon as the
-    /// view is settled at the bottom, the user grabs the scroll view, or the
-    /// attempts are exhausted. The first pass is delayed past the default
-    /// scroll animation so it verifies the landing spot instead of cutting the
-    /// animation off.
+    /// answers with a non-animated `scrollTo`. For an explicit return from
+    /// history, keep checking after the first landing: the lazy stack may
+    /// revise its height on a subsequent layout pass. A user gesture or a
+    /// newer request still takes precedence.
     func requestBottomSettle(attempts: Int = 8,
                              initialDelay: TimeInterval = 0.45,
-                             interval: TimeInterval = 0.15) {
+                             interval: TimeInterval = 0.15,
+                             verifyAfterLanding: Bool = false) {
         settleGeneration &+= 1
         scheduleSettlePass(generation: settleGeneration,
                            remaining: attempts,
                            delay: initialDelay,
-                           interval: interval)
+                           interval: interval,
+                           verifyAfterLanding: verifyAfterLanding)
     }
 
     private func scheduleSettlePass(generation: Int,
                                     remaining: Int,
                                     delay: TimeInterval,
-                                    interval: TimeInterval) {
+                                    interval: TimeInterval,
+                                    verifyAfterLanding: Bool) {
         guard remaining > 0 else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, generation == self.settleGeneration else { return }
             guard !self.userDidScrollAway else { return }
-            guard let sv = self.scrollView else {
-                // Observer not attached yet (first appearance) — retry.
-                self.scheduleSettlePass(generation: generation,
-                                        remaining: remaining - 1,
-                                        delay: interval,
-                                        interval: interval)
-                return
+            if let sv = self.scrollView {
+                guard !ChatScrollGeometry.isUserDriven(sv) else { return }
+                if abs(ChatScrollGeometry.distanceToBottom(sv)) > ChatScrollGeometry.bottomTolerance {
+                    self.bottomCorrectionTick &+= 1
+                } else if !verifyAfterLanding {
+                    return
+                }
             }
-            // The user grabbed the view mid-settle; their position wins.
-            guard !ChatScrollGeometry.isUserDriven(sv) else { return }
-            if abs(ChatScrollGeometry.distanceToBottom(sv)) > ChatScrollGeometry.bottomTolerance {
-                self.bottomCorrectionTick &+= 1
-                self.scheduleSettlePass(generation: generation,
-                                        remaining: remaining - 1,
-                                        delay: interval,
-                                        interval: interval)
-            }
+            self.scheduleSettlePass(generation: generation,
+                                    remaining: remaining - 1,
+                                    delay: interval,
+                                    interval: interval,
+                                    verifyAfterLanding: verifyAfterLanding)
         }
     }
 }
@@ -301,7 +299,7 @@ private struct ChatContentView: View {
 
         if let target = bottomTarget {
             withAnimation { proxy.scrollTo(target, anchor: .bottom) }
-            scrollState.requestBottomSettle()
+            scrollState.requestBottomSettle(verifyAfterLanding: true)
         }
     }
 

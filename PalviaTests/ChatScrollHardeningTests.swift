@@ -1,5 +1,6 @@
 import XCTest
 import SwiftData
+import Observation
 @testable import Palvia
 
 // MARK: - Shared Test Schema
@@ -269,6 +270,30 @@ final class ChatScrollStateSettleTests: XCTestCase {
 
         XCTAssertEqual(state.bottomCorrectionTick, 3,
             "Over-scrolled viewport must also trigger bottom settle corrections")
+        withExtendedLifetime(sv) {}
+    }
+
+    func testExplicitReturnCorrectsGrowthAfterFirstLanding() async {
+        let state = ChatScrollState()
+        let sv = makeScrollView(contentHeight: 2000, offsetY: 0)
+        sv.contentOffset.y = ChatScrollGeometry.maxOffsetY(sv)
+        state.scrollView = sv
+
+        let correction = expectation(description: "Re-anchor after history is measured")
+        withObservationTracking {
+            _ = state.bottomCorrectionTick
+        } onChange: {
+            correction.fulfill()
+        }
+
+        // Queue the first on-target check, then simulate the next layout pass.
+        state.requestBottomSettle(attempts: 2, initialDelay: 0, interval: 0, verifyAfterLanding: true)
+        DispatchQueue.main.async {
+            XCTAssertEqual(state.bottomCorrectionTick, 0)
+            sv.contentSize.height += 16_000
+        }
+        await fulfillment(of: [correction], timeout: 2)
+        XCTAssertEqual(state.bottomCorrectionTick, 1)
         withExtendedLifetime(sv) {}
     }
 
