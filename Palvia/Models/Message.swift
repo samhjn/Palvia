@@ -33,6 +33,8 @@ final class Message {
     var apiPromptTokens: Int?
     /// API-reported completion token count (nil if not available from vendor).
     var apiCompletionTokens: Int?
+    /// Provider total, including requests that omit the input/output breakdown.
+    var apiTotalTokens: Int?
     /// API-reported tokens read from the prompt cache (Anthropic
     /// `cache_read_input_tokens` / OpenAI `prompt_tokens_details.cached_tokens`).
     var apiCacheReadTokens: Int?
@@ -74,14 +76,21 @@ final class Message {
 
     /// Persist vendor-reported token counts on this message and align
     /// `tokenEstimate` with API-reported completion tokens when available.
-    func applyAPIUsage(_ usage: LLMUsage?) {
-        guard let usage else { return }
-        apiPromptTokens = usage.promptTokens
-        apiCompletionTokens = usage.completionTokens
-        apiCacheReadTokens = usage.cacheReadInputTokens
-        apiCacheWriteTokens = usage.cacheCreationInputTokens
-        if let completionTokens = usage.completionTokens, completionTokens > 0 {
-            tokenEstimate = completionTokens
+    func applyAPIUsage(_ usage: LLMUsage?, previousRequests: [LLMUsage?] = []) {
+        let requests = previousRequests + [usage]
+        let reports = requests.compactMap { $0?.resolvedBreakdown }
+        guard let first = reports.first else { return }
+        let combined = reports.dropFirst().reduce(first) { $0.adding($1) }
+        apiPromptTokens = combined.promptTokens
+        apiCompletionTokens = combined.completionTokens
+        apiTotalTokens = combined.totalTokens
+        apiCacheReadTokens = combined.cacheReadInputTokens
+        apiCacheWriteTokens = combined.cacheCreationInputTokens
+        // A partial output count would shrink the context estimate for the
+        // entire reply when only some continuation requests reported output.
+        if let completion = combined.completionTokens, completion > 0,
+           reports.count == requests.count, reports.allSatisfy({ $0.completionTokens != nil }) {
+            tokenEstimate = completion
         }
     }
 

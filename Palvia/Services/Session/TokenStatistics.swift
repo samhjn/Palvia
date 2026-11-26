@@ -21,6 +21,8 @@ struct TokenStatistics: Equatable {
     var billedInputTokens: Int = 0
     /// Sum of per-turn completion tokens (billed output).
     var billedOutputTokens: Int = 0
+    private(set) var knownBilledTotal: Int?
+    var turnsWithInputUsage: Int = 0
     /// Sum of tokens served from the prompt cache (a subset of billed input,
     /// typically discounted by the vendor).
     var cacheReadTokens: Int = 0
@@ -90,7 +92,7 @@ struct TokenStatistics: Equatable {
 
     // MARK: Derived
 
-    var billedTotalTokens: Int { billedInputTokens + billedOutputTokens }
+    var billedTotalTokens: Int { knownBilledTotal ?? 0 }
 
     var fallbackTotalTokens: Int { fallbackInputTokens + fallbackOutputTokens }
 
@@ -174,39 +176,10 @@ struct TokenStatistics: Equatable {
             case .assistant:
                 stats.assistantTokens += estimate
                 stats.assistantMessageCount += 1
+                stats.addUsage(from: message, estimatedInput: runningContextTokens, estimatedOutput: estimate)
             case .tool:
                 stats.toolTokens += estimate
                 stats.toolMessageCount += 1
-            }
-
-            if message.role == .assistant,
-               message.apiPromptTokens == nil || message.apiCompletionTokens == nil {
-                stats.turnsWithEstimatedUsage += 1
-                if message.apiPromptTokens == nil {
-                    stats.turnsWithEstimatedInputUsage += 1
-                    stats.fallbackInputTokens += runningContextTokens
-                }
-                if message.apiCompletionTokens == nil {
-                    stats.fallbackOutputTokens += estimate
-                }
-            }
-
-            // Billed usage is recorded on the assistant turn.
-            if let prompt = message.apiPromptTokens {
-                stats.billedInputTokens += prompt
-            }
-            if let completion = message.apiCompletionTokens {
-                stats.billedOutputTokens += completion
-                stats.turnsWithOutputUsage += 1
-            }
-            if let cacheRead = message.apiCacheReadTokens {
-                stats.cacheReadTokens += cacheRead
-            }
-            if let cacheWrite = message.apiCacheWriteTokens {
-                stats.cacheWriteTokens += cacheWrite
-            }
-            if message.apiPromptTokens != nil || message.apiCompletionTokens != nil {
-                stats.turnsWithUsage += 1
             }
 
             // Stored `.system` messages are not replayed in `ContextManager`
@@ -217,6 +190,43 @@ struct TokenStatistics: Equatable {
         }
 
         return stats
+    }
+
+    private mutating func addUsage(from message: Message, estimatedInput: Int, estimatedOutput: Int) {
+        let input = message.apiPromptTokens
+        let output = message.apiCompletionTokens
+        let total = message.apiTotalTokens
+        if let input {
+            billedInputTokens += input
+            turnsWithInputUsage += 1
+        }
+        if let output {
+            billedOutputTokens += output
+            turnsWithOutputUsage += 1
+        }
+        let hasCounts = total != nil || input != nil || output != nil
+        if hasCounts {
+            let tokens = total ?? ((input ?? 0) + (output ?? 0))
+            knownBilledTotal = (knownBilledTotal ?? 0) + tokens
+        }
+        if hasCounts || message.apiCacheReadTokens != nil || message.apiCacheWriteTokens != nil {
+            turnsWithUsage += 1
+        }
+        cacheReadTokens += message.apiCacheReadTokens ?? 0
+        cacheWriteTokens += message.apiCacheWriteTokens ?? 0
+
+        // A provider total already accounts for the request even if neither
+        // side was reported. Only estimate usage missing from the total.
+        if total != nil, input == nil, output == nil { return }
+        guard input == nil || output == nil else { return }
+        turnsWithEstimatedUsage += 1
+        if input == nil {
+            turnsWithEstimatedInputUsage += 1
+            fallbackInputTokens += estimatedInput
+        }
+        if output == nil {
+            fallbackOutputTokens += estimatedOutput
+        }
     }
 
     /// Convenience that also fills in the active-context figures and the

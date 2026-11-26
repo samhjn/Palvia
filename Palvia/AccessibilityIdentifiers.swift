@@ -27,7 +27,8 @@ enum AccessibilityID {
         static let sendButton = "chat.send"
         static let stopButton = "chat.stop"
         static let menuButton = "chat.menu"
-        static let messageBubble = "chat.bubble"
+        static let messageBubblePrefix = "chat.bubble."
+        static func messageBubble(_ id: UUID) -> String { messageBubblePrefix + id.uuidString }
         static let scrollToBottom = "chat.scrollToBottom"
         static let streamingBubble = "chat.streamingBubble"
         static let loadingIndicator = "chat.loadingIndicator"
@@ -87,3 +88,11 @@ enum AccessibilityID {
         static let getStartedButton = "onboarding.getStarted"
     }
 }
+
+#if DEBUG
+/// Shared by the streaming fixture and its UI test runner.
+enum StreamingUITestCheckpoint {
+    static let environmentKey = "PALVIA_UI_STREAM_CHECKPOINT"
+    static func resumeNotification(_ id: UUID) -> String { "com.iclaw.uitest.resume." + id.uuidString }
+}
+#endif

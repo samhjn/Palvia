@@ -505,6 +505,7 @@ struct LLMUsage: Codable {
         case cacheReadInputTokens = "cache_read_input_tokens"
         case promptTokensDetails = "prompt_tokens_details"
         case inputTokensDetails = "input_tokens_details"
+        case promptCacheHitTokens = "prompt_cache_hit_tokens"
     }
 
     /// True when at least one usage counter is present.
@@ -539,25 +540,14 @@ struct LLMUsage: Codable {
             completionTokens = rawCompletion
         }
         totalTokens = rawTotal
+        let promptDetails = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .promptTokensDetails)
+        let inputDetails = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .inputTokensDetails)
         cacheCreationInputTokens = try c.decodeIfPresent(Int.self, forKey: .cacheCreationInputTokens)
-
-        // Anthropic puts it at `cache_read_input_tokens`
-        var cacheRead = try c.decodeIfPresent(Int.self, forKey: .cacheReadInputTokens)
-
-        // OpenAI Chat Completions nests it inside `prompt_tokens_details.cached_tokens`
-        if cacheRead == nil,
-           let details = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .promptTokensDetails) {
-            cacheRead = details.cachedTokens
-        }
-        // OpenAI Responses-style gateways nest it inside `input_tokens_details.cached_tokens`
-        if cacheRead == nil,
-           let details = try c.decodeIfPresent(PromptTokensDetails.self, forKey: .inputTokensDetails) {
-            cacheRead = details.cachedTokens
-        }
-        if cacheRead == nil {
-            cacheRead = try c.decodeIfPresent(Int.self, forKey: .cachedContentTokenCount)
-        }
-        cacheReadInputTokens = cacheRead
+            ?? promptDetails?.cacheWriteTokens ?? inputDetails?.cacheWriteTokens
+        cacheReadInputTokens = try c.decodeIfPresent(Int.self, forKey: .cacheReadInputTokens)
+            ?? promptDetails?.cachedTokens ?? inputDetails?.cachedTokens
+            ?? c.decodeIfPresent(Int.self, forKey: .promptCacheHitTokens)
+            ?? c.decodeIfPresent(Int.self, forKey: .cachedContentTokenCount)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -626,20 +616,45 @@ struct LLMUsage: Codable {
             guard lhs != nil || rhs != nil else { return nil }
             return (lhs ?? 0) + (rhs ?? 0)
         }
+        let total: Int?
+        if totalTokens != nil || newer.totalTokens != nil {
+            let earlierTotal = totalTokens ?? ((promptTokens ?? 0) + (completionTokens ?? 0))
+            let laterTotal = newer.totalTokens ?? ((newer.promptTokens ?? 0) + (newer.completionTokens ?? 0))
+            total = earlierTotal + laterTotal
+        } else {
+            total = nil
+        }
         return LLMUsage(
             promptTokens: sum(promptTokens, newer.promptTokens),
             completionTokens: sum(completionTokens, newer.completionTokens),
-            totalTokens: sum(totalTokens, newer.totalTokens),
+            totalTokens: total,
             cacheCreationInputTokens: sum(cacheCreationInputTokens, newer.cacheCreationInputTokens),
             cacheReadInputTokens: sum(cacheReadInputTokens, newer.cacheReadInputTokens)
         )
     }
 
+    /// Infer a missing side only within a finished request. A total-only
+    /// response cannot be split using the breakdown of another request.
+    var resolvedBreakdown: LLMUsage {
+        guard let totalTokens else { return self }
+        var prompt = promptTokens
+        var completion = completionTokens
+        if let input = prompt, completion == nil, totalTokens >= input {
+            completion = totalTokens - input
+        } else if let output = completion, prompt == nil, totalTokens >= output {
+            prompt = totalTokens - output
+        }
+        return LLMUsage(promptTokens: prompt, completionTokens: completion, totalTokens: totalTokens,
+                        cacheCreationInputTokens: cacheCreationInputTokens, cacheReadInputTokens: cacheReadInputTokens)
+    }
+
     /// OpenAI `prompt_tokens_details` nested object.
     private struct PromptTokensDetails: Decodable {
         let cachedTokens: Int?
+        let cacheWriteTokens: Int?
         enum CodingKeys: String, CodingKey {
             case cachedTokens = "cached_tokens"
+            case cacheWriteTokens = "cache_write_tokens"
         }
     }
 }
@@ -941,7 +956,8 @@ struct AnthropicStreamContentBlock: Decodable {
 }
 
 struct AnthropicStreamDelta: Decodable {
-    let type: String
+    // message_delta carries stop_reason without a nested type.
+    let type: String?
     var text: String?
     var thinking: String?
     var signature: String?

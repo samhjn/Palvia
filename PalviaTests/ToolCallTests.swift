@@ -1541,6 +1541,13 @@ final class LLMUsageTests: XCTestCase {
         XCTAssertEqual(usage.totalTokens, 366)
     }
 
+    func testDeepSeekCacheHitsAreASubsetOfPromptTokens() throws {
+        let data = Data(#"{"prompt_tokens":12,"completion_tokens":3,"prompt_cache_hit_tokens":8,"prompt_cache_miss_tokens":4}"#.utf8)
+        let usage = try JSONDecoder().decode(LLMUsage.self, from: data)
+        XCTAssertEqual(usage.promptTokens, 12)
+        XCTAssertEqual(usage.cacheReadInputTokens, 8)
+    }
+
     func testUsageDecodesGeminiStyleAliasesFromCompatibleProvider() throws {
         let data = #"{"prompt_token_count":90,"candidates_token_count":10,"total_token_count":100,"cached_content_token_count":30}"#.data(using: .utf8)!
         let usage = try JSONDecoder().decode(LLMUsage.self, from: data)

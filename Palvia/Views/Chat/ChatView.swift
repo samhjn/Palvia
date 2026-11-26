@@ -251,6 +251,9 @@ final class ChatScrollState {
 
 private struct ChatContentView: View {
     private static let returnToBottomAnchor = "chat.returnToBottom"
+    // Keep nearby rows measured when a flick crosses the live reply boundary.
+    // Bound the eager work even for sessions with thousands of messages.
+    private static let measuredTailCount = 12
 
     @Bindable var vm: ChatViewModel
     @State private var scrollPosition: String?
@@ -259,8 +262,6 @@ private struct ChatContentView: View {
     @State private var scrollState = ChatScrollState()
     @State private var displayMessages: [Message] = []
     @State private var lastKnownMessageCount = 0
-    @State private var laysOutTailForReturn = false
-    @State private var animateTailReturn = false
 
     /// Compute the filtered message list from current view-model state.
     /// The result is stored in `displayMessages` (`@State`) so that SwiftUI
@@ -282,15 +283,14 @@ private struct ChatContentView: View {
     }
 
     private var bottomTarget: String? {
-        if laysOutTailForReturn { return Self.returnToBottomAnchor }
-        return hasVisibleStreamingBubble ? "streaming" : displayMessages.last?.id.uuidString
+        displayMessages.isEmpty && !vm.isLoading ? nil : Self.returnToBottomAnchor
     }
 
     private func messageRow(_ message: Message) -> some View {
         MessageBubbleView(message: message, isVerbose: vm.isVerbose)
             .id(message.id.uuidString)
             .accessibilityElement(children: .contain)
-            .accessibilityIdentifier(AccessibilityID.Chat.messageBubble)
+            .accessibilityIdentifier(AccessibilityID.Chat.messageBubble(message.id))
     }
 
     private func returnToBottom(using proxy: ScrollViewProxy) {
@@ -299,17 +299,7 @@ private struct ChatContentView: View {
         }
         scrollState.userDidScrollAway = false
 
-        if !vm.isLoading, displayMessages.last != nil {
-            // Align the actual newest row with the end marker during an explicit return.
-            // Estimated lazy rows can otherwise leave empty space below the conversation.
-            animateTailReturn = true
-            laysOutTailForReturn = true
-            DispatchQueue.main.async {
-                guard laysOutTailForReturn, !scrollState.userDidScrollAway else { return }
-                withAnimation { proxy.scrollTo(Self.returnToBottomAnchor, anchor: .bottom) }
-                scrollState.requestBottomSettle()
-            }
-        } else if let target = bottomTarget {
+        if let target = bottomTarget {
             withAnimation { proxy.scrollTo(target, anchor: .bottom) }
             scrollState.requestBottomSettle()
         }
@@ -319,9 +309,16 @@ private struct ChatContentView: View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 12) {
-                        let history = laysOutTailForReturn ? displayMessages.dropLast() : displayMessages[...]
-                        ForEach(history, id: \.id) { message in
+                    VStack(spacing: 12) {
+                        let history = displayMessages.dropLast(Self.measuredTailCount)
+                        if !history.isEmpty {
+                            LazyVStack(spacing: 12) {
+                                ForEach(history, id: \.id) { message in
+                                    messageRow(message)
+                                }
+                            }
+                        }
+                        ForEach(displayMessages.suffix(Self.measuredTailCount), id: \.id) { message in
                             messageRow(message)
                         }
 
@@ -332,6 +329,7 @@ private struct ChatContentView: View {
                                 isVerbose: vm.isVerbose
                             )
                             .id("streaming")
+                            .accessibilityElement(children: .contain)
                             .accessibilityIdentifier(AccessibilityID.Chat.streamingBubble)
                         }
 
@@ -353,10 +351,10 @@ private struct ChatContentView: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                        .padding()
-                        .id("loading")
-                        .accessibilityIdentifier(AccessibilityID.Chat.loadingIndicator)
-                    }
+                            .padding()
+                            .id("loading")
+                            .accessibilityIdentifier(AccessibilityID.Chat.loadingIndicator)
+                        }
 
                         if vm.isCompressing {
                             CompressionPanel(stats: vm.compressionStats, isCancelling: vm.isCancellingCompression) {
@@ -364,34 +362,16 @@ private struct ChatContentView: View {
                             }
                             .id("compressing")
                         }
+                        Color.clear
+                            .frame(height: 4)
+                            .accessibilityHidden(true)
+                            .id(Self.returnToBottomAnchor)
                     }
                     .padding([.top, .horizontal], 16)
-                    .padding(.bottom, laysOutTailForReturn ? 0 : 16)
                     .background(ScrollViewOffsetObserver(scrollState: scrollState))
-
-                    if laysOutTailForReturn, let last = displayMessages.last {
-                        VStack(spacing: 12) {
-                            messageRow(last)
-                            Color.clear
-                                .frame(height: 4)
-                                .accessibilityHidden(true)
-                                .id(Self.returnToBottomAnchor)
-                                .onAppear {
-                                    guard laysOutTailForReturn,
-                                          !animateTailReturn,
-                                          !scrollState.userDidScrollAway else { return }
-                                    proxy.scrollTo(Self.returnToBottomAnchor, anchor: .bottom)
-                                    scrollState.requestBottomSettle(attempts: 12, initialDelay: 0.25, interval: 0.2)
-                                }
-                        }
-                        .padding(.horizontal, 16)
-                    }
                 }
                 .accessibilityIdentifier(AccessibilityID.Chat.messageList)
                 .scrollPosition(id: $scrollPosition, anchor: .center)
-                .onChange(of: scrollState.userDidScrollAway) {
-                    if scrollState.userDidScrollAway { laysOutTailForReturn = false }
-                }
                 .onChange(of: vm.messages, initial: true) {
                     let updated = filteredMessages()
                     // Only assign when the identity list actually changed;
@@ -459,9 +439,9 @@ private struct ChatContentView: View {
                             DispatchQueue.main.async {
                                 proxy.scrollTo(restoreTarget.uuidString, anchor: .center)
                             }
-                        } else if let lastId {
+                        } else if let target = bottomTarget {
                             DispatchQueue.main.async {
-                                proxy.scrollTo(lastId.uuidString, anchor: .bottom)
+                                proxy.scrollTo(target, anchor: .bottom)
                             }
                             // The initial scrollTo lands on estimated row heights;
                             // the settle loop finishes the job as markdown
@@ -515,18 +495,9 @@ private struct ChatContentView: View {
                 }
                 .onChange(of: vm.isLoading) { oldValue, newValue in
                     scrollState.isGenerationActive = newValue
-                    if newValue { laysOutTailForReturn = false }
-                    // Streaming end: the expanded streaming bubble is removed and
-                    // replaced by a persisted message whose thinking block starts
-                    // collapsed, so the content height collapses sharply. Eagerly
-                    // lay out the newest message beside the end anchor so LazyVStack
-                    // estimation cannot strand the viewport in blank space.
                     guard oldValue, !newValue, !scrollState.userDidScrollAway else { return }
-                    guard displayMessages.last != nil else { return }
-                    animateTailReturn = false
-                    laysOutTailForReturn = true
                     DispatchQueue.main.async {
-                        guard laysOutTailForReturn, !scrollState.userDidScrollAway else { return }
+                        guard !scrollState.userDidScrollAway else { return }
                         proxy.scrollTo(Self.returnToBottomAnchor, anchor: .bottom)
                     }
                     scrollState.requestBottomSettle(attempts: 12, initialDelay: 0.25, interval: 0.2)

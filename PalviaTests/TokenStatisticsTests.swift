@@ -144,6 +144,51 @@ final class TokenStatisticsTests: XCTestCase {
         XCTAssertEqual(stats.turnsWithEstimatedUsage, 1)
     }
 
+    func testCacheOnlyReportKeepsUnknownTotalSeparateFromReportedZero() {
+        let cacheOnly = TokenStatistics.compute(from: [message(.assistant, estimate: 20, cacheRead: 80)])
+        XCTAssertEqual(cacheOnly.turnsWithUsage, 1)
+        XCTAssertEqual(cacheOnly.cacheReadTokens, 80)
+        XCTAssertNil(cacheOnly.knownBilledTotal)
+        XCTAssertTrue(cacheOnly.hasEstimatedUsage)
+
+        let free = message(.assistant, estimate: 20)
+        free.applyAPIUsage(LLMUsage(promptTokens: nil, completionTokens: nil, totalTokens: 0))
+        let zero = TokenStatistics.compute(from: [free])
+        XCTAssertEqual(zero.knownBilledTotal, 0)
+        XCTAssertFalse(zero.hasEstimatedUsage)
+    }
+
+    func testReportedTotalWithoutBreakdownIsBilledOnceAlongsideLegacyMessages() {
+        let assistant = message(.assistant, estimate: 20)
+        assistant.applyAPIUsage(LLMUsage(promptTokens: nil, completionTokens: nil, totalTokens: 75))
+        let stats = TokenStatistics.compute(from: [
+            message(.user, estimate: 10), assistant,
+            message(.assistant, estimate: 20, prompt: 40, completion: 10),
+        ])
+        XCTAssertEqual(stats.billedTotalTokens, 125)
+        XCTAssertEqual(stats.billedInputTokens, 40)
+        XCTAssertEqual(stats.billedOutputTokens, 10)
+        XCTAssertEqual(stats.averageOutputPerTurn, 10)
+        XCTAssertEqual(stats.turnsWithUsage, 2)
+        XCTAssertFalse(stats.hasEstimatedUsage)
+    }
+
+    func testResolveBreakdownPerRequestBeforeAddingContinuations() {
+        let assistant = message(.assistant, estimate: 20)
+        let totalOnly = LLMUsage(promptTokens: nil, completionTokens: nil, totalTokens: 75)
+        let inputOnly = LLMUsage(promptTokens: 6, completionTokens: nil, totalTokens: 10)
+        let outputOnly = LLMUsage(promptTokens: nil, completionTokens: 0, totalTokens: 12)
+        let noTotal = LLMUsage(promptTokens: 50, completionTokens: 10, totalTokens: nil)
+        assistant.applyAPIUsage(noTotal, previousRequests: [totalOnly, inputOnly, outputOnly])
+        let stats = TokenStatistics.compute(from: [assistant])
+
+        XCTAssertEqual(stats.billedInputTokens, 68)
+        XCTAssertEqual(stats.billedOutputTokens, 14)
+        XCTAssertEqual(stats.billedTotalTokens, 157)
+        XCTAssertEqual(stats.assistantTokens, 20)
+        XCTAssertFalse(stats.hasEstimatedUsage)
+    }
+
     // MARK: - Formatting
 
     func testFormat() {

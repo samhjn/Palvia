@@ -161,17 +161,15 @@ final class SubAgentManager {
             ChatViewModel.stripUnsupportedModalities(from: &messages, capabilities: caps)
 
             let toolDefs = ToolDefinitions.tools(for: subAgent, supportsVision: caps.supportsVision)
-            TokenStatistics.recordPerTurnOverhead(
-                on: session,
-                promptSections: promptSections,
-                systemPrompt: systemPrompt,
-                tools: toolDefs
-            )
 
-            let (response, _) = try await router.chatCompletionWithFailover(
+            let (response, _, capabilities) = try await router.chatCompletionWithFailover(
                 agent: subAgent,
                 messages: messages,
                 tools: toolDefs
+            )
+            TokenStatistics.recordPerTurnOverhead(
+                on: session, promptSections: promptSections, systemPrompt: systemPrompt,
+                tools: capabilities.supportsToolUse ? toolDefs : []
             )
 
             guard !Task.isCancelled else { throw CancellationError() }

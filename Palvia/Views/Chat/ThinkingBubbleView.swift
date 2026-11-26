@@ -79,6 +79,7 @@ struct ThinkingBubbleView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.purple.opacity(0.15), lineWidth: 0.5)
         )
+        .accessibilityElement(children: .contain)
         .onAppear {
             if isStreaming && !hasBeenManuallyToggled {
                 isExpanded = true

@@ -846,7 +846,7 @@ final class ChatViewModel {
         let content: String
         let thinking: String
         let thinkingSignature: String?
-        let usage: LLMUsage?
+        let previousRequests: [LLMUsage?]
         let count: Int
     }
 
@@ -997,18 +997,6 @@ final class ChatViewModel {
 
             let toolDefs = ToolDefinitions.tools(for: agent, supportsVision: supportsVision)
 
-            // Record the per-turn fixed overhead (system prompt + tool schemas)
-            // for token analytics. Estimated here, where both are already built
-            // on the main actor, rather than re-deriving them in the stats path.
-            // The system prompt is also split into its user-authored config and
-            // skills components for attribution.
-            TokenStatistics.recordPerTurnOverhead(
-                on: session,
-                promptSections: promptSections,
-                systemPrompt: systemPrompt,
-                tools: toolDefs
-            )
-
             var fullContent = continuation?.content ?? ""
             var fullThinking = continuation?.thinking ?? ""
             var thinkingSignature: String? = continuation?.thinkingSignature
@@ -1016,14 +1004,7 @@ final class ChatViewModel {
             var requestUsage: LLMUsage?
             var finishReason: StreamFinishReason?
 
-            func combinedRequestUsage() -> LLMUsage? {
-                switch (continuation?.usage, requestUsage) {
-                case let (existing?, latest?): return existing.adding(latest)
-                case let (existing?, nil): return existing
-                case let (nil, latest?): return latest
-                case (nil, nil): return nil
-                }
-            }
+            let previousRequests = continuation?.previousRequests ?? []
 
             if continuation != nil {
                 streamingContent = fullContent
@@ -1031,7 +1012,7 @@ final class ChatViewModel {
                 Self.streamingRelays[session.id]?.send(content: fullContent, thinking: fullThinking)
             }
 
-            let (stream, providerName, _, cancelStream) = try await router.chatCompletionStreamWithFailover(
+            let (stream, providerName, capabilities, cancelStream) = try await router.chatCompletionStreamWithFailover(
                 agent: agent,
                 messages: contextMessages,
                 tools: toolDefs
@@ -1039,6 +1020,10 @@ final class ChatViewModel {
             streamCancelAction = cancelStream
             Self.activeStreamCancels[session.id] = cancelStream
             activeModelName = providerName
+            TokenStatistics.recordPerTurnOverhead(
+                on: session, promptSections: promptSections, systemPrompt: systemPrompt,
+                tools: capabilities.supportsToolUse ? toolDefs : []
+            )
 
             var lastPersistTime = Date.distantPast
 
@@ -1055,7 +1040,7 @@ final class ChatViewModel {
                     }
                     partialMsg.extractAndStoreInlineImages(agentId: agentId)
                     attachPendingToolMedia(to: partialMsg)
-                    Self.applyAPIUsage(combinedRequestUsage(), to: partialMsg)
+                    partialMsg.applyAPIUsage(requestUsage, previousRequests: previousRequests)
                     modelContext.insert(partialMsg)
                     session.messages.append(partialMsg)
                     session.updatedAt = Date()
@@ -1119,7 +1104,7 @@ final class ChatViewModel {
                     }
                     partialMsg.extractAndStoreInlineImages(agentId: agentId)
                     attachPendingToolMedia(to: partialMsg)
-                    Self.applyAPIUsage(combinedRequestUsage(), to: partialMsg)
+                    partialMsg.applyAPIUsage(requestUsage, previousRequests: previousRequests)
                     modelContext.insert(partialMsg)
                     session.messages.append(partialMsg)
                     session.updatedAt = Date()
@@ -1129,8 +1114,6 @@ final class ChatViewModel {
                 canRetry = true
                 return
             }
-
-            let combinedUsage = combinedRequestUsage()
 
             if Self.shouldAutomaticallyContinue(
                 after: finishReason,
@@ -1146,7 +1129,7 @@ final class ChatViewModel {
                     content: fullContent,
                     thinking: fullThinking,
                     thinkingSignature: thinkingSignature,
-                    usage: combinedUsage,
+                    previousRequests: previousRequests + [requestUsage],
                     count: continuationCount
                 ))
                 return
@@ -1182,7 +1165,7 @@ final class ChatViewModel {
                     assistantMsg.recalculateTokenEstimate()
                 }
                 assistantMsg.extractAndStoreInlineImages(agentId: agentId)
-                Self.applyAPIUsage(combinedUsage, to: assistantMsg)
+                assistantMsg.applyAPIUsage(requestUsage, previousRequests: previousRequests)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 try? modelContext.save()
@@ -1198,7 +1181,7 @@ final class ChatViewModel {
                 }
                 assistantMsg.extractAndStoreInlineImages(agentId: agentId)
                 attachPendingToolMedia(to: assistantMsg)
-                Self.applyAPIUsage(combinedUsage, to: assistantMsg)
+                assistantMsg.applyAPIUsage(requestUsage, previousRequests: previousRequests)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 session.updatedAt = Date()
@@ -1207,7 +1190,7 @@ final class ChatViewModel {
             } else if !pendingToolImageAttachments.isEmpty || !pendingToolVideoAttachments.isEmpty {
                 let assistantMsg = Message(role: .assistant, content: nil)
                 attachPendingToolMedia(to: assistantMsg)
-                Self.applyAPIUsage(combinedUsage, to: assistantMsg)
+                assistantMsg.applyAPIUsage(requestUsage, previousRequests: previousRequests)
                 modelContext.insert(assistantMsg)
                 session.messages.append(assistantMsg)
                 session.updatedAt = Date()
@@ -1946,12 +1929,6 @@ final class ChatViewModel {
         let cleaned = regex.stringByReplacingMatches(in: content, range: range, withTemplate: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return (cleaned, thinkingParts.joined(separator: "\n\n"))
-    }
-
-    // MARK: - API Usage
-
-    private static func applyAPIUsage(_ usage: LLMUsage?, to message: Message) {
-        message.applyAPIUsage(usage)
     }
 
     // MARK: - Info

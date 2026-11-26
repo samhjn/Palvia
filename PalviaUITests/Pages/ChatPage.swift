@@ -27,7 +27,8 @@ final class ChatPage {
         // In SwiftUI, views inside LazyVStack with .accessibilityIdentifier
         // typically render as "other" elements within the scroll view's subtree.
         // We scope to scroll views to avoid counting unrelated descendants.
-        app.scrollViews.descendants(matching: .other).matching(identifier: AccessibilityID.Chat.messageBubble)
+        app.scrollViews[AccessibilityID.Chat.messageList].descendants(matching: .other)
+            .matching(NSPredicate(format: "identifier BEGINSWITH %@", AccessibilityID.Chat.messageBubblePrefix))
     }
 
     var scrollToBottomButton: XCUIElement {
